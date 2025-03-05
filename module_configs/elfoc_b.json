@@ -1,0 +1,178 @@
+{
+  "device_type": "RTU5025",
+  "commands": [
+    {
+      "name": "Начало работы",
+      "template": "{pwd}TEL8{local_phone}",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Номер установленной в устройстве SIM-карты",
+          "key": "local_phone",
+          "validation": "^\\d{10}$",
+          "example": "9854500040"
+        }
+      ],
+      "example": "1234TEL89854500040"
+    },
+
+    {
+      "name": "Смена пароля",
+      "template": "{pwd}P{newpwd}",
+      "params": [
+        {
+          "name": "Текущий пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Новый пароль",
+          "key": "newpwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        }
+      ],
+      "example": "1234P5678"
+    },
+
+    {
+      "name": "Добавить номер телефона",
+      "template": "{pwd}A{index}#8{phone}#",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Серийный номер — положение номера в списке (от 001 до 999).",
+          "key": "index",
+          "validation": "^\\d{3}$",
+          "example": "003"
+        },
+        {
+          "name": "Номер телефона",
+          "key": "phone",
+          "validation": "^\\d{10}$",
+          "example": "9854500040"
+        }
+      ],
+      "example": "1234A003#89854500040#"
+    },
+
+    {
+      "name": "Добавить номер телефона на ограниченное время",
+      "template": "{pwd}A{index}#8{phone}#{start}#{end}",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Серийный номер — положение номера в списке (от 001 до 999).",
+          "key": "index",
+          "validation": "^\\d{3}$",
+          "example": "003"
+        },
+        {
+          "name": "Номер телефона",
+          "key": "phone",
+          "validation": "^\\d{10}$",
+          "example": "9854500040"
+        },
+        {
+          "name": "Время начала в формате ГГГГММДДЧЧММ",
+          "key": "start",
+          "validation": "^(\\d{4})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])(0[0-9]|1[0-9]|2[0-3])([0-5]\\d)$",
+          "example": "202010041432"
+        },
+        {
+          "name": "Время окончания в формате ГГГГММДДЧЧММ",
+          "key": "end",
+          "validation": "^(\\d{4})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])(0[0-9]|1[0-9]|2[0-3])([0-5]\\d)$",
+          "example": "202010051230"
+        }
+      ],
+      "example": "1234A003#89854500040##202010041432#202010051230"
+    },
+
+    {
+      "name": "Запрос номера в списке",
+      "template": "{pwd}A{index}#",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Серийный номер — положение номера в списке (от 001 до 999).",
+          "key": "index",
+          "validation": "^\\d{3}$",
+          "example": "003"
+        }
+      ],
+      "example": "1234A003#"
+    },
+
+    {
+      "name": "Запрос нескольких номеров в списке",
+      "template": "{pwd}AL{start_index}#{end_index}#",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Начальный серийный номер ",
+          "key": "start_index",
+          "validation": "^\\d{3}$",
+          "example": "003"
+        },
+        {
+          "name": "Конечный серийный номер",
+          "key": "end_index",
+          "validation": "^\\d{3}$",
+          "example": "050"
+        }
+      ],
+      "example": "1234AL003#050#"
+    },
+
+    {
+      "name": "Удалить номер телефона",
+      "template": "{pwd}A{index}##",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Серийный номер",
+          "key": "index",
+          "validation": "^\\d{3}$",
+          "example": "003"
+        }
+      ],
+      "example": "1234A003##"
+    },
+
+    {
+      "name": "6.3.1"
+    }
+  ]
+}

@@ -1,0 +1,288 @@
+{
+  "device_type": "RTU5025",
+  "commands": [
+    {
+      "name": "Начало работы",
+      "template": "{pwd}TEL0007{local_phone}",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Номер установленной в устройстве SIM-карты",
+          "key": "local_phone",
+          "validation": "^\\d{10}$",
+          "example": "9854500040"
+        }
+      ],
+      "example": "1234TEL00079854500040"
+    },
+    {
+      "name": "Смена пароля",
+      "template": "{pwd}P{newpwd}",
+      "params": [
+        {
+          "name": "Текущий пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Новый пароль",
+          "key": "newpwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        }
+      ],
+      "example": "1234P5678"
+    },
+    {
+      "name": "Добавить номер телефона",
+      "template": "{pwd}A{index}#0007{phone}#",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Серийный номер — положение номера в списке (от 001 до 999).",
+          "key": "index",
+          "validation": "^\\d{3}$",
+          "example": "003"
+        },
+        {
+          "name": "Номер телефона",
+          "key": "phone",
+          "validation": "^\\d{10}$",
+          "example": "9854500040"
+        }
+      ],
+      "example": "1234A003#00079854500040#"
+    },
+    {
+      "name": "Добавить номер телефона на ограниченное время",
+      "template": "{pwd}A{index}#0007{phone}#{start}#{end}",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Серийный номер — положение номера в списке (от 001 до 999).",
+          "key": "index",
+          "validation": "^\\d{3}$",
+          "example": "003"
+        },
+        {
+          "name": "Номер телефона",
+          "key": "phone",
+          "validation": "^\\d{10}$",
+          "example": "9854500040"
+        },
+        {
+          "name": "Время начала в формате ГГММДДЧЧММ",
+          "key": "start",
+          "validation": "^(\\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])(0[0-9]|1[0-9]|2[0-3])([0-5]\\d)$",
+          "example": "1502050800"
+        },
+        {
+          "name": "Время окончания в формате ГГММДДЧЧММ",
+          "key": "end",
+          "validation": "^(\\d{2})(0[1-9]|1[0-2])(0[1-9]|[12]\\d|3[01])(0[0-9]|1[0-9]|2[0-3])([0-5]\\d)$",
+          "example": "1502051000"
+        }
+      ],
+      "example": "1234A003#00079854500040#1502050800#1502051000"
+    },
+    {
+      "name": "Запрос номера в списке",
+      "template": "{pwd}A{index}#",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Серийный номер — положение номера в списке (от 001 до 999).",
+          "key": "index",
+          "validation": "^\\d{3}$",
+          "example": "003"
+        }
+      ],
+      "example": "1234A003#"
+    },
+    {
+      "name": "Запрос нескольких номеров в списке",
+      "template": "{pwd}AL{start_index}#{end_index}#",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Начальный серийный номер ",
+          "key": "start_index",
+          "validation": "^\\d{3}$",
+          "example": "003"
+        },
+        {
+          "name": "Конечный серийный номер",
+          "key": "end_index",
+          "validation": "^\\d{3}$",
+          "example": "050"
+        }
+      ],
+      "example": "1234AL003#050#"
+    },
+    {
+      "name": "Удалить номер телефона",
+      "template": "{pwd}A{index}##",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Серийный номер",
+          "key": "index",
+          "validation": "^\\d{3}$",
+          "example": "003"
+        }
+      ],
+      "example": "1234A003##"
+    },
+    {
+      "name": "Управление по звонку с любого номера",
+      "template": "{pwd}ALL#",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        }
+      ],
+      "example": "1234ALL#"
+    },
+    {
+      "name": "Управление по звонку только с разрешенных номеров",
+      "template": "{pwd}AUT#",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        }
+      ],
+      "example": "1234AUT#"
+    },
+    {
+      "name": "Сколько времени держать закрытым после звонка от 000 до 999 в секундах",
+      "template": "{pwd}GOT{time}#",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "Время до открытия в секундах",
+          "key": "time",
+          "validation": "^\\d{3}$",
+          "example": "030"
+        }
+      ],
+      "example": "1234GOT030#"
+    },
+    {
+      "name": "Включить сообщения об изменении состояния",
+      "template": "{pwd}G{condition}{who}{msg}#",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "На какое состояние нужны сообщения? ON - на закрытое, OFF на открытое",
+          "key": "condition",
+          "validation": "^(ON|OFF)$",
+          "example": "ON"
+        },
+        {
+          "name": "Кому отправлять сообщения? Две цифры, первая говорит отправлять ли первому номеру в таблице, вторая говорит отправлять ли тому кто позвонил. 0 это не отправлять, 1 это отправлять",
+          "key": "who",
+          "validation": "^[01]{2}$",
+          "example": "11"
+        },
+        {
+          "name": "Какое сообщение отправлять",
+          "key": "msg",
+          "example": "Door Open"
+        }
+      ],
+      "example": "1234GON11#Door Open##"
+    },
+    {
+      "name": "Отключить сообщения об изменении состояния",
+      "template": "{pwd}G{condition}##",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        },
+        {
+          "name": "На какое состояние нужны сообщения? ON - на закрытое, OFF на открытое",
+          "key": "condition",
+          "validation": "^(ON|OFF)$",
+          "example": "ON"
+        }
+      ],
+      "example": "1234GON##"
+    },
+    {
+      "name": "Открыть шлагбаум",
+      "template": "{pwd}DD",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        }
+      ],
+      "example": "1234DD"
+    },
+    {
+      "name": "Закрыть шлагбаум",
+      "template": "{pwd}CC",
+      "params": [
+        {
+          "name": "Пароль",
+          "key": "pwd",
+          "validation": "^\\d{4}$",
+          "example": "1234"
+        }
+      ],
+      "example": "1234CC"
+    }
+  ]
+}

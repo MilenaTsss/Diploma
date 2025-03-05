@@ -1,0 +1,3027 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Платформа для удаленного управления системой контроля доступа шлагбаумов.",
+    "description": "Спецификация API для системы контроля доступа шлагбаумов.",
+    "version": "1.0.0"
+  },
+  "externalDocs": {
+    "description": "Диаграмма базы данных",
+    "url": "https://dbdiagram.io/d/Diploma-DB-673e9c25e9daa85aca2ed394"
+  },
+  "paths": {
+    "/auth/codes/": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Отправка кода подтверждения в SMS.",
+        "description": "Отправляет одноразовый код подтверждения на указанный номер телефона.\n\nКод будет действовать в течение 5 минут.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+7\\d{10}$",
+                    "description": "Номер телефона в формате `+7XXXXXXXXXX`.",
+                    "example": "+79991234567"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "login",
+                      "change_phone",
+                      "change_password",
+                      "reset_password",
+                      "delete_account"
+                    ],
+                    "description": "Определяет цель отправки SMS-кода.",
+                    "example": "login"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Код успешно отправлен."
+          },
+          "400": {
+            "description": "Некорректные параметры запроса. Некорректный формат номера телефона."
+          },
+          "409": {
+            "description": "Код уже отправлен. Попробуйте позже."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Подтверждение кода из SMS.",
+        "description": "Проверяет код подтверждения, отправленный на номер телефона.\n\nЕсли код верный, обновляет его статус на `verified`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+7\\d{10}$",
+                    "description": "Номер телефона в формате `+7XXXXXXXXXX`.",
+                    "example": "+79991234567"
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^\\d{6}$",
+                    "description": "Код подтверждения из SMS.",
+                    "example": "123456"
+                  },
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "login",
+                      "change_phone_old",
+                      "change_phone_new",
+                      "change_password",
+                      "reset_password",
+                      "delete_account"
+                    ],
+                    "description": "Определяет цель проверки кода.",
+                    "example": "login"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Код успешно подтвержден.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "verified"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса. Некорректный формат кода подтверждения."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Пользователь заблокирован. Или Некорректный код подтверждения."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/auth/login/": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Авторизация по SMS-коду.",
+        "description": "Авторизации пользователя после отправки кода подтверждения.\n\nПараметры включают номер телефона и код, полученный на телефон. \n\nВ ответ возвращается токен авторизации, который будет сохранен на стороне клиента.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+7\\d{10}$",
+                    "description": "Номер телефона в формате `+7XXXXXXXXXX`.",
+                    "example": "+79991234567"
+                  },
+                  "code": {
+                    "type": "string",
+                    "pattern": "^\\d{6}$",
+                    "description": "Код подтверждения (6 цифр).",
+                    "example": "123456"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешная авторизация",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access_token": {
+                      "type": "string",
+                      "description": "`JWT` токен для авторизации. Передается в заголовке `Authorization`.",
+                      "example": "64b1c7e8-4e12-47c5-9dfd-7a6b7699c582"
+                    },
+                    "refresh_token": {
+                      "type": "string",
+                      "description": "`JWT` токен обновления, который позволяет получить новый `access_token` после его истечения.",
+                      "example": "d3a46c5a-bc3f-4e28-91b8-7cbf4799c832"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса. Некорректный формат номера телефона или кода подтверждения."
+          },
+          "403": {
+            "description": "Доступ запрещен. Пользователь заблокирован."
+          },
+          "404": {
+            "description": "Токен подтверждения не был найден или неверный код подтверждения."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/auth/admin/password_verification/": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Проверка пароля перед авторизацией администратора.",
+        "description": "Проверяет введенный пароль администратора перед входом по коду.\n\n Если пароль верен, сервер разрешает отправку SMS-кода для входа.\n\n",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+7\\d{10}$",
+                    "description": "Номер телефона администратора.",
+                    "example": "+79991234567"
+                  },
+                  "password": {
+                    "type": "string",
+                    "description": "Пароль администратора.",
+                    "example": "SecurePassword123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Пароль подтвержден."
+          },
+          "400": {
+            "description": "Некорректные параметры запроса. Некорректный формат номера телефона или пароля."
+          },
+          "403": {
+            "description": "Доступ запрещен. Неверный пароль."
+          },
+          "429": {
+            "description": "Слишком много попыток. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/users/me/": {
+      "get": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Получить информацию о текущем пользователе.",
+        "description": "Возвращает данные текущего авторизованного пользователя. \n\nДоступно только после успешной авторизации с использованием `Bearer` токена в заголовке запроса.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Профиль пользователя получен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Пользователь заблокирован."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Редактирование профиля пользователя.",
+        "description": "Позволяет пользователям изменить свое имя (`full_name`).\n\nАдминистраторы также могут изменять настройки приватности номера (`phone_privacy`).",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "full_name": {
+                    "type": "string",
+                    "description": "Новое имя пользователя.",
+                    "example": "Петров Петр"
+                  },
+                  "phone_privacy": {
+                    "type": "string",
+                    "enum": [
+                      "public",
+                      "private",
+                      "protected"
+                    ],
+                    "description": "Настройки приватности номера (только для администраторов).",
+                    "example": "public",
+                    "default": "private"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Данные профиля успешно обновлены.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Пользователь заблокирован."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Удаление аккаунта текущего пользователя.",
+        "description": "Позволяет пользователю самостоятельно удалить свой аккаунт. Требует авторизации (`Bearer Token`). Также требует подтверждение по SMS.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Аккаунт успешно удален."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Удаление запрещено."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/users/me/phone/": {
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Cмена номера телефона.",
+        "description": "Сервер проверяет, что коды на старый и новый номер были подтверждены перед обновлением номера телефона.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "new_phone": {
+                    "type": "string",
+                    "pattern": "^\\+7\\d{10}$",
+                    "description": "Новый номер телефона для смены в формате `+7XXXXXXXXXX`",
+                    "example": "+79991234567"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Номер телефона успешно изменен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса. Некорректный формат номера телефона."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Номера телефона не подтверждены."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/users/me/password/": {
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Смена пароля (только для администраторов).",
+        "description": "Позволяет администратору сменить пароль.\n\nПеред этим необходимо отправить код и подтвердить его через `/auth/codes/`.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "old_password": {
+                    "type": "string",
+                    "pattern": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,64}$",
+                    "description": "Текущий пароль.",
+                    "example": "OLDSecurePassword1"
+                  },
+                  "new_password": {
+                    "type": "string",
+                    "pattern": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,64}$",
+                    "description": "Новый пароль (должен содержать минимум 8 символов, хотя бы 1 букву и 1 цифру).",
+                    "example": "NewSecurePassword123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Пароль успешно изменен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса. Некорректный формат нового пароля."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Действие не подтверждено."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/users/me/password/reset/": {
+      "patch": {
+        "tags": [
+          "User"
+        ],
+        "summary": "Восстановление пароля (по SMS-коду).",
+        "description": "Позволяет пользователю восстановить пароль после подтверждения номера через SMS. Перед этим запросом необходимо подтверить смену по SMS.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "new_password": {
+                    "type": "string",
+                    "pattern": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,64}$",
+                    "description": "Новый пароль (должен содержать минимум 8 символов, хотя бы 1 букву и 1 цифру).",
+                    "example": "NewSecurePassword123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Пароль успешно восстановлен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Пароль успешно изменен."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса. Некорректный формат нового пароля."
+          },
+          "401": {
+            "description": "Токен подтверждения недействителен или истек."
+          },
+          "403": {
+            "description": "Доступ запрещен. Действие не подтверждено."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/users/{user_id}/": {
+      "get": {
+        "tags": [
+          "Admin. Users."
+        ],
+        "summary": "Получение информации о пользователе (только для администраторов).",
+        "description": "Позволяет администраторам просматривать данные любого пользователя по его `id`.\n\n Требуется `Bearer` токен в заголовке запроса.\n\nДоступ разрешен только администраторам.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "Уникальный идентификатор пользователя."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Профиль пользователя получен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `user_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "404": {
+            "description": "Пользователь с указанным `id` не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/users/{user_id}/block/": {
+      "patch": {
+        "tags": [
+          "Admin. Users."
+        ],
+        "summary": "Блокировка пользователя (только для администраторов).",
+        "description": "Позволяет администратору заблокировать пользователя, запретив ему вход в систему.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "Уникальный идентификатор пользователя."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "description": "Причина блокировки.",
+                    "example": "Спам"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно заблокирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `user_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "404": {
+            "description": "Пользователь с указанным `id` не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/users/search/": {
+      "post": {
+        "tags": [
+          "Admin. Users."
+        ],
+        "summary": "Поиск пользователя по номеру телефона (только для администраторов).",
+        "description": "Позволяет администратору искать пользователя по номеру телефона.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+7\\d{10}$",
+                    "description": "Номер телефона пользователя в формате `+7XXXXXXXXXX`.",
+                    "example": "+79991234567"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Пользователь найден.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса. Некорректный формат номера телефона."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "404": {
+            "description": "Пользователь с таким номером телефона не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/": {
+      "get": {
+        "tags": [
+          "Barriers"
+        ],
+        "summary": "Получение списка всех шлагбаумов (поиск, фильтрация, пагинация).",
+        "description": "Позволяет получить список всех зарегистрированных шлагбаумов.\n\nМожно использовать фильтрацию по адресу, поддерживает пагинацию.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "street_address",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "example": "Манежная площадь"
+            },
+            "description": "Поиск по части адреса."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            },
+            "description": "Номер страницы (для пагинации)."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "example": 10
+            },
+            "description": "Количество элементов на странице."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список шлагбаумов с фильтрацией и пагинацией.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_count": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "page_size": {
+                      "type": "integer",
+                      "example": 10
+                    },
+                    "barriers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Barrier"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin. Barriers."
+        ],
+        "summary": "Создание нового шлагбаума (только для администраторов).",
+        "description": "Позволяет администратору создать новый шлагбаум, указав все необходимые параметры.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "description": "Адрес шлагбаума.",
+                    "example": "Манежная площадь, 1, Москва"
+                  },
+                  "device_phone_number": {
+                    "type": "string",
+                    "description": "Номер телефона устройства управления шлагбаумом.",
+                    "example": "+79991234567"
+                  },
+                  "device_model": {
+                    "type": "string",
+                    "enum": [
+                      "rtu5024",
+                      "rtu5025",
+                      "telemetrica"
+                    ],
+                    "description": "Модель GSM модуля.",
+                    "example": "rtu5025"
+                  },
+                  "device_phones_amount": {
+                    "type": "integer",
+                    "description": "Количество номеров, поддерживаемых устройством.",
+                    "example": 999
+                  },
+                  "password": {
+                    "type": "integer",
+                    "description": "Пароль от устройства, если устройство его требует. Обычно состоит из 4 цифр.",
+                    "example": 1234
+                  },
+                  "contact_phone": {
+                    "type": "string",
+                    "description": "Contact phone number for user inquiries.",
+                    "example": "+79991234567"
+                  },
+                  "additional_info": {
+                    "type": "string",
+                    "description": "Дополнительная информация о шлагбауме.",
+                    "example": "Время работы администратора: По будням с 10 до 18."
+                  },
+                  "is_public": {
+                    "type": "boolean",
+                    "description": "Можно ли найти шлагбаум в системе через поиск.",
+                    "example": true
+                  },
+                  "limits": {
+                    "$ref": "#/components/schemas/BarrierLimits"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Шлагбаум успешно создан.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Barrier"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/my/": {
+      "get": {
+        "tags": [
+          "Barriers"
+        ],
+        "summary": "Получение списка шлагбаумов, доступных пользователю.",
+        "description": "Список шлагбаумов, к которым у пользователя есть доступ.\n\nЕсли администратор делает этот запрос, он видит только те шлагбаумы, в которых он добавлен, как обычный пользователь.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            },
+            "description": "Номер страницы (для пагинации)."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "example": 10
+            },
+            "description": "Количество элементов на странице."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список доступных шлагбаумов.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_count": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "page_size": {
+                      "type": "integer",
+                      "example": 10
+                    },
+                    "barriers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Barrier"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/admin/": {
+      "get": {
+        "tags": [
+          "Admin. Barriers."
+        ],
+        "summary": "Получение списка шлагбаумов, которыми управляет администратор.",
+        "description": "Возвращает список всех шлагбаумов, которыми управляет текущий администратор.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            },
+            "description": "Номер страницы (для пагинации)."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "example": 10
+            },
+            "description": "Количество элементов на странице."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список шлагбаумов, которыми управляет администратор.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_count": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "page_size": {
+                      "type": "integer",
+                      "example": 10
+                    },
+                    "barriers": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Barrier"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/{barrier_id}/": {
+      "get": {
+        "tags": [
+          "Barriers"
+        ],
+        "summary": "Получение информации о шлагбауме.",
+        "description": "Возвращает полную информацию о шлагбауме по его `ID`.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "Уникальный идентификатор шлагбаума."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Детальная информация о шлагбауме.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Barrier"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `barrier_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет доступа к данному шлагбауму."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin. Barriers."
+        ],
+        "summary": "Удаление шлагбаума (только для администраторов).",
+        "description": "Удаление шлагбаума полностью из системы. Только для администратора.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` удаляемого шлагбаума."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Шлагбаум успешно удален."
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `barrier_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin. Barriers."
+        ],
+        "summary": "Редактирование шлагбаума (только для администраторов).",
+        "description": "Позволяет администратору обновить информацию о шлагбауме, включая адрес, телефон устройства, настройки приватности.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума для обновления."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "additional_info": {
+                    "type": "string",
+                    "description": "Дополнительная информация о шлагбауме.",
+                    "example": "Время работы администратора: По выходным с 12 до 18."
+                  },
+                  "is_public": {
+                    "type": "boolean",
+                    "description": "Определяет, можно ли найти шлагбаум через поиск в системе.",
+                    "example": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Шлагбаум успешно обновлен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Barrier"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `barrier_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет прав для редактирования данного шлагбаума."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/{barrier_id}/limits/": {
+      "get": {
+        "tags": [
+          "Limits"
+        ],
+        "summary": "Получение всех лимитов шлагбаума.",
+        "description": "Возвращает объект с установленными лимитами. Если лимит не установлен, поле отсутствует.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список лимитов получен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BarrierLimitsWithId"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `barrier_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Limits"
+        ],
+        "summary": "Обновление или установка лимитов шлагбаума (только для администраторов).",
+        "description": "Позволяет установить новые лимиты или обновить существующие.\n\nМожно передавать только один или несколько лимитов, остальные останутся без изменений.\n\nЕсли передать `null`, лимит будет удален.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BarrierLimits"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Лимиты обновлены.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BarrierLimitsWithId"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `barrier_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет прав на изменение лимитов."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/{barrier_id}/settings/": {
+      "get": {
+        "tags": [
+          "Admin. Barriers."
+        ],
+        "summary": "Получение списка доступных настроек для шлагбаума (только для администраторов).",
+        "description": "Возвращает список возможных настроек для данного шлагбаума в зависимости от его модели.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список доступных настроек получен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "settings": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string",
+                            "description": "Название настройки.",
+                            "example": "Сколько времени держать закрытым после звонка от 000 до 999 в секундах"
+                          },
+                          "key": {
+                            "type": "string",
+                            "description": "Ключ настройки.",
+                            "example": "opening_duration"
+                          },
+                          "description": {
+                            "type": "string",
+                            "description": "Дополнительное описание настройки.",
+                            "example": "Задает время, в течение которого шлагбаум остается закрытым (в секундах)."
+                          },
+                          "params": {
+                            "type": "array",
+                            "description": "Список параметров, необходимых для этой настройки.",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "name": {
+                                  "type": "string",
+                                  "description": "Название параметра.",
+                                  "example": "Время (сек)"
+                                },
+                                "key": {
+                                  "type": "string",
+                                  "description": "Ключ параметра.",
+                                  "example": "duration"
+                                },
+                                "example": {
+                                  "type": "string",
+                                  "description": "Пример значения.",
+                                  "example": "15"
+                                },
+                                "description": {
+                                  "type": "string",
+                                  "description": "Дополнительное описание параметра.",
+                                  "example": "Задает длительность в секундах."
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `barrier_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет доступа к данному шлагбауму."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Admin. Barriers."
+        ],
+        "summary": "Изменение настроек шлагбаума (только для администраторов).",
+        "description": "Позволяет администратору изменить одну или несколько настроек шлагбаума. Сервер проверяет валидность переданных параметров перед отправкой команды.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "description": "Список изменяемых настроек.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "key": {
+                      "type": "string",
+                      "description": "Ключ настройки.",
+                      "example": "opening_duration"
+                    },
+                    "params": {
+                      "type": "array",
+                      "description": "Список параметров для изменения.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "key": {
+                            "type": "string",
+                            "description": "Ключ параметра.",
+                            "example": "duration"
+                          },
+                          "value": {
+                            "type": "string",
+                            "description": "Новое значение параметра.",
+                            "example": "15"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Запрос на изменение настроек успешно отправлен."
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `barrier_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет прав для редактирования данного шлагбаума."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/access_requests/": {
+      "get": {
+        "tags": [
+          "Access Requests"
+        ],
+        "summary": "Просмотр всех заявок.",
+        "description": "Позволяет фильтровать заявки по входящим/исходящим, статусу, шлагбауму, скрытию и поддерживает пагинацию.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "incoming",
+                "outgoing"
+              ]
+            },
+            "description": "Фильтр по типу заявок: `incoming` - входящие (те, которые можно принять/отклонить), `outgoing` - исходящие (те, которые отправил текущий пользователь)."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "approved",
+                "rejected",
+                "cancelled"
+              ]
+            },
+            "description": "Фильтр по статусу заявки."
+          },
+          {
+            "name": "barrier_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "`ID` шлагбаума."
+          },
+          {
+            "name": "hidden",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Фильтр по скрытым заявкам (`true` - скрытые, `false` - только видимые). По умолчанию показываются только видимые."
+          },
+          {
+            "name": "as_admin",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Фильтр режима просмотра: `true` - администратор просматривает заявки в свои шлагбаумы, false - просматривает свои личные запросы как пользователь."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            },
+            "description": "Номер страницы (для пагинации)."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "example": 10
+            },
+            "description": "Количество элементов на странице."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список заявок получен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_count": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "page_size": {
+                      "type": "integer",
+                      "example": 10
+                    },
+                    "requests": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AccessRequests"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Access Requests"
+        ],
+        "summary": "Отправка запроса на доступ.",
+        "description": "Позволяет пользователю отправить запрос на доступ к шлагбауму или администратору пригласить пользователя.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_id": {
+                    "type": "integer",
+                    "description": "`ID` пользователя.",
+                    "example": 42
+                  },
+                  "barrier_id": {
+                    "type": "integer",
+                    "description": "`ID` шлагбаума.",
+                    "example": 42
+                  },
+                  "request_type": {
+                    "type": "string",
+                    "enum": [
+                      "from_user",
+                      "from_barrier"
+                    ],
+                    "description": "Кто отправляет запрос: `from_user` - пользователь, `from_barrier` - администратор.",
+                    "example": "from_user"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Запрос успешно создан.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequests"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет прав на отправку такого запроса."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "409": {
+            "description": "Такой запрос уже существует."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/access_requests/{request_id}/": {
+      "patch": {
+        "tags": [
+          "Access Requests"
+        ],
+        "summary": "Обновление заявки на доступ.",
+        "description": "Позволяет принять, отклонить или отменить запрос. \n\nЕсли `status` = `cancelled`, запрос отменяет отправитель. Если `status` = `approved` или `rejected`, это делает получатель запроса.\n\nТакже позволяет скрыть запрос у пользователя и у администратора.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` запроса."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "approved",
+                      "rejected",
+                      "cancelled"
+                    ],
+                    "description": "Новый статус заявки."
+                  },
+                  "hidden_for_user": {
+                    "type": "boolean",
+                    "description": "Скрыть заявку для пользователя."
+                  },
+                  "hidden_for_admin": {
+                    "type": "boolean",
+                    "description": "Скрыть заявку для администратора."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Заявка обновлена.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequests"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `request_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет прав на изменение."
+          },
+          "404": {
+            "description": "Запрос с указанным `id` не найден."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/{barrier_id}/users/": {
+      "get": {
+        "tags": [
+          "Barriers. Users."
+        ],
+        "summary": "Получение списка пользователей шлагбаума (только для администраторов).",
+        "description": "Позволяет администратору получить список пользователей, имеющих доступ к шлагбауму.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            },
+            "description": "Номер страницы для пагинации."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "example": 10
+            },
+            "description": "Количество пользователей на странице."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список пользователей шлагбаума.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_count": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "page_size": {
+                      "type": "integer",
+                      "example": 10
+                    },
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/User"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `barrier_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "404": {
+            "description": "Шлагбаум не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/{barrier_id}/users/{user_id}/": {
+      "delete": {
+        "tags": [
+          "Barriers. Users."
+        ],
+        "summary": "Удаление пользователя из шлагбаума (админ).",
+        "description": "Позволяет администратору удалить пользователя из группы доступа к шлагбауму.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` пользователя."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно удален из шлагбаума."
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "404": {
+            "description": "Шлагбаум или пользователь не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/{barrier_id}/leave/": {
+      "delete": {
+        "tags": [
+          "Barriers. Users."
+        ],
+        "summary": "Пользователь выходит из шлагбаума.",
+        "description": "Позволяет текущему пользователю покинуть группу доступа к шлагбауму.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно вышел из шлагбаума."
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Пользователь не имеет доступа к этому шлагбауму."
+          },
+          "404": {
+            "description": "Шлагбаум не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/{barrier_id}/users/{user_id}/phones/": {
+      "get": {
+        "tags": [
+          "Phones"
+        ],
+        "summary": "Получение списка номеров пользователя в шлагбауме.",
+        "description": "Позволяет пользователю получить свои номера в шлагбауме, а администратору – номера любого пользователя.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` пользователя, чьи номера получаем."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            },
+            "description": "Номер страницы для пагинации."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "example": 10
+            },
+            "description": "Количество пользователей на странице."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список номеров пользователя в шлагбауме.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_count": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "page_size": {
+                      "type": "integer",
+                      "example": 10
+                    },
+                    "phones": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Phones"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен."
+          },
+          "404": {
+            "description": "Шлагбаум или пользователь не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Phones"
+        ],
+        "summary": "Добавление номера пользователю в шлагбауме.",
+        "description": "Пользователь добавляет свой номер, администратор добавляет номер другому пользователю.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` пользователя."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+7\\d{10}$",
+                    "description": "Номер телефона в формате `+7XXXXXXXXXX`",
+                    "example": "+79991234567"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Название номера.",
+                    "example": "Гость Иван"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "permanent",
+                      "temporary",
+                      "schedule"
+                    ],
+                    "description": "Тип номера (постоянный, временный, по расписанию).",
+                    "example": "temporary"
+                  },
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Дата и время начала действия (только для временных номеров).",
+                    "example": "2024-06-01T10:00:00Z"
+                  },
+                  "end_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "Дата и время окончания действия (только для временных номеров).",
+                    "example": "2024-06-01T18:00:00Z"
+                  },
+                  "schedule": {
+                    "$ref": "#/components/schemas/Schedule"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Номер добавлен пользователю.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Phones"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен."
+          },
+          "404": {
+            "description": "Шлагбаум или пользователь не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/{barrier_id}/users/{user_id}/phones/{phone_id}/": {
+      "patch": {
+        "tags": [
+          "Phones"
+        ],
+        "summary": "Изменение номера пользователя в шлагбауме.",
+        "description": "Изменение имени, типа или времени действия номера (для временных номеров).\n\nИзменения в расписании выполняются с помощью запроса `/barriers/{barrier_id}/users/{user_id}/phones/{phone_id}/schedule/`",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` пользователя."
+          },
+          {
+            "name": "phone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` номера телефона."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Друг Петр"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "static",
+                      "temporary",
+                      "schedule"
+                    ],
+                    "example": "schedule"
+                  },
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-06-01T09:00:00Z"
+                  },
+                  "end_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-06-01T20:00:00Z"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Номер добавлен пользователю.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Phones"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Выбранные изменения невозможно применить."
+          },
+          "404": {
+            "description": "Шлагбаум или пользователь не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Phones"
+        ],
+        "summary": "Удаление номера у пользователя в шлагбауме.",
+        "description": "Пользователь удаляет свой номер, администратор удаляет номер у другого пользователя.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` пользователя."
+          },
+          {
+            "name": "phone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` номера телефона."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Номер удален."
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет доступа."
+          },
+          "404": {
+            "description": "Шлагбаум, пользователь или номер не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/{barrier_id}/users/{user_id}/phones/{phone_id}/schedule/": {
+      "get": {
+        "tags": [
+          "Phones"
+        ],
+        "summary": "Получение расписания номера.",
+        "description": "Позволяет получить текущее расписание номера телефона.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` пользователя."
+          },
+          {
+            "name": "phone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` номера телефона."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Текущее расписание номера.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhoneSchedule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен."
+          },
+          "404": {
+            "description": "У номера нет расписания."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Phones"
+        ],
+        "summary": "Изменение расписания номера.",
+        "description": "Позволяет изменить расписание номера телефона, только для телефонов которые работают по расписанию.\n\nМеняются только те значения, которые будут переданы в запросе. \n\nЕсли передать `null`, то расписание на этот день будет удалено.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` пользователя."
+          },
+          {
+            "name": "phone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` номера телефона."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "schedule": {
+                    "$ref": "#/components/schemas/Schedule"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Расписание изменено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PhoneSchedule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Выбранные изменения невозможно применить."
+          },
+          "404": {
+            "description": "Шлагбаум или пользователь не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Уникальный идентификатор пользователя.",
+            "example": 42
+          },
+          "phone": {
+            "type": "string",
+            "pattern": "^\\+7\\d{10}$",
+            "description": "Номер телефона пользователя в формате `+7XXXXXXXXXX`.",
+            "example": "+79991234567"
+          },
+          "full_name": {
+            "type": "string",
+            "description": "Полное имя пользователя.",
+            "example": "Иванов Иван"
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "description": "Роль пользователя в системе.",
+            "example": "admin",
+            "default": "user"
+          },
+          "is_blocked": {
+            "type": "boolean",
+            "description": "Флаг, указывающий, заблокирован ли пользователь.",
+            "default": false
+          },
+          "phone_privacy": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private",
+              "protected"
+            ],
+            "description": "Privacy-настройки номера: `public` — виден всем, `protected` — только для пользователей своих шлагбаумов, `private` — скрыт для всех.",
+            "example": "public",
+            "default": "private"
+          }
+        },
+        "xml": {
+          "name": "user",
+          "wrapped": true
+        }
+      },
+      "Barrier": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 42
+          },
+          "address": {
+            "type": "string",
+            "example": "Манежная площадь, 1, Москва"
+          },
+          "owner_id": {
+            "type": "integer",
+            "example": 42
+          },
+          "device_phone_number": {
+            "type": "string",
+            "example": "+79991234567"
+          },
+          "device_model": {
+            "type": "string",
+            "enum": [
+              "rtu5024",
+              "rtu5025",
+              "telemetrica"
+            ],
+            "example": "rtu5024"
+          },
+          "device_phones_amount": {
+            "type": "integer",
+            "example": 999
+          },
+          "additional_info": {
+            "type": "string",
+            "example": "Время работы администратора: По будням с 10 до 18."
+          },
+          "is_public": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "BarrierLimits": {
+        "type": "object",
+        "description": "Лимиты шлагбаума.",
+        "properties": {
+          "phone_per_user": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Максимальное количество номеров на пользователя.",
+            "example": 10
+          },
+          "temporary_per_user": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Максимальное количество временных номеров на пользователя.",
+            "example": 5
+          },
+          "temporary_all": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Общее количество временных номеров.",
+            "example": 20
+          },
+          "sms_in_week": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Ограничение на количество SMS в неделю.",
+            "example": 50
+          }
+        }
+      },
+      "BarrierLimitsWithId": {
+        "properties": {
+          "barrier_id": {
+            "type": "integer",
+            "description": "`ID` шлагбаума.",
+            "example": 42
+          },
+          "limits": {
+            "$ref": "#/components/schemas/BarrierLimits"
+          }
+        }
+      },
+      "AccessRequests": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 42
+          },
+          "user_id": {
+            "type": "integer",
+            "example": 42
+          },
+          "barrier_id": {
+            "type": "integer",
+            "example": 42
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "incoming",
+              "outgoing"
+            ],
+            "example": "incoming"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected",
+              "cancelled"
+            ],
+            "example": "pending",
+            "default": "pending"
+          },
+          "hidden_for_user": {
+            "type": "boolean",
+            "default": false,
+            "example": false
+          },
+          "hidden_for_admin": {
+            "type": "boolean",
+            "default": false,
+            "example": false
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-12-01T10:00:00Z"
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-12-01T10:00:00Z"
+          }
+        }
+      },
+      "Phones": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 42
+          },
+          "user_id": {
+            "type": "integer",
+            "example": 42
+          },
+          "barrier_id": {
+            "type": "integer",
+            "example": 42
+          },
+          "phone": {
+            "type": "string",
+            "format": "phone",
+            "example": "+79991234567"
+          },
+          "name": {
+            "type": "string",
+            "example": "Guest: Ivanov Ivan"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "permanent",
+              "temporary",
+              "schedule"
+            ],
+            "example": "temporary"
+          },
+          "start_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2024-12-01T10:00:00Z"
+          },
+          "end_time": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "example": "2024-12-02T10:00:00Z"
+          }
+        }
+      },
+      "PhoneSchedule": {
+        "type": "object",
+        "properties": {
+          "phone_id": {
+            "type": "integer",
+            "description": "`ID` номера телефона.",
+            "example": 42
+          },
+          "schedule": {
+            "$ref": "#/components/schemas/Schedule"
+          }
+        }
+      },
+      "Schedule": {
+        "type": "object",
+        "description": "Расписание работы номера.",
+        "properties": {
+          "monday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleInterval"
+            }
+          },
+          "tuesday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleInterval"
+            }
+          },
+          "wednesday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleInterval"
+            }
+          },
+          "thursday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleInterval"
+            }
+          },
+          "friday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleInterval"
+            }
+          },
+          "saturday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleInterval"
+            }
+          },
+          "sunday": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleInterval"
+            }
+          }
+        }
+      },
+      "ScheduleInterval": {
+        "type": "object",
+        "properties": {
+          "start_time": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "description": "Время начала в формате HH:MM.",
+            "example": "08:00"
+          },
+          "end_time": {
+            "type": "string",
+            "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$",
+            "description": "Время окончания в формате HH:MM.",
+            "example": "12:00"
+          }
+        }
+      },
+      "ActionHistory": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 42
+          },
+          "user_id": {
+            "type": "integer",
+            "example": 42
+          },
+          "barrier_id": {
+            "type": "integer",
+            "example": 42
+          },
+          "phone": {
+            "type": "string",
+            "format": "phone",
+            "example": "+79991234567"
+          },
+          "author": {
+            "type": "string",
+            "enum": [
+              "admin",
+              "user"
+            ],
+            "example": "admin"
+          },
+          "action_type": {
+            "type": "string",
+            "enum": [
+              "add_phone",
+              "delete_phone",
+              "edit_phone",
+              "edit_phone_name",
+              "edit_phone_time",
+              "enter_barrier",
+              "quit_barrier",
+              "change_main_number",
+              "device_settings",
+              "get_balance"
+            ],
+            "example": "add_phone"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "success",
+              "failure",
+              "in_progress"
+            ],
+            "example": "success"
+          },
+          "message": {
+            "type": "string",
+            "example": "1234A002##"
+          },
+          "request_data": {
+            "type": "string",
+            "description": "JSON-объект, представленный в виде строки",
+            "example": "{\"Старый номер телефона\": \"+79991234567\"}"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2024-12-01T10:00:00Z"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
