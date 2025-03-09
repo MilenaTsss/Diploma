@@ -1,5 +1,5 @@
 # Use the official Python runtime image
-FROM python:3.11
+FROM python:3.13
 
 # Prevents Python from writing pyc files to disk
 ENV PYTHONDONTWRITEBYTECODE=1
