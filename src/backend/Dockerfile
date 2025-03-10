@@ -1,5 +1,5 @@
 # Use the official Python runtime image
-FROM python:3.13
+FROM python:3.13 AS base
 
 # Prevents Python from writing pyc files to disk
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -18,12 +18,26 @@ COPY requirements.txt  .
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
+# --- Development Stage ---
+FROM base AS development
+
 # Copy the Django project to the container
 COPY . .
 
 # Expose the Django port
 EXPOSE 8000
 
-# Run Django’s server
-# CMD ["sh", "-c", "if [ \"$DJANGO_ENV\" = 'production' ]; then gunicorn --bind 0.0.0.0:8000 backend.wsgi:application; else python manage.py runserver 0.0.0.0:8000; fi"]
-CMD ["sh", "-c", "echo 'Выполняем миграции...'; python manage.py migrate; if [ \"$DJANGO_ENV\" = 'production' ]; then echo 'Запускаем Gunicorn...'; gunicorn --bind 0.0.0.0:8000 backend.wsgi:application; else echo 'Запускаем Django runserver...'; python manage.py runserver 0.0.0.0:8000; fi"]
+# Run Django’s server after applying migrations
+CMD ["sh", "-c", "echo 'Applying migrations...'; python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+
+# --- Production Stage ---
+FROM base AS production
+
+# Copy the Django project to the container
+COPY . .
+
+# Expose the Django port
+EXPOSE 8000
+
+# Run Django’s server using gunicorn
+CMD ["sh", "-c", "echo 'Applying migrations...'; python manage.py migrate && gunicorn --bind 0.0.0.0:8000 backend.wsgi:application"]

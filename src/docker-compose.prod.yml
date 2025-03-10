@@ -2,11 +2,9 @@ services:
   backend:
     build:
       context: ./backend
-      target: development
+      target: production
     container_name: django_backend
     working_dir: /backend_app
-    volumes:
-      - ./backend:/backend_app
     ports:
       - "8000:8000"
     depends_on:
@@ -34,14 +32,11 @@ services:
   frontend:
     build:
       context: ./frontend
-      target: development
+      target: production
     container_name: react_frontend
     working_dir: /frontend_app
-    volumes:
-      - ./frontend:/frontend_app
-      - /frontend_app/node_modules
     ports:
-      - "5173:5173"
+      - "80:80"
     depends_on:
       - backend
     env_file:
