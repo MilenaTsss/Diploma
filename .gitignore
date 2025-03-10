@@ -1,0 +1,10 @@
+.venv
+*.env
+.idea/
+.DS_Store
+*.sqlite3
+__pycache__
+node_modules
+dist
+logs
+*.log
