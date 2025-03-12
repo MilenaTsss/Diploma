@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate
+from django.shortcuts import render
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
@@ -6,6 +7,7 @@ from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from users.models import User, Verification
 from users.serializers import (
@@ -16,6 +18,11 @@ from users.serializers import (
 )
 
 VERIFICATION_CODE_RESEND_DELAY = 60
+
+
+def admin_block_password_change_view(request):
+    """Custom admin view to block password changes via the Django admin panel."""
+    return render(request, "admin/password_change.html", status=status.HTTP_403_FORBIDDEN)
 
 
 @authentication_classes([])
@@ -30,10 +37,18 @@ class SendVerificationCodeView(APIView):
         phone = serializer.validated_data["phone"]
         mode = serializer.validated_data["mode"]
 
-        # Remove all old codes
+        # Check if user with this phone is blocked or not.
+        user = User.objects.filter(phone=phone).first()
+        if user and not user.is_active:
+            return Response(
+                {"error": _("This account is blocked. Contact support for assistance.")},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Remove old codes
         Verification.clean()
 
-        # Count all failed attempts for last 2 hours with given phone and return 429 for too many failed requests
+        # Count all failed attempts for the last 2 hours and return 429 if exceeded
         if Verification.count_failed_attempts(phone) >= 5:
             return Response(
                 {"error": _("Too many verification attempts. Try again later.")},
@@ -47,28 +62,32 @@ class SendVerificationCodeView(APIView):
             )
 
         # Check if a code was sent within the last minutes
-        recent_verification = Verification.get_recent_verification(phone)
+        recent_verification = Verification.get_recent_verification(phone, VERIFICATION_CODE_RESEND_DELAY)
         if recent_verification:
             resend_delay = VERIFICATION_CODE_RESEND_DELAY - (now() - recent_verification.created_at).seconds
-            if resend_delay > 0:
-                return Response(
-                    {"error": _("Verification code was already sent. Try again later."), "retry_after": resend_delay},
-                    status=status.HTTP_429_TOO_MANY_REQUESTS,
-                    headers={"Retry-After": str(resend_delay)},
-                )
+            return Response(
+                {"error": _("Verification code was already sent. Try again later."), "retry_after": resend_delay},
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+                headers={"Retry-After": str(resend_delay)},
+            )
 
-        code = Verification.generate_code()
-        Verification.objects.create(phone=phone, code=code, mode=mode)
+        verification = Verification.create_new_verification(phone, mode)
 
         # TODO!: Here send the code via SMS, REMOVE code from answer
-
-        return Response({"message": _("Verification code sent."), "code": code}, status=status.HTTP_201_CREATED)
+        return Response(
+            {
+                "message": _("Verification code sent."),
+                "verification_token": verification.verification_token,
+                "code": verification.code,
+            },
+            status=status.HTTP_201_CREATED,
+        )
 
 
 @authentication_classes([])
 @permission_classes([AllowAny])
 class VerifyCodeView(APIView):
-    """Verify the code sent to the user's phone."""
+    """Verify the code sent to the user's phone using a verification token."""
 
     def patch(self, request):
         serializer = VerifyCodeSerializer(data=request.data)
@@ -76,40 +95,49 @@ class VerifyCodeView(APIView):
 
         phone = serializer.validated_data["phone"]
         code = serializer.validated_data["code"]
+        verification_token = serializer.validated_data["verification_token"]
 
-        # Remove all old codes
+        # Check if user with this phone is blocked or not.
+        user = User.objects.filter(phone=phone).first()
+        if user and not user.is_active:
+            return Response(
+                {"error": _("This account is blocked. Contact support for assistance.")},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Remove old codes
         Verification.clean()
 
-        # Count all failed attempts for last 2 hours with given phone and return 429 for too many failed requests
+        # Count all failed attempts for the last 2 hours and return 429 if exceeded
         if Verification.count_failed_attempts(phone) >= 5:
             return Response(
                 {"error": _("Too many verification attempts. Try again later.")},
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
-        # Retrieve latest sent code
-        recent_verification = Verification.get_recent_verification(phone)
-        if recent_verification is None or recent_verification.status in [
-            Verification.Status.EXPIRED,
-            Verification.Status.VERIFIED,
-        ]:
-            error_messages = {
-                Verification.Status.EXPIRED: _("This code has expired."),
-                Verification.Status.VERIFIED: _("This code has already been used. Please request a new one."),
-                None: _("No verification codes found."),
-            }
-            return Response(
-                {"error": error_messages[recent_verification.status if recent_verification else None]},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Retrieve verification entry by token
+        verification = Verification.get_verification_by_token(verification_token)
 
-        if recent_verification.code != code:
-            recent_verification.failed_attempts += 1
-            recent_verification.save()
+        error_responses = {
+            None: (_("No verification codes found."), status.HTTP_400_BAD_REQUEST),
+            Verification.Status.VERIFIED: (
+                _("This code has already been used. Please request a new one."),
+                status.HTTP_409_CONFLICT,
+            ),
+            Verification.Status.EXPIRED: (_("This code has expired. Please request a new one."), status.HTTP_410_GONE),
+        }
+
+        if verification is None or verification.status in error_responses:
+            message, response_status = error_responses[verification.status if verification else None]
+            return Response({"error": message}, status=response_status)
+
+        if verification.code != code:
+            verification.failed_attempts += 1
+            verification.save()
             return Response({"error": _("Invalid code.")}, status=status.HTTP_400_BAD_REQUEST)
 
-        recent_verification.status = Verification.Status.VERIFIED
-        recent_verification.save()
+        verification.status = Verification.Status.VERIFIED
+        verification.save()
 
         return Response({"message": _("Code verified successfully.")}, status=status.HTTP_200_OK)
 
@@ -134,33 +162,46 @@ class AdminPasswordVerificationView(APIView):
         return Response({"message": "Password verified successfully."})
 
 
+@authentication_classes([])
+@permission_classes([AllowAny])
 class LoginView(APIView):
-    """Login using phone and verification code."""
+    """Login using phone and verification token."""
 
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         phone = serializer.validated_data["phone"]
-        code = serializer.validated_data["code"]
+        verification_token = serializer.validated_data["verification_token"]
 
-        try:
-            verification = Verification.objects.get(phone=phone, code=code, status=Verification.Status.VERIFIED)
-        except Verification.DoesNotExist:
-            return Response({"error": "Invalid verification code."}, status=status.HTTP_400_BAD_REQUEST)
+        # Find the verification entry
+        verification = Verification.get_verification_by_token(verification_token)
 
-        user, created = User.objects.get_or_create(phone=phone)
+        if not verification or verification.phone != phone or verification.mode != Verification.Mode.LOGIN:
+            return Response(
+                {"error": _("Invalid verification token or phone number.")}, status=status.HTTP_404_NOT_FOUND
+            )
 
+        if verification.status != Verification.Status.VERIFIED:
+            return Response({"error": _("Phone number has not been verified.")}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if user exists, otherwise create a new one
+        user, created = User.objects.get_or_create(phone=phone, defaults={"is_active": True})
+
+        if not user.is_active:
+            return Response(
+                {"error": _("This account is blocked. Contact support for assistance.")},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+
         return Response(
             {
-                "access": str(refresh.access_token),
-                "refresh": str(refresh),
-            }
+                "access_token": access_token,
+                "refresh_token": str(refresh),
+            },
+            status=status.HTTP_200_OK,
         )
-
-
-# class CreateUserView(generics.CreateAPIView):
-#     queryset = User.objects.all()
-#     serializer_class = UserSerializer
-#     permission_classes = [AllowAny]

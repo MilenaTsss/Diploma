@@ -18,7 +18,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from users.views import admin_block_password_change_view
+
 urlpatterns = [
+    path("admin/password_change/", admin_block_password_change_view),
     path('admin/', admin.site.urls),
     path("api/", include("users.urls")),
 ]

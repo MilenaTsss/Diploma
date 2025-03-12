@@ -8,8 +8,13 @@ from django.db import models
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
-from users.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH, VERIFICATION_CODE_MAX_LENGTH
-from users.validators import PhoneNumberValidator, VerificationCodeValidator
+from users.constants import (
+    CHOICE_MAX_LENGTH,
+    PHONE_MAX_LENGTH,
+    VERIFICATION_CODE_MAX_LENGTH,
+    VERIFICATION_TOKEN_MAX_LENGTH,
+)
+from users.validators import PhoneNumberValidator, VerificationCodeValidator, VerificationTokenValidator
 
 MAX_LENGTH = 255
 
@@ -173,36 +178,66 @@ class Verification(models.Model):
         VERIFIED = "verified", "Verified"
         EXPIRED = "expired", "Expired"
 
-    phone_validator = PhoneNumberValidator()
-    code_validator = VerificationCodeValidator()
-
     phone = models.CharField(
         max_length=PHONE_MAX_LENGTH,
         db_index=True,
+        validators=[PhoneNumberValidator()],
         help_text=_("Enter a phone number in the format +7XXXXXXXXXX."),
-        validators=[phone_validator],
     )
-    code = models.CharField(max_length=VERIFICATION_CODE_MAX_LENGTH, validators=[code_validator])
+    code = models.CharField(max_length=VERIFICATION_CODE_MAX_LENGTH, validators=[VerificationCodeValidator()])
+    verification_token = models.CharField(
+        max_length=VERIFICATION_TOKEN_MAX_LENGTH,
+        unique=True,
+        validators=[VerificationTokenValidator()],
+        help_text=_("Unique token for verifying the code."),
+    )
     mode = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Mode.choices)
     status = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Status.choices, default=Status.SENT)
     failed_attempts = models.PositiveIntegerField(default=0)
     created_at = models.DateTimeField(default=now)
 
     def __str__(self):
-        return f"{self.phone} - {self.mode} - {self.status}"
+        return f"{self.phone} - {self.mode} - {self.status} - {self.verification_token}"
 
-    @staticmethod
-    def generate_code(length=6):
-        """Generates a random numeric verification code of specified length."""
+    @classmethod
+    def create_new_verification(cls, phone, mode):
+        """Creates a new verification entry with a random verification token."""
 
-        return "".join(random.choices(string.digits, k=length))
+        code = "".join(random.choices(string.digits, k=VERIFICATION_CODE_MAX_LENGTH))
+        verification_token = "".join(
+            random.choices(string.ascii_letters + string.digits, k=VERIFICATION_TOKEN_MAX_LENGTH)
+        )
+
+        return cls.objects.create(
+            phone=phone,
+            code=code,
+            verification_token=verification_token,
+            mode=mode,
+            status=cls.Status.SENT,
+        )
+
+    @classmethod
+    def get_verification_by_token(cls, token):
+        """Fetches the verification entry by its verification token."""
+
+        return cls.objects.filter(verification_token=token).first()
+
+    @classmethod
+    def get_recent_verification(cls, phone, resend_delay):
+        """Returns the most recent verification code within the resend delay window."""
+
+        return (
+            cls.objects.filter(phone=phone, created_at__gte=now() - timedelta(seconds=resend_delay))
+            .order_by("-created_at")
+            .first()
+        )
 
     @classmethod
     def clean(cls):
         """Deletes outdated verification codes and marks old sent codes as expired."""
 
         now_time = now()
-        expiration_time = now_time - timedelta(minutes=1)
+        expiration_time = now_time - timedelta(minutes=15)
         deletion_time = now_time - timedelta(days=1)
 
         cls.objects.filter(created_at__lte=deletion_time).delete()
@@ -224,9 +259,3 @@ class Verification(models.Model):
         """Counts the number of unverified codes for a given phone number."""
 
         return cls.objects.filter(phone=phone).exclude(status=cls.Status.VERIFIED).count()
-
-    @classmethod
-    def get_recent_verification(cls, phone):
-        """Returns the most recent verification code."""
-
-        return cls.objects.filter(phone=phone).order_by("-created_at").first()
