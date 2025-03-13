@@ -49,22 +49,38 @@
         },
         "responses": {
           "201": {
-            "description": "Код успешно отправлен."
+            "description": "Код успешно отправлен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "verification_token": {
+                      "type": "string",
+                      "description": "Токен верификации, который нужно передавать при подтверждении кода.",
+                      "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "Некорректные параметры запроса. Некорректный формат номера телефона."
           },
-          "409": {
-            "description": "Код уже отправлен. Попробуйте позже."
+          "403": {
+            "description": "Доступ запрещен. Пользователь заблокирован."
           },
           "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Код уже отправлен. Попробуйте позже."
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
           }
         }
-      },
+      }
+    },
+    "/auth/codes/verify": {
       "patch": {
         "tags": [
           "Auth"
@@ -90,18 +106,10 @@
                     "description": "Код подтверждения из SMS.",
                     "example": "123456"
                   },
-                  "mode": {
+                  "verification_token": {
                     "type": "string",
-                    "enum": [
-                      "login",
-                      "change_phone_old",
-                      "change_phone_new",
-                      "change_password",
-                      "reset_password",
-                      "delete_account"
-                    ],
-                    "description": "Определяет цель проверки кода.",
-                    "example": "login"
+                    "description": "Токен верификации, полученный при отправке кода.",
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   }
                 }
               }
@@ -128,11 +136,14 @@
           "400": {
             "description": "Некорректные параметры запроса. Некорректный формат кода подтверждения."
           },
-          "401": {
-            "description": "Пользователь не авторизован."
-          },
           "403": {
-            "description": "Доступ запрещен. Пользователь заблокирован. Или Некорректный код подтверждения."
+            "description": "Доступ запрещен. Пользователь заблокирован."
+          },
+          "409": {
+            "description": "Код уже был использован."
+          },
+          "410": {
+            "description": "Код истёк. Запросите новый."
           },
           "429": {
             "description": "Превышен лимит запросов. Попробуйте позже."
@@ -163,11 +174,10 @@
                     "description": "Номер телефона в формате `+7XXXXXXXXXX`.",
                     "example": "+79991234567"
                   },
-                  "code": {
+                  "verification_token": {
                     "type": "string",
-                    "pattern": "^\\d{6}$",
-                    "description": "Код подтверждения (6 цифр).",
-                    "example": "123456"
+                    "description": "Токен подтверждения, полученный после верификации кода.",
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   }
                 }
               }
@@ -185,12 +195,12 @@
                     "access_token": {
                       "type": "string",
                       "description": "`JWT` токен для авторизации. Передается в заголовке `Authorization`.",
-                      "example": "64b1c7e8-4e12-47c5-9dfd-7a6b7699c582"
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQxODYxMDc3LCJpYXQiOjE3NDE4NTkyNzcsImp0aSI6IjFjYjIyZjk0OTMwNjRiNzQ4OWIzZmNiZTRiYzk4ZmJkIiwidXNlcl9pZCI6M30.430ZgG-LAM7Me57l5WtRtRPeYLm8MicrMvqPc3t8i6s"
                     },
                     "refresh_token": {
                       "type": "string",
                       "description": "`JWT` токен обновления, который позволяет получить новый `access_token` после его истечения.",
-                      "example": "d3a46c5a-bc3f-4e28-91b8-7cbf4799c832"
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc0MjExODQ3NywiaWF0IjoxNzQxODU5Mjc3LCJqdGkiOiJjMTcwNmE5ZTc3MDA0ZTBiYWQ0MTI4OGQ5MjIyNTNjMSIsInVzZXJfaWQiOjN9.2zYybd7SZCqeWEGZNN-jfbpShfecPxNNBiuNdYjf2tE"
                     }
                   }
                 }
@@ -198,16 +208,13 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат номера телефона или кода подтверждения."
+            "description": "Некорректные параметры запроса. Некорректный формат номера телефона или токена подтверждения."
           },
           "403": {
             "description": "Доступ запрещен. Пользователь заблокирован."
           },
           "404": {
             "description": "Токен подтверждения не был найден или неверный код подтверждения."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -259,9 +266,6 @@
           },
           "403": {
             "description": "Доступ запрещен. Неверный пароль."
-          },
-          "429": {
-            "description": "Слишком много попыток. Попробуйте позже."
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -381,6 +385,23 @@
             "BearerAuth": []
           }
         ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "verification_token": {
+                    "type": "string",
+                    "description": "Токен верификации, подтверждающий удаление аккаунта.",
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
+                  }
+                }
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Аккаунт успешно удален."
@@ -421,6 +442,16 @@
                     "pattern": "^\\+7\\d{10}$",
                     "description": "Новый номер телефона для смены в формате `+7XXXXXXXXXX`",
                     "example": "+79991234567"
+                  },
+                  "old_verification_token": {
+                    "type": "string",
+                    "description": "Токен подтверждения старого номера телефона.",
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
+                  },
+                  "new_verification_token": {
+                    "type": "string",
+                    "description": "Токен подтверждения нового номера телефона.",
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   }
                 }
               }
@@ -486,6 +517,11 @@
                     "pattern": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,64}$",
                     "description": "Новый пароль (должен содержать минимум 8 символов, хотя бы 1 букву и 1 цифру).",
                     "example": "NewSecurePassword123"
+                  },
+                  "verification_token": {
+                    "type": "string",
+                    "description": "Токен подтверждения для смены пароля.",
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   }
                 }
               }
@@ -540,6 +576,11 @@
                     "pattern": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,64}$",
                     "description": "Новый пароль (должен содержать минимум 8 символов, хотя бы 1 букву и 1 цифру).",
                     "example": "NewSecurePassword123"
+                  },
+                  "verification_token": {
+                    "type": "string",
+                    "description": "Токен подтверждения для сброса пароля.",
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   }
                 }
               }
