@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib import admin
-from django.contrib.admin.models import LogEntry, CHANGE
+from django.contrib.admin.models import CHANGE, LogEntry
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
 from django.contrib.contenttypes.models import ContentType
