@@ -26,9 +26,13 @@ exclude = ["migrations"]
 
 
 # Pytest settings
-#[tool.pytest.ini_options]
-#testpaths = ["tests"]
-#addopts = "--verbose"
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "backend.settings"
+python_files = ["test_*.py", "*_test.py"]
+pytest_plugins = ["pytest_mock"]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --disable-warnings"
+
 
 # Pre-commit settings (pre-commit hooks)
 [tool.pre-commit]

@@ -1,9 +1,9 @@
 import random
-import re
 import string
 from datetime import timedelta
 
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
@@ -22,27 +22,14 @@ MAX_LENGTH = 255
 class UserManager(BaseUserManager):
     """Custom manager for the User model"""
 
-    # TODO - maybe delete
-    @classmethod
-    def normalize_phone(cls, phone: str) -> str:
-        """
-        Normalize phone number:
-        - Remove all non-numeric characters except "+"
-        - Convert "8" or "7" at the beginning to "+7"
-        - Ensure exactly 10 digits after "+7"
-        """
-        phone = re.sub(r"[^\d+]", "", phone)  # Remove all non-numeric characters except "+"
+    phone_validator = PhoneNumberValidator()
 
-        if phone.startswith("+7"):
-            phone = "+7" + phone[2:]  # Keep +7 and the rest
-        elif phone.startswith("8") or phone.startswith("7"):
-            phone = "+7" + phone[1:]  # Convert 8/7 to +7
-        elif not phone.startswith("+7"):
-            raise ValueError("Invalid phone number format")
-
-        if not re.fullmatch(r"\+7\d{10}", phone):
-            raise ValueError("Phone number must be in format +7XXXXXXXXXX")
-
+    def validate_phone(self, phone: str):
+        """Validate phone number using PhoneNumberValidator"""
+        try:
+            self.phone_validator(phone)
+        except ValidationError as e:
+            raise ValidationError(_("Invalid phone number: ") + str(e))
         return phone
 
     def create_user(self, phone, password=None, **extra_fields):
@@ -50,7 +37,7 @@ class UserManager(BaseUserManager):
         if not phone:
             raise ValueError("Phone number must be provided")
 
-        phone = self.normalize_phone(phone)
+        phone = self.validate_phone(phone)
 
         extra_fields.setdefault("role", User.Role.USER)
         extra_fields.setdefault("is_active", True)

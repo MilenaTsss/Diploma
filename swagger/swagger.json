@@ -58,7 +58,7 @@
                     "verification_token": {
                       "type": "string",
                       "description": "Токен верификации, который нужно передавать при подтверждении кода.",
-                      "example": "a1b2c3d4e5f6g7h8i9j0"
+                      "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                     }
                   }
                 }
@@ -78,7 +78,9 @@
             "description": "Ошибка сервера. Попробуйте позже."
           }
         }
-      },
+      }
+    },
+    "/auth/codes/verify": {
       "patch": {
         "tags": [
           "Auth"
@@ -107,7 +109,7 @@
                   "verification_token": {
                     "type": "string",
                     "description": "Токен верификации, полученный при отправке кода.",
-                    "example": "a1b2c3d4e5f6g7h8i9j0"
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   }
                 }
               }
@@ -175,7 +177,7 @@
                   "verification_token": {
                     "type": "string",
                     "description": "Токен подтверждения, полученный после верификации кода.",
-                    "example": "a1b2c3d4e5f6g7h8i9j0"
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   }
                 }
               }
@@ -193,12 +195,12 @@
                     "access_token": {
                       "type": "string",
                       "description": "`JWT` токен для авторизации. Передается в заголовке `Authorization`.",
-                      "example": "64b1c7e8-4e12-47c5-9dfd-7a6b7699c582"
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQxODYxMDc3LCJpYXQiOjE3NDE4NTkyNzcsImp0aSI6IjFjYjIyZjk0OTMwNjRiNzQ4OWIzZmNiZTRiYzk4ZmJkIiwidXNlcl9pZCI6M30.430ZgG-LAM7Me57l5WtRtRPeYLm8MicrMvqPc3t8i6s"
                     },
                     "refresh_token": {
                       "type": "string",
                       "description": "`JWT` токен обновления, который позволяет получить новый `access_token` после его истечения.",
-                      "example": "d3a46c5a-bc3f-4e28-91b8-7cbf4799c832"
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc0MjExODQ3NywiaWF0IjoxNzQxODU5Mjc3LCJqdGkiOiJjMTcwNmE5ZTc3MDA0ZTBiYWQ0MTI4OGQ5MjIyNTNjMSIsInVzZXJfaWQiOjN9.2zYybd7SZCqeWEGZNN-jfbpShfecPxNNBiuNdYjf2tE"
                     }
                   }
                 }
@@ -393,7 +395,7 @@
                   "verification_token": {
                     "type": "string",
                     "description": "Токен верификации, подтверждающий удаление аккаунта.",
-                    "example": "a1b2c3d4e5f6g7h8i9j0"
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   }
                 }
               }
@@ -444,12 +446,12 @@
                   "old_verification_token": {
                     "type": "string",
                     "description": "Токен подтверждения старого номера телефона.",
-                    "example": "a1b2c3d4e5f6g7h8i9j0"
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   },
                   "new_verification_token": {
                     "type": "string",
                     "description": "Токен подтверждения нового номера телефона.",
-                    "example": "b2c3d4e5f6g7h8i9j0a1"
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   }
                 }
               }
@@ -519,7 +521,7 @@
                   "verification_token": {
                     "type": "string",
                     "description": "Токен подтверждения для смены пароля.",
-                    "example": "a1b2c3d4e5f6g7h8i9j0"
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   }
                 }
               }
@@ -578,7 +580,7 @@
                   "verification_token": {
                     "type": "string",
                     "description": "Токен подтверждения для сброса пароля.",
-                    "example": "a1b2c3d4e5f6g7h8i9j0"
+                    "example": "APL8MSZdf3Myec0RaBM6JiqBPj7pMdNa"
                   }
                 }
               }

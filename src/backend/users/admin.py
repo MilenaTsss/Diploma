@@ -1,10 +1,7 @@
 from django import forms
 from django.contrib import admin
-from django.contrib.admin.models import CHANGE, LogEntry
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import Group
-from django.contrib.contenttypes.models import ContentType
-from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from users.models import User
@@ -31,7 +28,7 @@ class AdminCreationForm(forms.ModelForm):
         fields = ("phone", "full_name", "password")
 
     def save(self, commit=True):
-        """Hashes the password before saving"""
+        """Creates an admin user"""
 
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password"])
@@ -42,48 +39,8 @@ class AdminCreationForm(forms.ModelForm):
         return user
 
 
-@admin.action(description="Toggle is_active status of selected users")
-def toggle_users_active_status(modeladmin, request, queryset):
-    """Allow only superusers to change is_active status, prevent self-blocking"""
-
-    def has_permission_to_toggle_users(current_request, user_queryset):
-        """Check if the current user has permission to toggle user activation."""
-        if not current_request.user.is_superuser:
-            return False, _("You do not have permission to modify user activation status.")
-        if current_request.user in user_queryset:
-            return False, _("You cannot deactivate your own account.")
-        return True, None
-
-    has_permission, error_message = has_permission_to_toggle_users(request, queryset)
-
-    if not has_permission:
-        modeladmin.message_user(request, error_message, level="error")
-        return
-
-    # Iterate over each user to log individual changes
-    for user in queryset:
-        old_status = user.is_active
-        user.is_active = not user.is_active
-        user.save()
-
-        # Log the change in Django admin history
-        LogEntry.objects.create(
-            user=request.user,
-            content_type=ContentType.objects.get_for_model(User),
-            object_id=user.id,
-            object_repr=str(user),
-            action_flag=CHANGE,
-            change_message=f"Changed is_active from {old_status} to {user.is_active}",
-        )
-
-    queryset.update(is_active=models.F("is_active").bitxor(True))
-    modeladmin.message_user(request, _("Selected users' active status has been toggled."))
-
-
 class UserAdmin(BaseUserAdmin):
     """Custom UserAdmin for managing users in Django Admin"""
-
-    actions = [toggle_users_active_status]
 
     def add_view(self, request, form_url="", extra_context=None):
         """Change the page title from 'Add user' to 'Add admin'"""
@@ -107,9 +64,18 @@ class UserAdmin(BaseUserAdmin):
         return request.user.is_superuser
 
     def has_delete_permission(self, request, obj=None):
-        """Prevent user deleting"""
+        """Prevent user deletion"""
 
         return False
+
+    def save_model(self, request, obj, form, change):
+        """Prevents superusers from deactivating themselves"""
+
+        if change and obj == request.user and not obj.is_active:
+            self.message_user(request, _("You cannot deactivate your own account."), level="error")
+            return
+
+        super().save_model(request, obj, form, change)
 
     list_display = ("phone", "full_name", "role", "is_active", "is_staff", "is_superuser")
     list_filter = ("role", "is_active", "is_staff", "is_superuser")
@@ -121,12 +87,11 @@ class UserAdmin(BaseUserAdmin):
         "is_staff",
         "is_superuser",
         "is_blocked",
-        "is_active",
         "date_joined",
         "last_login",
     )
 
-    fieldsets = ((_("User Info"), {"fields": readonly_fields}),)
+    fieldsets = ((_("User Info"), {"fields": (*readonly_fields, "is_active")}),)
 
     add_form = AdminCreationForm  # Use custom form
     add_fieldsets = (
