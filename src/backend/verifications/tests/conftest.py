@@ -20,39 +20,10 @@ def user():
 
 
 @pytest.fixture
-def superuser():
-    """Creates a superuser"""
-
-    return User.objects.create_superuser(phone="+79991234567", password="SuperSecurePass")
-
-
-@pytest.fixture
-def admin_user():
-    """Create an admin user"""
-    return User.objects.create_admin(phone="+79995554433", password="adminpassword")
-
-
-@pytest.fixture
 def blocked_user():
     """Create a blocked user"""
 
     return User.objects.create_user(phone="+79991234567", is_active=False)
-
-
-@pytest.fixture
-def client_superuser(superuser, client):
-    """Logs in client as a superuser"""
-
-    client.force_login(superuser)
-    return client
-
-
-@pytest.fixture
-def client_admin(admin_user, client):
-    """Logs in client as a regular admin"""
-
-    client.force_login(admin_user)
-    return client
 
 
 @pytest.fixture

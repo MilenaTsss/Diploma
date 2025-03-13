@@ -2,68 +2,6 @@ import pytest
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from users.models import Verification
-
-
-@pytest.mark.django_db
-class TestSendVerificationCodeView:
-    """Tests for SendVerificationCodeView"""
-
-    def test_send_verification_code(self, api_client):
-        """Test sending a verification code"""
-        response = api_client.post("/api/auth/codes/", {"phone": "+79991234567", "mode": "login"}, format="json")
-
-        assert response.status_code == status.HTTP_201_CREATED
-        assert "verification_token" in response.data
-
-    def test_send_verification_code_blocked_user(self, api_client, blocked_user):
-        """Test sending a verification code for a blocked user"""
-        response = api_client.post("/api/auth/codes/", {"phone": blocked_user.phone, "mode": "login"}, format="json")
-
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-
-
-@pytest.mark.django_db
-class TestVerifyCodeView:
-    """Tests for VerifyCodeView"""
-
-    def test_verify_code(self, api_client, verification):
-        """Test verifying a correct code"""
-        response = api_client.patch(
-            "/api/auth/codes/verify/",
-            {
-                "phone": verification.phone,
-                "code": verification.code,
-                "verification_token": verification.verification_token,
-            },
-            format="json",
-        )
-        assert response.status_code == status.HTTP_200_OK
-        verification.refresh_from_db()
-        assert verification.status == Verification.Status.VERIFIED
-
-    def test_verify_invalid_code(self, api_client, verification):
-        """Test verifying an incorrect code"""
-        response = api_client.patch(
-            "/api/auth/codes/verify/",
-            {"phone": verification.phone, "code": "654321", "verification_token": verification.verification_token},
-            format="json",
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-
-    def test_verify_expired_code(self, api_client, verified_verification):
-        """Test verifying an expired code"""
-        response = api_client.patch(
-            "/api/auth/codes/verify/",
-            {
-                "phone": verified_verification.phone,
-                "code": verified_verification.code,
-                "verification_token": verified_verification.verification_token,
-            },
-            format="json",
-        )
-        assert response.status_code == status.HTTP_409_CONFLICT
-
 
 @pytest.mark.django_db
 class TestLoginView:

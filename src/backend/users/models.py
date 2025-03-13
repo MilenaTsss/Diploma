@@ -1,7 +1,3 @@
-import random
-import string
-from datetime import timedelta
-
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -11,10 +7,8 @@ from django.utils.translation import gettext_lazy as _
 from users.constants import (
     CHOICE_MAX_LENGTH,
     PHONE_MAX_LENGTH,
-    VERIFICATION_CODE_MAX_LENGTH,
-    VERIFICATION_TOKEN_MAX_LENGTH,
 )
-from users.validators import PhoneNumberValidator, VerificationCodeValidator, VerificationTokenValidator
+from users.validators import PhoneNumberValidator
 
 MAX_LENGTH = 255
 
@@ -145,104 +139,19 @@ class User(AbstractBaseUser, PermissionsMixin):
     def get_phone(self):
         return self.phone
 
+    @classmethod
+    def get_user_by_phone(cls, phone: str):
+        """Fetches user by phone number or returns None."""
 
-class Verification(models.Model):
-    """Verification codes sent via SMS for user authentication and account-related actions."""
-
-    class Meta:
-        db_table = "verification"
-
-    class Mode(models.TextChoices):
-        LOGIN = "login", "Login"
-        CHANGE_PHONE_OLD = "change_phone_old", "Change Old Phone"
-        CHANGE_PHONE_NEW = "change_phone_new", "Change New Phone"
-        RESET_PASSWORD = "reset_password", "Reset Password"
-        CHANGE_PASSWORD = "change_password", "Change Password"
-        DELETE_ACCOUNT = "delete_account", "Delete Account"
-
-    class Status(models.TextChoices):
-        SENT = "sent", "Sent"
-        VERIFIED = "verified", "Verified"
-        EXPIRED = "expired", "Expired"
-
-    phone = models.CharField(
-        max_length=PHONE_MAX_LENGTH,
-        db_index=True,
-        validators=[PhoneNumberValidator()],
-        help_text=_("Enter a phone number in the format +7XXXXXXXXXX."),
-    )
-    code = models.CharField(max_length=VERIFICATION_CODE_MAX_LENGTH, validators=[VerificationCodeValidator()])
-    verification_token = models.CharField(
-        max_length=VERIFICATION_TOKEN_MAX_LENGTH,
-        unique=True,
-        validators=[VerificationTokenValidator()],
-        help_text=_("Unique token for verifying the code."),
-    )
-    mode = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Mode.choices)
-    status = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Status.choices, default=Status.SENT)
-    failed_attempts = models.PositiveIntegerField(default=0)
-    created_at = models.DateTimeField(default=now)
-
-    def __str__(self):
-        return f"{self.phone} - {self.mode} - {self.status} - {self.verification_token}"
+        return cls.objects.filter(phone=phone).first()
 
     @classmethod
-    def create_new_verification(cls, phone, mode):
-        """Creates a new verification entry with a random verification token."""
+    def is_phone_blocked(cls, phone: str) -> bool:
+        """Checks if a user with the given phone number is blocked"""
+        user = cls.get_user_by_phone(phone)
+        return user.is_blocked_user() if user else False
 
-        code = "".join(random.choices(string.digits, k=VERIFICATION_CODE_MAX_LENGTH))
-        verification_token = "".join(
-            random.choices(string.ascii_letters + string.digits, k=VERIFICATION_TOKEN_MAX_LENGTH)
-        )
+    def is_blocked_user(self):
+        """Returns True if the user is blocked (inactive)."""
 
-        return cls.objects.create(
-            phone=phone,
-            code=code,
-            verification_token=verification_token,
-            mode=mode,
-            status=cls.Status.SENT,
-        )
-
-    @classmethod
-    def get_verification_by_token(cls, token):
-        """Fetches the verification entry by its verification token."""
-
-        return cls.objects.filter(verification_token=token).first()
-
-    @classmethod
-    def get_recent_verification(cls, phone, resend_delay):
-        """Returns the most recent verification code within the resend delay window."""
-
-        return (
-            cls.objects.filter(phone=phone, created_at__gte=now() - timedelta(seconds=resend_delay))
-            .order_by("-created_at")
-            .first()
-        )
-
-    @classmethod
-    def clean(cls):
-        """Deletes outdated verification codes and marks old sent codes as expired."""
-
-        now_time = now()
-        expiration_time = now_time - timedelta(minutes=15)
-        deletion_time = now_time - timedelta(days=1)
-
-        cls.objects.filter(created_at__lte=deletion_time).delete()
-        cls.objects.filter(status=cls.Status.SENT, created_at__lte=expiration_time).update(status=cls.Status.EXPIRED)
-
-    @classmethod
-    def count_failed_attempts(cls, phone):
-        """Counts total failed verification attempts for the last 2 hours."""
-
-        return (
-            cls.objects.filter(
-                phone=phone, created_at__gte=now() - timedelta(hours=2), failed_attempts__gt=0
-            ).aggregate(total_attempts=models.Sum(models.F("failed_attempts"), default=0))["total_attempts"]
-            or 0
-        )
-
-    @classmethod
-    def count_unverified_codes(cls, phone):
-        """Counts the number of unverified codes for a given phone number."""
-
-        return cls.objects.filter(phone=phone).exclude(status=cls.Status.VERIFIED).count()
+        return (not self.is_active) or self.is_blocked
