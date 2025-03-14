@@ -9,5 +9,5 @@ urlpatterns = [
     path(
         "auth/admin/password_verification/", AdminPasswordVerificationView.as_view(), name="admin_password_verification"
     ),
-    path("users/me/", UserAccountView.as_view(), name="user_profile"),
+    path("users/me/", UserAccountView.as_view(), name="user_account"),
 ]
