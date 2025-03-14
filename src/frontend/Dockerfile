@@ -31,10 +31,7 @@ CMD ["npm", "run", "dev"]
 FROM nginx:stable-alpine AS production
 
 # Copy the built React app to Nginx's public folder
-COPY --from=build /frontend_app/dist /usr/share/nginx/html
-
-# Copy custom Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /frontend_app/dist /etc/nginx/html/
 
 # Expose port 80
 EXPOSE 80

@@ -59,7 +59,7 @@ class TestUserModel:
 
         assert not User.is_phone_blocked("+79991234567")
         assert User.is_phone_blocked("+79998887766")
-        assert not User.is_phone_blocked("+79991112233")  # Пользователь отсутствует
+        assert not User.is_phone_blocked("+79991112233")
 
     def test_is_blocked_user(self):
         """Test checking if a user is blocked."""

@@ -36,7 +36,7 @@ class TestSendVerificationCodeView:
         mock_verification = Verification(
             phone=user.phone,
             verification_token="mock_token",
-            created_at=now() - timedelta(seconds=10),  # Недавняя верификация
+            created_at=now() - timedelta(seconds=10),  # Recent verification
         )
         mocker.patch("verifications.models.Verification.get_recent_verification", return_value=mock_verification)
         response = api_client.post("/api/auth/codes/", {"phone": user.phone, "mode": "login"}, format="json")

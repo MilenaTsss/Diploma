@@ -8,3 +8,5 @@ node_modules
 dist
 logs
 *.log
+*.http
+staticfiles
