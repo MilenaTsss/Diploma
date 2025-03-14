@@ -1,8 +1,11 @@
+import logging
+
 from django.contrib.auth import authenticate
 from django.shortcuts import render
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import authentication_classes, permission_classes
+from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -11,9 +14,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import User
 from users.serializers import (
     AdminPasswordVerificationSerializer,
+    DeleteUserSerializer,
     LoginSerializer,
+    UserSerializer,
+    UserUpdateSerializer,
 )
 from verifications.models import Verification, VerificationService
+
+logger = logging.getLogger(__name__)
 
 
 def admin_block_password_change_view(request):
@@ -81,3 +89,46 @@ class LoginView(APIView):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class UserAccountView(RetrieveUpdateDestroyAPIView):
+    """Retrieve, update, and delete the user profile"""
+
+    serializer_class = UserSerializer
+
+    def get_object(self):
+        """Retrieve the current user's profile"""
+
+        return self.request.user
+
+    def patch(self, request, *args, **kwargs):
+        """Edit profile (full_name, phone privacy)"""
+
+        user = self.get_object()
+        serializer = UserUpdateSerializer(self.get_object(), data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, *args, **kwargs):
+        """Deactivate account (verification code required)"""
+
+        serializer = DeleteUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = self.get_object()
+        verification_token = request.data.get("verification_token")
+
+        verification, error_message, error_status_code = VerificationService.confirm_verification(
+            user.phone, verification_token, Verification.Mode.DELETE_ACCOUNT
+        )
+        if not verification:
+            return Response({"error": error_message}, status=error_status_code)
+
+        user.is_active = False
+        user.save()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
