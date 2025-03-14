@@ -20,9 +20,12 @@ from django.urls import include, path
 
 from users.views import admin_block_password_change_view
 
+admin.site.site_url = "/admin_panel/"
+admin.site.site_header = "Admin Panel"
+
 urlpatterns = [
-    path("admin/password_change/", admin_block_password_change_view),
-    path('admin/', admin.site.urls),
-    path("api/", include("users.urls")),
-    path("api/", include("verifications.urls")),
+    path("admin_panel/password_change/", admin_block_password_change_view),
+    path('admin_panel/', admin.site.urls),
+    path("", include("users.urls")),
+    path("", include("verifications.urls")),
 ]

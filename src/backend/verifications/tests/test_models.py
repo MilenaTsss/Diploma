@@ -120,7 +120,7 @@ class TestVerificationService:
             phone="+79991234567",
             verification_token="wrong_status_token",
             mode=Verification.Mode.LOGIN,
-            status=Verification.Status.SENT,  # Код отправлен, но не подтвержден
+            status=Verification.Status.SENT,
         )
 
         verification, message, status_code = VerificationService.confirm_verification(

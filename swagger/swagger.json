@@ -222,6 +222,60 @@
         }
       }
     },
+    "/auth/token/refresh/": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Обновление `access`-токена.",
+        "description": "Принимает `refresh`-токен и возвращает новый `access`-токен. Используется для продления сессии без повторной авторизации.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "refresh": {
+                    "type": "string",
+                    "description": "`Refresh`-токен, полученный при авторизации.",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc0MjExODQ3NywiaWF0IjoxNzQxODU5Mjc3LCJqdGkiOiJjMTcwNmE5ZTc3MDA0ZTBiYWQ0MTI4OGQ5MjIyNTNjMSIsInVzZXJfaWQiOjN9.2zYybd7SZCqeWEGZNN-jfbpShfecPxNNBiuNdYjf2tE"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Успешная авторизация",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "access": {
+                      "type": "string",
+                      "description": "Новый `JWT` токен для авторизации.",
+                      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQxODYxMDc3LCJpYXQiOjE3NDE4NTkyNzcsImp0aSI6IjFjYjIyZjk0OTMwNjRiNzQ4OWIzZmNiZTRiYzk4ZmJkIiwidXNlcl9pZCI6M30.430ZgG-LAM7Me57l5WtRtRPeYLm8MicrMvqPc3t8i6s"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса. Требуется передать `refresh` токен."
+          },
+          "401": {
+            "description": "Токен неверный или истёк."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
     "/auth/admin/password_verification/": {
       "post": {
         "tags": [
@@ -229,11 +283,6 @@
         ],
         "summary": "Проверка пароля перед авторизацией администратора.",
         "description": "Проверяет введенный пароль администратора перед входом по коду.\n\n Если пароль верен, сервер разрешает отправку SMS-кода для входа.\n\n",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {

@@ -133,6 +133,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.phone + " " + self.full_name
 
+    def get_short_name(self):
+        return self.phone
+
     def get_full_name(self):
         return self.full_name
 
