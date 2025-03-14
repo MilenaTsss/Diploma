@@ -72,10 +72,17 @@ def create_verification(db):
 
 
 @pytest.fixture
-def verification(create_verification):
-    """Creates a test verification entry"""
+def login_verification(create_verification):
+    """Creates a test verification entry with login mode"""
 
     return create_verification()
+
+
+@pytest.fixture
+def delete_verification(create_verification):
+    """Creates a test verification entry with delete mode"""
+
+    return create_verification(mode=Verification.Mode.DELETE_ACCOUNT, status=Verification.Status.VERIFIED)
 
 
 @pytest.fixture

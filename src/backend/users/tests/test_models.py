@@ -54,8 +54,8 @@ class TestUserModel:
 
     def test_is_phone_blocked(self):
         """Test checking if a user with a given phone number is blocked."""
-        active_user = User.objects.create_user(phone="+79991234567", is_active=True, is_blocked=False)
-        blocked_user = User.objects.create_user(phone="+79998887766", is_active=False, is_blocked=True)
+        User.objects.create_user(phone="+79991234567", is_active=True, is_blocked=False)
+        User.objects.create_user(phone="+79998887766", is_active=False, is_blocked=True)
 
         assert not User.is_phone_blocked("+79991234567")
         assert User.is_phone_blocked("+79998887766")

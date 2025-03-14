@@ -36,7 +36,7 @@ def test_superuser_cannot_deactivate_self(client_superuser, superuser):
     """Superadmin cannot deactivate themselves"""
 
     url = reverse("admin:users_user_change", args=[superuser.pk])
-    response = client_superuser.post(url, {"is_active": False}, follow=True)
+    client_superuser.post(url, {"is_active": False}, follow=True)
     assert superuser.is_active
 
 
