@@ -1,7 +1,7 @@
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from users.views import AdminPasswordVerificationView, LoginView
+from users.views import AdminPasswordVerificationView, LoginView, UserAccountView
 
 urlpatterns = [
     path("auth/login/", LoginView.as_view(), name="login"),
@@ -9,4 +9,5 @@ urlpatterns = [
     path(
         "auth/admin/password_verification/", AdminPasswordVerificationView.as_view(), name="admin_password_verification"
     ),
+    path("users/me/", UserAccountView.as_view(), name="user_account"),
 ]

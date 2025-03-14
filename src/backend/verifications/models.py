@@ -1,3 +1,4 @@
+import logging
 import random
 import string
 from datetime import timedelta
@@ -11,6 +12,8 @@ from users.constants import PHONE_MAX_LENGTH
 from users.validators import PhoneNumberValidator
 from verifications.constants import CHOICE_MAX_LENGTH, VERIFICATION_CODE_MAX_LENGTH, VERIFICATION_TOKEN_MAX_LENGTH
 from verifications.validators import VerificationCodeValidator, VerificationTokenValidator
+
+logger = logging.getLogger(__name__)
 
 
 class VerificationService:

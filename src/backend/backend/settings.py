@@ -29,7 +29,7 @@ DEBUG = os.getenv("DJANGO_ENV", "development").lower() == "development"
 ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    "DEFAULT_AUTHENTICATION_CLASSES": ("users.custom_jwt_auth.CustomJWTAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
@@ -37,7 +37,7 @@ REST_FRAMEWORK = {
 
 # Setting JWT lifetime
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=3), # TODO - 30 minutes
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=3),  # TODO - 30 minutes
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
 }
 
@@ -122,7 +122,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 LOG_DIR = os.path.join(BASE_DIR, 'logs')
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
@@ -132,12 +131,12 @@ LOGGING = {
     'disable_existing_loggers': False,
     'formatters': {
         'verbose': {
-            'format': '{{"time": "{asctime}", "level": "{levelname}", "module": "{module}", "message": "{message}"}}',
+            'format': '{{"time": "{asctime}", "level": "{levelname}", "module": "{name}", "message": "{message}"}}',
             "datefmt": "%Y-%m-%d %H:%M:%S",
             'style': '{',
         },
         'simple': {
-            'format': '[{levelname}] {asctime} {module} - {message}',
+            'format': '[{levelname}] {asctime} {name} - {message}',
             'style': '{',
         },
     },
@@ -168,6 +167,16 @@ LOGGING = {
             'propagate': False,
         },
         'django.server': {
+            'handlers': ["console", "file"] if not DEBUG else ["console"],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'users': {
+            'handlers': ["console", "file"] if not DEBUG else ["console"],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'verifications': {
             'handlers': ["console", "file"] if not DEBUG else ["console"],
             'level': 'INFO',
             'propagate': False,
