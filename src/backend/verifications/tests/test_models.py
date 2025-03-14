@@ -63,7 +63,7 @@ class TestVerificationService:
     def test_count_unverified_codes(self, verified_verification):
         """Test counting unverified codes."""
 
-        sent_verification = VerificationService.create_new_verification("+79991234567", Verification.Mode.LOGIN)
+        VerificationService.create_new_verification("+79991234567", Verification.Mode.LOGIN)
 
         expired_verification = VerificationService.create_new_verification("+79991234567", Verification.Mode.LOGIN)
         expired_verification.status = Verification.Status.EXPIRED
@@ -90,14 +90,14 @@ class TestVerificationService:
     def test_confirm_verification(self, db, phone, token, mode, expected_status, expected_message, verification):
         """Test confirming verification based on token, phone, and mode."""
 
-        verification_verified = Verification.objects.create(
+        Verification.objects.create(
             phone="+79991234567",
             verification_token="valid_token",
             mode=Verification.Mode.LOGIN,
             status=Verification.Status.VERIFIED,
         )
 
-        verification_expired = Verification.objects.create(
+        Verification.objects.create(
             phone="+79991234567",
             verification_token="expired_token",
             mode=Verification.Mode.LOGIN,
@@ -116,7 +116,7 @@ class TestVerificationService:
 
     def test_confirm_verification_wrong_status(db):
         """Test confirming verification with non-verified status."""
-        verification = Verification.objects.create(
+        Verification.objects.create(
             phone="+79991234567",
             verification_token="wrong_status_token",
             mode=Verification.Mode.LOGIN,
@@ -156,7 +156,7 @@ class TestVerificationModel:
         Verification.objects.create(
             phone="+79991234567", verification_token="old_token", created_at=now() - timedelta(seconds=100)
         )
-        new_verification = Verification.objects.create(
+        Verification.objects.create(
             phone="+79991234567", verification_token="new_token", created_at=now() - timedelta(seconds=20)
         )
 
