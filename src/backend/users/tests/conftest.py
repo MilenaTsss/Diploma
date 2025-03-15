@@ -1,8 +1,9 @@
+
 import pytest
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 
-from verifications.models import Verification
+from verifications.models import Verification, VerificationService
 
 User = get_user_model()
 
@@ -63,7 +64,7 @@ def create_verification(db):
         return Verification.objects.create(
             phone=phone,
             code="123456",
-            verification_token="a1b2c3d4e5f6g7h8j9k0l1m2n3p4q5r6",  # Generate unique token
+            verification_token=VerificationService.generate_verification_token(),  # Generate unique token
             mode=mode,
             status=status,
         )
@@ -90,3 +91,37 @@ def verified_verification(create_verification):
     """Creates a verified verification entry"""
 
     return create_verification(status=Verification.Status.VERIFIED)
+
+
+@pytest.fixture
+def old_verification(create_verification):
+    """Creates a verified verification entry for old phone number"""
+
+    return create_verification(mode=Verification.Mode.CHANGE_PHONE_OLD, status=Verification.Status.VERIFIED)
+
+
+@pytest.fixture
+def new_verification(create_verification):
+    """Creates a verified verification entry for new phone number"""
+
+    return create_verification(
+        phone="+79991112233", mode=Verification.Mode.CHANGE_PHONE_NEW, status=Verification.Status.VERIFIED
+    )
+
+
+@pytest.fixture
+def password_verification(create_verification):
+    """Creates a verified verification entry for new phone number"""
+
+    return create_verification(
+        phone="+79995554433", mode=Verification.Mode.CHANGE_PASSWORD, status=Verification.Status.VERIFIED
+    )
+
+
+@pytest.fixture
+def reset_verification(create_verification):
+    """Creates a verified verification entry for new phone number"""
+
+    return create_verification(
+        phone="+79995554433", mode=Verification.Mode.RESET_PASSWORD, status=Verification.Status.VERIFIED
+    )

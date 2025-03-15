@@ -71,6 +71,7 @@ class SendVerificationCodeView(APIView):
         verification = VerificationService.create_new_verification(phone, mode)
 
         # TODO!: Here send the code via SMS, REMOVE code from answer
+        # TODO!: Add extra checks for every request mode.
         return Response(
             {
                 "message": _("Verification code sent."),

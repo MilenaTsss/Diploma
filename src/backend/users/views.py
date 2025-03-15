@@ -6,7 +6,7 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -14,8 +14,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import User
 from users.serializers import (
     AdminPasswordVerificationSerializer,
-    DeleteUserSerializer,
     LoginSerializer,
+    PasswordChangeSerializer,
+    PasswordResetSerializer,
+    PhoneChangeSerializer,
+    UserDeleteSerializer,
     UserSerializer,
     UserUpdateSerializer,
 )
@@ -45,7 +48,7 @@ class AdminPasswordVerificationView(APIView):
         user = authenticate(username=phone, password=password)
 
         if user is None or user.role == User.Role.USER:
-            return Response({"error": "Invalid credentials."}, status=status.HTTP_403_FORBIDDEN)
+            return Response({"error": "Invalid phone or password."}, status=status.HTTP_403_FORBIDDEN)
 
         return Response({"message": "Password verified successfully."})
 
@@ -82,6 +85,9 @@ class LoginView(APIView):
         refresh = RefreshToken.for_user(user)
         access_token = str(refresh.access_token)
 
+        verification.status = Verification.Status.USED
+        verification.save()
+
         return Response(
             {
                 "access_token": access_token,
@@ -114,9 +120,9 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, *args, **kwargs):
-        """Deactivate account (verification code required)"""
+        """Deactivate account (verification required)"""
 
-        serializer = DeleteUserSerializer(data=request.data)
+        serializer = UserDeleteSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = self.get_object()
@@ -131,4 +137,106 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
         user.is_active = False
         user.save()
 
+        verification.status = Verification.Status.USED
+        verification.save()
+
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ChangePhoneView(APIView):
+    """Update user's main phone number (verification required with old and new phones)"""
+
+    def patch(self, request):
+        serializer = PhoneChangeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        old_phone = user.phone
+        new_phone = serializer.validated_data["new_phone"]
+        old_verification_token = serializer.validated_data["old_verification_token"]
+        new_verification_token = serializer.validated_data["new_verification_token"]
+
+        verification_old, error_message, error_status_code = VerificationService.confirm_verification(
+            old_phone, old_verification_token, Verification.Mode.CHANGE_PHONE_OLD
+        )
+        if not verification_old:
+            return Response({"error": error_message}, status=error_status_code)
+
+        verification_new, error_message, error_status_code = VerificationService.confirm_verification(
+            new_phone, new_verification_token, Verification.Mode.CHANGE_PHONE_NEW
+        )
+        if not verification_new:
+            return Response({"error": error_message}, status=error_status_code)
+
+        # TODO - add changing phone with other tables like barrier
+        user.phone = new_phone
+        user.save()
+
+        verification_old.status = Verification.Status.USED
+        verification_old.save()
+        verification_new.status = Verification.Status.USED
+        verification_new.save()
+
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+
+
+@permission_classes([IsAdminUser])
+class ChangePasswordView(APIView):
+    """Update admin password (verification required)"""
+
+    def patch(self, request):
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        phone = user.phone
+        new_password = serializer.validated_data["new_password"]
+        verification_token = serializer.validated_data["verification_token"]
+
+        verification, error_message, error_status_code = VerificationService.confirm_verification(
+            phone, verification_token, Verification.Mode.CHANGE_PASSWORD
+        )
+        if not verification:
+            return Response({"error": error_message}, status=error_status_code)
+
+        user.set_password(new_password)
+        user.save()
+
+        verification.status = Verification.Status.USED
+        verification.save()
+
+        return Response({"message": "Password successfully updated."}, status=status.HTTP_200_OK)
+
+
+@authentication_classes([])
+@permission_classes([AllowAny])
+class ResetPasswordView(APIView):
+    """Reset admin password (verification required)"""
+
+    def patch(self, request):
+        serializer = PasswordResetSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = User.objects.filter(phone=serializer.validated_data["phone"]).first()
+        if not user:
+            return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        if user.role == User.Role.USER:
+            return Response({"error": "Only for admins."}, status=status.HTTP_403_FORBIDDEN)
+
+        phone = user.phone
+        new_password = serializer.validated_data["new_password"]
+        verification_token = serializer.validated_data["verification_token"]
+
+        verification, error_message, error_status_code = VerificationService.confirm_verification(
+            phone, verification_token, Verification.Mode.RESET_PASSWORD
+        )
+        if not verification:
+            return Response({"error": error_message}, status=error_status_code)
+
+        user.set_password(new_password)
+        user.save()
+
+        verification.status = Verification.Status.USED
+        verification.save()
+
+        return Response({"message": "Password successfully reset."}, status=status.HTTP_200_OK)

@@ -2,6 +2,8 @@ import pytest
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from verifications.models import Verification
+
 
 @pytest.mark.django_db
 class TestLoginView:
@@ -9,6 +11,7 @@ class TestLoginView:
 
     def test_login(self, api_client, verified_verification, user):
         """Test successful login"""
+
         response = api_client.post(
             "/auth/login/",
             {"phone": user.phone, "verification_token": verified_verification.verification_token},
@@ -16,6 +19,8 @@ class TestLoginView:
         )
 
         assert response.status_code == status.HTTP_200_OK
+        verified_verification.refresh_from_db()
+        assert verified_verification.status == Verification.Status.USED
         assert "access_token" in response.data
         assert "refresh_token" in response.data
 
@@ -114,6 +119,8 @@ class TestUserAccountView:
         assert response.status_code == status.HTTP_204_NO_CONTENT
         user.refresh_from_db()
         assert not user.is_active
+        delete_verification.refresh_from_db()
+        assert delete_verification.status == Verification.Status.USED
 
     def test_delete_user_account_invalid_verification(self, api_client, user):
         """Test deleting user account with invalid verification token"""
@@ -124,3 +131,85 @@ class TestUserAccountView:
         response = api_client.delete("/users/me/", {"verification_token": "invalid"}, format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+class TestChangePhoneView:
+    """Tests for ChangePhoneView"""
+
+    def test_change_phone_success(self, api_client, user, old_verification, new_verification):
+        """Test changing phone number successfully"""
+        refresh = RefreshToken.for_user(user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        new_phone = "+79991112233"
+        response = api_client.patch(
+            "/users/me/phone/",
+            {
+                "new_phone": new_phone,
+                "old_verification_token": old_verification.verification_token,
+                "new_verification_token": new_verification.verification_token,
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        user.refresh_from_db()
+        assert user.phone == new_phone
+
+        old_verification.refresh_from_db()
+        new_verification.refresh_from_db()
+        assert old_verification.status == Verification.Status.USED
+        assert new_verification.status == Verification.Status.USED
+
+
+@pytest.mark.django_db
+class TestChangePasswordView:
+    """Tests for ChangePasswordView"""
+
+    def test_change_password_success(self, api_client, admin_user, password_verification):
+        """Test changing password successfully"""
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.patch(
+            "/users/me/password/",
+            {
+                "old_password": "adminpassword",
+                "new_password": "NewPass456!",
+                "verification_token": password_verification.verification_token,
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        admin_user.refresh_from_db()
+        assert admin_user.check_password("NewPass456!") is True
+
+        password_verification.refresh_from_db()
+        assert password_verification.status == Verification.Status.USED
+
+
+@pytest.mark.django_db
+class TestResetPasswordView:
+    """Tests for ResetPasswordView"""
+
+    def test_reset_password_success(self, api_client, admin_user, reset_verification):
+        """Test resetting password successfully"""
+
+        response = api_client.patch(
+            "/users/me/password/reset/",
+            {
+                "phone": admin_user.phone,
+                "new_password": "NewSecurePass!",
+                "verification_token": reset_verification.verification_token,
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        admin_user.refresh_from_db()
+        assert admin_user.check_password("NewSecurePass!") is True
+
+        reset_verification.refresh_from_db()
+        assert reset_verification.status == Verification.Status.USED

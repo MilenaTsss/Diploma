@@ -34,7 +34,8 @@
                     "type": "string",
                     "enum": [
                       "login",
-                      "change_phone",
+                      "change_phone_old",
+                      "change_phone_new",
                       "change_password",
                       "reset_password",
                       "delete_account"
@@ -582,14 +583,7 @@
         },
         "responses": {
           "200": {
-            "description": "Пароль успешно изменен.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/User"
-                }
-              }
-            }
+            "description": "Пароль успешно изменен."
           },
           "400": {
             "description": "Некорректные параметры запроса. Некорректный формат нового пароля."
@@ -623,6 +617,12 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+7\\d{10}$",
+                    "description": "Номер телефона в формате `+7XXXXXXXXXX`.",
+                    "example": "+79991234567"
+                  },
                   "new_password": {
                     "type": "string",
                     "pattern": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,64}$",
@@ -641,20 +641,7 @@
         },
         "responses": {
           "200": {
-            "description": "Пароль успешно восстановлен.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Пароль успешно изменен."
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Пароль успешно восстановлен."
           },
           "400": {
             "description": "Некорректные параметры запроса. Некорректный формат нового пароля."

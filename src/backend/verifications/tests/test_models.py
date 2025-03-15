@@ -82,7 +82,7 @@ class TestVerificationService:
         [
             ("+79991234567", "valid_token", Verification.Mode.LOGIN, None, None),
             ("+79991234567", "invalid_token", Verification.Mode.LOGIN, 404, "Invalid verification token."),
-            ("+79991112233", "valid_token", Verification.Mode.LOGIN, 404, "Invalid phone number."),
+            ("+79991112233", "valid_token", Verification.Mode.LOGIN, 404, "Invalid verification phone number."),
             ("+79991234567", "valid_token", Verification.Mode.RESET_PASSWORD, 404, "Invalid verification mode."),
             ("+79991234567", "expired_token", Verification.Mode.LOGIN, 400, "Phone number has not been verified."),
         ],

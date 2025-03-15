@@ -80,7 +80,7 @@ class VerificationService:
             return None, _("Invalid verification token."), status.HTTP_404_NOT_FOUND
 
         if verification.phone != phone:
-            return None, _("Invalid phone number."), status.HTTP_404_NOT_FOUND
+            return None, _("Invalid verification phone number."), status.HTTP_404_NOT_FOUND
 
         if verification.mode != mode:
             return None, _("Invalid verification mode."), status.HTTP_404_NOT_FOUND
@@ -108,6 +108,7 @@ class Verification(models.Model):
     class Status(models.TextChoices):
         SENT = "sent", "Sent"
         VERIFIED = "verified", "Verified"
+        USED = "used", _("Used")
         EXPIRED = "expired", "Expired"
 
     phone = models.CharField(
