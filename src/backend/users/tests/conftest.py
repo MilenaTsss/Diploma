@@ -23,7 +23,7 @@ def user():
 def superuser():
     """Creates a superuser"""
 
-    return User.objects.create_superuser(phone="+79991234567", password="SuperSecurePass")
+    return User.objects.create_superuser(phone="+79991254567", password="SuperSecurePass")
 
 
 @pytest.fixture

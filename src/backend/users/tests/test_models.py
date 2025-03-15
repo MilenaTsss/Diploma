@@ -25,7 +25,7 @@ class TestUserModel:
     def test_create_superuser(self, superuser):
         """Test creating a superuser."""
 
-        assert superuser.phone == "+79991234567"
+        assert superuser.phone == "+79991254567"
         assert superuser.is_staff is True
         assert superuser.is_superuser is True
         assert superuser.role == User.Role.SUPERUSER
@@ -54,8 +54,8 @@ class TestUserModel:
 
     def test_is_phone_blocked(self):
         """Test checking if a user with a given phone number is blocked."""
-        User.objects.create_user(phone="+79991234567", is_active=True, is_blocked=False)
-        User.objects.create_user(phone="+79998887766", is_active=False, is_blocked=True)
+        User.objects.create_user(phone="+79991234567", is_active=True)
+        User.objects.create_user(phone="+79998887766", is_active=False)
 
         assert not User.is_phone_blocked("+79991234567")
         assert User.is_phone_blocked("+79998887766")
@@ -63,8 +63,8 @@ class TestUserModel:
 
     def test_is_blocked_user(self):
         """Test checking if a user is blocked."""
-        active_user = User.objects.create_user(phone="+79991234567", is_active=True, is_blocked=False)
-        blocked_user = User.objects.create_user(phone="+79998887766", is_active=False, is_blocked=True)
+        active_user = User.objects.create_user(phone="+79991234567", is_active=True)
+        blocked_user = User.objects.create_user(phone="+79998887766", is_active=False)
 
         assert not active_user.is_blocked_user()
         assert blocked_user.is_blocked_user()

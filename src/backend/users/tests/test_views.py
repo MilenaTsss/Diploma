@@ -262,3 +262,135 @@ class TestResetPasswordView:
 
         reset_verification.refresh_from_db()
         assert reset_verification.status == Verification.Status.USED
+
+
+@pytest.mark.django_db
+class TestSearchUserView:
+    """Tests for SearchUserView"""
+
+    def test_search_user_success(self, api_client, admin_user, user):
+        """Test searching for an existing user by phone"""
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.post("/users/search/", {"phone": user.phone}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["phone"] == user.phone
+
+    def test_search_user_not_found(self, api_client, admin_user):
+        """Test searching for a non-existent user"""
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.post("/users/search/", {"phone": "+79990000000"}, format="json")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_search_user_invalid_phone(self, api_client, admin_user):
+        """Test searching with an invalid phone format"""
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.post("/users/search/", {"phone": "invalid_phone"}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+class TestUnblockUserView:
+    """Tests for UnblockUserView"""
+
+    def test_unblock_user_success(self, api_client, admin_user, blocked_user):
+        """Test unblocking a user"""
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.patch(f"/users/{blocked_user.id}/unblock/", format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        blocked_user.refresh_from_db()
+        assert blocked_user.is_active is True
+
+    def test_unblock_already_active_user(self, api_client, admin_user, user):
+        """Test trying to unblock a user who is already active"""
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.patch(f"/users/{user.id}/unblock/", format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_unblock_admin_user(self, api_client, admin_user, superuser):
+        """Test trying to unblock an admin user"""
+
+        superuser.is_active = False
+        superuser.save()
+
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.patch(f"/users/{superuser.id}/unblock/", format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+class TestBlockUserView:
+    """Tests for BlockUserView"""
+
+    def test_block_user_success(self, api_client, admin_user, user):
+        """Test blocking a user"""
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.patch(f"/users/{user.id}/block/", {"reason": "Spamming"}, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        user.refresh_from_db()
+        assert user.is_active is False
+        assert user.block_reason == "Spamming"
+
+    def test_block_user_missing_reason(self, api_client, admin_user, user):
+        """Test blocking a user without providing a reason"""
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.patch(f"/users/{user.id}/block/", {}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_block_already_blocked_user(self, api_client, admin_user, blocked_user):
+        """Test blocking a user who is already blocked"""
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.patch(
+            f"/users/{blocked_user.id}/block/", {"reason": "Multiple violations"}, format="json"
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+class TestAdminUserDetailView:
+    """Tests for AdminUserDetailView"""
+
+    def test_get_user_details_success(self, api_client, admin_user, user):
+        """Test retrieving user details as an admin"""
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.get(f"/users/{user.id}/", format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["phone"] == user.phone
+
+    def test_get_user_not_found(self, api_client, admin_user):
+        """Test retrieving details of a non-existent user"""
+        refresh = RefreshToken.for_user(admin_user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.get("/users/999999/", format="json")
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND

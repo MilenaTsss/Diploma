@@ -86,7 +86,6 @@ class UserAdmin(BaseUserAdmin):
         "phone_privacy",
         "is_staff",
         "is_superuser",
-        "is_blocked",
         "date_joined",
         "last_login",
     )

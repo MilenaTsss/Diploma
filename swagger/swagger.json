@@ -635,7 +635,14 @@
         },
         "responses": {
           "200": {
-            "description": "Пароль успешно изменен."
+            "description": "Пароль успешно изменен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
           },
           "400": {
             "description": "Некорректные параметры запроса. Некорректный формат нового пароля."
@@ -810,6 +817,59 @@
         "responses": {
           "200": {
             "description": "Пользователь успешно заблокирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `user_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "404": {
+            "description": "Пользователь с указанным `id` не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/users/{user_id}/unblock/": {
+      "patch": {
+        "tags": [
+          "Admin. Users."
+        ],
+        "summary": "Отмена блокировки пользователя (только для администраторов).",
+        "description": "Позволяет администратору разблокировать пользователя, разрешив ему вход в систему.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "Уникальный идентификатор пользователя."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно разблокирован.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2792,9 +2852,9 @@
             "example": "admin",
             "default": "user"
           },
-          "is_blocked": {
+          "is_active": {
             "type": "boolean",
-            "description": "Флаг, указывающий, заблокирован ли пользователь.",
+            "description": "Флаг, указывающий, заблокирован ли пользователь. `is_active` = False если заблокирован.",
             "default": false
           },
           "phone_privacy": {
