@@ -2,10 +2,11 @@ import logging
 
 from django.contrib.auth import authenticate
 from django.shortcuts import render
+from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
-from rest_framework import status
+from rest_framework import generics, status
 from rest_framework.decorators import authentication_classes, permission_classes
-from rest_framework.generics import RetrieveUpdateDestroyAPIView
+from rest_framework.generics import RetrieveUpdateDestroyAPIView, get_object_or_404
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -20,6 +21,7 @@ from users.serializers import (
     DeleteUserSerializer,
     LoginSerializer,
     ResetPasswordSerializer,
+    SearchUserSerializer,
     UpdateUserSerializer,
     UserSerializer,
 )
@@ -87,7 +89,9 @@ class LoginView(APIView):
         access_token = str(refresh.access_token)
 
         verification.status = Verification.Status.USED
-        verification.save()
+        verification.save(update_fields=["status"])
+        user.last_login = now()
+        user.save(update_fields=["last_login"])
 
         return Response(
             {
@@ -101,7 +105,7 @@ class LoginView(APIView):
 @authentication_classes([])
 @permission_classes([AllowAny])
 class CheckAdminView(APIView):
-    """Проверка, является ли номер телефона администратором"""
+    """Check, if user with given phone number is admin or not."""
 
     def post(self, request):
         serializer = CheckAdminSerializer(data=request.data)
@@ -158,10 +162,10 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
             return Response({"error": error_message}, status=error_status_code)
 
         user.is_active = False
-        user.save()
+        user.save(update_fields=["is_active"])
 
         verification.status = Verification.Status.USED
-        verification.save()
+        verification.save(update_fields=["status"])
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -193,12 +197,12 @@ class ChangePhoneView(APIView):
 
         # TODO - add changing phone with other tables like barrier
         user.phone = new_phone
-        user.save()
+        user.save(update_fields=["phone"])
 
         verification_old.status = Verification.Status.USED
-        verification_old.save()
+        verification_old.save(update_fields=["status"])
         verification_new.status = Verification.Status.USED
-        verification_new.save()
+        verification_new.save(update_fields=["status"])
 
         return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
 
@@ -226,9 +230,9 @@ class ChangePasswordView(APIView):
         user.save()
 
         verification.status = Verification.Status.USED
-        verification.save()
+        verification.save(update_fields=["status"])
 
-        return Response({"message": "Password successfully updated."}, status=status.HTTP_200_OK)
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
 
 
 @authentication_classes([])
@@ -260,6 +264,76 @@ class ResetPasswordView(APIView):
         user.save()
 
         verification.status = Verification.Status.USED
-        verification.save()
+        verification.save(update_fields=["status"])
 
         return Response({"message": "Password successfully reset."}, status=status.HTTP_200_OK)
+
+
+@permission_classes([IsAdminUser])
+class AdminUserDetailView(generics.RetrieveAPIView):
+    """Get user details (for admins only)."""
+
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    lookup_field = "id"
+
+
+@permission_classes([IsAdminUser])
+class BlockUserView(APIView):
+    """Block user (for admins only)."""
+
+    def patch(self, request, id):
+        user = get_object_or_404(User, id=id)
+
+        reason = request.data.get("reason")
+        if not reason:
+            return Response({"error": "Reason is required for blocking a user."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if user.role != User.Role.USER:
+            return Response({"error": "You cannot block an admin."}, status=status.HTTP_403_FORBIDDEN)
+
+        if not user.is_active:
+            return Response({"error": "User is already blocked."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.block_reason = reason
+        user.is_active = False
+        user.save(update_fields=["is_active", "block_reason"])
+
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+
+
+@permission_classes([IsAdminUser])
+class UnblockUserView(APIView):
+    """Unblock a user (for admins only)."""
+
+    def patch(self, request, id):
+        user = get_object_or_404(User, id=id)
+
+        if user.is_active:
+            return Response({"error": "User is already active."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if user.role != User.Role.USER:
+            return Response({"error": "You cannot unblock an admin."}, status=status.HTTP_403_FORBIDDEN)
+
+        user.block_reason = ""
+        user.is_active = True
+        user.save()
+
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
+
+
+@permission_classes([IsAdminUser])
+class SearchUserView(APIView):
+    """Search user by given phone number (for admins only)."""
+
+    def post(self, request):
+        serializer = SearchUserSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        phone = serializer.validated_data["phone"]
+        user = User.objects.filter(phone=phone).first()
+
+        if not user:
+            return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response(UserSerializer(user).data, status=status.HTTP_200_OK)

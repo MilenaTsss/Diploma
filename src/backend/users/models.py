@@ -109,19 +109,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(
         default=False, help_text=_("Designates whether the user can manage all aspects of the system.")
     )
-    is_blocked = models.BooleanField(
-        default=False,
-        help_text=_(
-            "If the user is blocked, they will be restricted from performing certain actions, "
-            "but their account remains active."
-        ),
-    )
     is_active = models.BooleanField(
         default=True,
         help_text=_(
             "Designates whether this user should be treated as active. " "Unselect this instead of deleting accounts."
         ),
     )
+    block_reason = models.CharField(max_length=MAX_LENGTH, blank=True, default="")
     date_joined = models.DateTimeField(default=now)
     last_login = models.DateTimeField(blank=True, null=True)
 
@@ -157,4 +151,4 @@ class User(AbstractBaseUser, PermissionsMixin):
     def is_blocked_user(self):
         """Returns True if the user is blocked (inactive)."""
 
-        return (not self.is_active) or self.is_blocked
+        return not self.is_active

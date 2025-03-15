@@ -8,6 +8,7 @@ from users.serializers import (
     DeleteUserSerializer,
     LoginSerializer,
     ResetPasswordSerializer,
+    SearchUserSerializer,
     UpdateUserSerializer,
     UserSerializer,
 )
@@ -199,4 +200,17 @@ def test_change_password_serializer(data, is_valid, mocker):
 )
 def test_reset_password_serializer(data, is_valid):
     serializer = ResetPasswordSerializer(data=data)
+    assert serializer.is_valid() == is_valid
+
+
+@pytest.mark.parametrize(
+    "data, is_valid",
+    [
+        ({"phone": "+79991234567"}, True),
+        ({"phone": "89991234567"}, False),
+        ({}, False),
+    ],
+)
+def test_search_user_serializer(data, is_valid):
+    serializer = SearchUserSerializer(data=data)
     assert serializer.is_valid() == is_valid

@@ -27,7 +27,7 @@ class CheckAdminSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ["id", "phone", "full_name", "role", "phone_privacy"]
+        fields = ["id", "phone", "full_name", "role", "phone_privacy", "is_active"]
 
 
 class UpdateUserSerializer(serializers.ModelSerializer):
@@ -68,11 +68,11 @@ class ChangePasswordSerializer(serializers.Serializer):
     )
 
     def validate_old_password(self, value):
-        """Проверка, что старый пароль введён верно"""
+        """Check if old password is correct."""
 
         user = self.context["request"].user
         if not user.check_password(value):
-            raise serializers.ValidationError("Старый пароль неверен.")
+            raise serializers.ValidationError("Current password is incorrect.")
         return value
 
 
@@ -82,3 +82,7 @@ class ResetPasswordSerializer(serializers.Serializer):
     verification_token = serializers.CharField(
         max_length=VERIFICATION_TOKEN_MAX_LENGTH, validators=[VerificationTokenValidator()]
     )
+
+
+class SearchUserSerializer(serializers.Serializer):
+    phone = serializers.CharField(max_length=PHONE_MAX_LENGTH, validators=[PhoneNumberValidator()])
