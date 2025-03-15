@@ -5,6 +5,7 @@ from users.views import (
     AdminPasswordVerificationView,
     ChangePasswordView,
     ChangePhoneView,
+    CheckAdminView,
     LoginView,
     ResetPasswordView,
     UserAccountView,
@@ -16,8 +17,9 @@ urlpatterns = [
     path(
         "auth/admin/password_verification/", AdminPasswordVerificationView.as_view(), name="admin_password_verification"
     ),
+    path("users/check-admin/", CheckAdminView.as_view(), name="check_admin"),
     path("users/me/", UserAccountView.as_view(), name="user_account"),
     path("users/me/phone/", ChangePhoneView.as_view(), name="change_phone"),
-    path("users/me/password/", ChangePasswordView.as_view(), name="change_password"),
-    path("users/me/password/reset/", ResetPasswordView.as_view(), name="reset_password"),
+    path("users/me/password/", ChangePasswordView.as_view(), name="admin_change_password"),
+    path("users/me/password/reset/", ResetPasswordView.as_view(), name="admin_reset_password"),
 ]

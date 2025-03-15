@@ -6,6 +6,29 @@ from verifications.models import Verification
 
 
 @pytest.mark.django_db
+class TestAdminPasswordVerificationView:
+    """Tests for AdminPasswordVerificationView"""
+
+    def test_admin_password_verification(self, api_client, admin_user):
+        """Test verifying admin password"""
+        response = api_client.post(
+            "/auth/admin/password_verification/",
+            {"phone": admin_user.phone, "password": "adminpassword"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_200_OK
+
+    def test_admin_password_verification_invalid(self, api_client, admin_user):
+        """Test verifying an incorrect admin password"""
+        response = api_client.post(
+            "/auth/admin/password_verification/",
+            {"phone": admin_user.phone, "password": "wrongpassword"},
+            format="json",
+        )
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
 class TestLoginView:
     """Tests for LoginView"""
 
@@ -44,26 +67,52 @@ class TestLoginView:
 
 
 @pytest.mark.django_db
-class TestAdminPasswordVerificationView:
-    """Tests for AdminPasswordVerificationView"""
+class TestCheckAdminView:
+    """Tests for CheckAdminView"""
 
-    def test_admin_password_verification(self, api_client, admin_user):
-        """Test verifying admin password"""
+    def test_check_admin_success(self, api_client, admin_user):
+        """Test checking if an admin user is recognized correctly"""
         response = api_client.post(
-            "/auth/admin/password_verification/",
-            {"phone": admin_user.phone, "password": "adminpassword"},
+            "/users/check-admin/",
+            {"phone": admin_user.phone},
             format="json",
         )
+
         assert response.status_code == status.HTTP_200_OK
+        assert response.data["is_admin"] is True
 
-    def test_admin_password_verification_invalid(self, api_client, admin_user):
-        """Test verifying an incorrect admin password"""
+    def test_check_non_admin_success(self, api_client, user):
+        """Test checking if a regular user is not an admin"""
         response = api_client.post(
-            "/auth/admin/password_verification/",
-            {"phone": admin_user.phone, "password": "wrongpassword"},
+            "/users/check-admin/",
+            {"phone": user.phone},
             format="json",
         )
-        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["is_admin"] is False
+
+    def test_check_non_existing_user(self, api_client):
+        """Test checking a non-existing user returns is_admin: false"""
+        response = api_client.post(
+            "/users/check-admin/",
+            {"phone": "+79990000000"},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["is_admin"] is False
+
+    def test_check_admin_missing_phone(self, api_client):
+        """Test checking admin status without providing a phone number"""
+        response = api_client.post(
+            "/users/check-admin/",
+            {},
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data == {"phone": ["This field is required."]}
 
 
 @pytest.mark.django_db

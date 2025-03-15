@@ -14,13 +14,14 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import User
 from users.serializers import (
     AdminPasswordVerificationSerializer,
+    ChangePasswordSerializer,
+    ChangePhoneSerializer,
+    CheckAdminSerializer,
+    DeleteUserSerializer,
     LoginSerializer,
-    PasswordChangeSerializer,
-    PasswordResetSerializer,
-    PhoneChangeSerializer,
-    UserDeleteSerializer,
+    ResetPasswordSerializer,
+    UpdateUserSerializer,
     UserSerializer,
-    UserUpdateSerializer,
 )
 from verifications.models import Verification, VerificationService
 
@@ -97,6 +98,28 @@ class LoginView(APIView):
         )
 
 
+@authentication_classes([])
+@permission_classes([AllowAny])
+class CheckAdminView(APIView):
+    """Проверка, является ли номер телефона администратором"""
+
+    def post(self, request):
+        serializer = CheckAdminSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        phone = serializer.validated_data["phone"]
+
+        if not phone:
+            return Response({"error": "Phone number is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = User.objects.filter(phone=phone).first()
+
+        if not user:
+            return Response({"is_admin": False}, status=status.HTTP_200_OK)
+
+        return Response({"is_admin": user.is_staff}, status=status.HTTP_200_OK)
+
+
 class UserAccountView(RetrieveUpdateDestroyAPIView):
     """Retrieve, update, and delete the user profile"""
 
@@ -111,7 +134,7 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
         """Edit profile (full_name, phone privacy)"""
 
         user = self.get_object()
-        serializer = UserUpdateSerializer(self.get_object(), data=request.data, partial=True)
+        serializer = UpdateUserSerializer(self.get_object(), data=request.data, partial=True)
 
         if serializer.is_valid():
             serializer.save()
@@ -122,7 +145,7 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
     def delete(self, request, *args, **kwargs):
         """Deactivate account (verification required)"""
 
-        serializer = UserDeleteSerializer(data=request.data)
+        serializer = DeleteUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = self.get_object()
@@ -147,7 +170,7 @@ class ChangePhoneView(APIView):
     """Update user's main phone number (verification required with old and new phones)"""
 
     def patch(self, request):
-        serializer = PhoneChangeSerializer(data=request.data)
+        serializer = ChangePhoneSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = request.user
@@ -185,7 +208,7 @@ class ChangePasswordView(APIView):
     """Update admin password (verification required)"""
 
     def patch(self, request):
-        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
         user = request.user
@@ -214,7 +237,7 @@ class ResetPasswordView(APIView):
     """Reset admin password (verification required)"""
 
     def patch(self, request):
-        serializer = PasswordResetSerializer(data=request.data)
+        serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = User.objects.filter(phone=serializer.validated_data["phone"]).first()
