@@ -720,7 +720,7 @@
         }
       }
     },
-    "/users/{user_id}/": {
+    "/admin/users/{user_id}/": {
       "get": {
         "tags": [
           "Admin. Users."
@@ -773,7 +773,7 @@
         }
       }
     },
-    "/users/{user_id}/block/": {
+    "/admin/users/{user_id}/block/": {
       "patch": {
         "tags": [
           "Admin. Users."
@@ -843,7 +843,7 @@
         }
       }
     },
-    "/users/{user_id}/unblock/": {
+    "/admin/users/{user_id}/unblock/": {
       "patch": {
         "tags": [
           "Admin. Users."
@@ -896,7 +896,7 @@
         }
       }
     },
-    "/users/search/": {
+    "/admin/users/search/": {
       "post": {
         "tags": [
           "Admin. Users."
