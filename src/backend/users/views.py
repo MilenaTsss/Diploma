@@ -270,7 +270,7 @@ class ResetPasswordView(APIView):
 
 
 @permission_classes([IsAdminUser])
-class AdminUserDetailView(generics.RetrieveAPIView):
+class AdminUserAccountView(generics.RetrieveAPIView):
     """Get user details (for admins only)."""
 
     queryset = User.objects.all()
@@ -279,7 +279,7 @@ class AdminUserDetailView(generics.RetrieveAPIView):
 
 
 @permission_classes([IsAdminUser])
-class BlockUserView(APIView):
+class AdminBlockUserView(APIView):
     """Block user (for admins only)."""
 
     def patch(self, request, id):
@@ -303,7 +303,7 @@ class BlockUserView(APIView):
 
 
 @permission_classes([IsAdminUser])
-class UnblockUserView(APIView):
+class AdminUnblockUserView(APIView):
     """Unblock a user (for admins only)."""
 
     def patch(self, request, id):
@@ -323,7 +323,7 @@ class UnblockUserView(APIView):
 
 
 @permission_classes([IsAdminUser])
-class SearchUserView(APIView):
+class AdminSearchUserView(APIView):
     """Search user by given phone number (for admins only)."""
 
     def post(self, request):
