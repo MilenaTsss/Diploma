@@ -3,7 +3,7 @@
 import django.utils.timezone
 from django.db import migrations, models
 
-import users.validators
+import core.validators
 
 
 class Migration(migrations.Migration):
@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                         help_text='Enter a phone number in the format +7XXXXXXXXXX.',
                         max_length=20,
                         unique=True,
-                        validators=[users.validators.PhoneNumberValidator()],
+                        validators=[core.validators.PhoneNumberValidator()],
                     ),
                 ),
                 ('full_name', models.CharField(blank=True, default='', max_length=255)),

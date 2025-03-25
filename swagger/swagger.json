@@ -1033,7 +1033,7 @@
         ],
         "parameters": [
           {
-            "name": "street_address",
+            "name": "address",
             "in": "query",
             "required": false,
             "schema": {
@@ -1088,7 +1088,7 @@
                     "barriers": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Barrier"
+                        "$ref": "#/components/schemas/BarrierView"
                       }
                     }
                   }
@@ -1170,7 +1170,7 @@
                     "barriers": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Barrier"
+                        "$ref": "#/components/schemas/BarrierView"
                       }
                     }
                   }
@@ -1223,7 +1223,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Barrier"
+                  "$ref": "#/components/schemas/BarrierView"
                 }
               }
             }
@@ -1297,6 +1297,102 @@
       }
     },
     "/admin/barriers/": {
+      "post": {
+        "tags": [
+          "Admin. Barriers."
+        ],
+        "summary": "Создание нового шлагбаума (только для администраторов).",
+        "description": "Позволяет администратору создать новый шлагбаум, указав все необходимые параметры.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "description": "Адрес шлагбаума.",
+                    "example": "Манежная площадь, 1, Москва"
+                  },
+                  "device_phone_number": {
+                    "type": "string",
+                    "description": "Номер телефона устройства управления шлагбаумом.",
+                    "example": "+79991234567"
+                  },
+                  "device_model": {
+                    "type": "string",
+                    "enum": [
+                      "rtu5024",
+                      "rtu5025",
+                      "telemetrica"
+                    ],
+                    "description": "Модель GSM модуля.",
+                    "example": "rtu5025"
+                  },
+                  "device_phones_amount": {
+                    "type": "integer",
+                    "description": "Количество номеров, поддерживаемых устройством.",
+                    "example": 999
+                  },
+                  "device_password": {
+                    "type": "integer",
+                    "description": "Пароль от устройства, если устройство его требует. Обычно состоит из 4 цифр.",
+                    "example": 1234
+                  },
+                  "additional_info": {
+                    "type": "string",
+                    "description": "Дополнительная информация о шлагбауме.",
+                    "example": "Время работы администратора: По будням с 10 до 18."
+                  },
+                  "is_public": {
+                    "type": "boolean",
+                    "description": "Можно ли найти шлагбаум в системе через поиск.",
+                    "example": true
+                  },
+                  "limits": {
+                    "$ref": "#/components/schemas/BarrierLimits"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Шлагбаум успешно создан.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BarrierView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/admin/barriers/my/": {
       "get": {
         "tags": [
           "Admin. Barriers."
@@ -1355,7 +1451,7 @@
                     "barriers": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Barrier"
+                        "$ref": "#/components/schemas/BarrierView"
                       }
                     }
                   }
@@ -1376,97 +1472,54 @@
             "description": "Ошибка сервера. Попробуйте позже."
           }
         }
-      },
-      "post": {
+      }
+    },
+    "/admin/barriers/{barrier_id}/": {
+      "get": {
         "tags": [
           "Admin. Barriers."
         ],
-        "summary": "Создание нового шлагбаума (только для администраторов).",
-        "description": "Позволяет администратору создать новый шлагбаум, указав все необходимые параметры.",
+        "summary": "Получение данных шлагбаума - для администраторов.",
+        "description": "Получение расширенного списка данных для шлагбаума. Только для администратора.",
         "security": [
           {
             "BearerAuth": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "address": {
-                    "type": "string",
-                    "description": "Адрес шлагбаума.",
-                    "example": "Манежная площадь, 1, Москва"
-                  },
-                  "device_phone_number": {
-                    "type": "string",
-                    "description": "Номер телефона устройства управления шлагбаумом.",
-                    "example": "+79991234567"
-                  },
-                  "device_model": {
-                    "type": "string",
-                    "enum": [
-                      "rtu5024",
-                      "rtu5025",
-                      "telemetrica"
-                    ],
-                    "description": "Модель GSM модуля.",
-                    "example": "rtu5025"
-                  },
-                  "device_phones_amount": {
-                    "type": "integer",
-                    "description": "Количество номеров, поддерживаемых устройством.",
-                    "example": 999
-                  },
-                  "password": {
-                    "type": "integer",
-                    "description": "Пароль от устройства, если устройство его требует. Обычно состоит из 4 цифр.",
-                    "example": 1234
-                  },
-                  "contact_phone": {
-                    "type": "string",
-                    "description": "Contact phone number for user inquiries.",
-                    "example": "+79991234567"
-                  },
-                  "additional_info": {
-                    "type": "string",
-                    "description": "Дополнительная информация о шлагбауме.",
-                    "example": "Время работы администратора: По будням с 10 до 18."
-                  },
-                  "is_public": {
-                    "type": "boolean",
-                    "description": "Можно ли найти шлагбаум в системе через поиск.",
-                    "example": true
-                  },
-                  "limits": {
-                    "$ref": "#/components/schemas/BarrierLimits"
-                  }
-                }
-              }
-            }
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` удаляемого шлагбаума."
           }
-        },
+        ],
         "responses": {
-          "201": {
-            "description": "Шлагбаум успешно создан.",
+          "200": {
+            "description": "Детальная информация о шлагбауме.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Barrier"
+                  "$ref": "#/components/schemas/AdminBarrierView"
                 }
               }
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректный параметр запроса - `barrier_id`."
           },
           "401": {
             "description": "Пользователь не авторизован."
           },
           "403": {
             "description": "Доступ запрещен. Только для администраторов."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
           },
           "429": {
             "description": "Превышен лимит запросов. Попробуйте позже."
@@ -1475,9 +1528,7 @@
             "description": "Ошибка сервера. Попробуйте позже."
           }
         }
-      }
-    },
-    "/admin/barriers/{barrier_id}/": {
+      },
       "delete": {
         "tags": [
           "Admin. Barriers."
@@ -1576,7 +1627,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Barrier"
+                  "$ref": "#/components/schemas/BarrierView"
                 }
               }
             }
@@ -3084,7 +3135,49 @@
           "wrapped": true
         }
       },
-      "Barrier": {
+      "BarrierView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 42
+          },
+          "address": {
+            "type": "string",
+            "example": "Манежная площадь, 1, Москва"
+          },
+          "owner": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 42
+              },
+              "full_name": {
+                "type": "string",
+                "example": "Ivanov Ivan"
+              },
+              "phone": {
+                "type": "string",
+                "example": "+79991234567"
+              }
+            }
+          },
+          "device_phone": {
+            "type": "string",
+            "example": "+79991234567"
+          },
+          "additional_info": {
+            "type": "string",
+            "example": "Время работы администратора: По будням с 10 до 18."
+          },
+          "is_public": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "AdminBarrierView": {
         "type": "object",
         "properties": {
           "id": {
@@ -3099,18 +3192,18 @@
             "type": "integer",
             "example": 42
           },
-          "device_phone_number": {
+          "device_phone": {
             "type": "string",
             "example": "+79991234567"
           },
           "device_model": {
             "type": "string",
             "enum": [
-              "rtu5024",
-              "rtu5025",
-              "telemetrica"
+              "RTU5024",
+              "RTU5025",
+              "Telemetrica"
             ],
-            "example": "rtu5024"
+            "example": "RTU5024"
           },
           "device_phones_amount": {
             "type": "integer",
@@ -3121,6 +3214,10 @@
             "example": "Время работы администратора: По будням с 10 до 18."
           },
           "is_public": {
+            "type": "boolean",
+            "default": true
+          },
+          "is_active": {
             "type": "boolean",
             "default": true
           }
