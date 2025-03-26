@@ -1,0 +1,80 @@
+name: Checks
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+
+jobs:
+  linters:
+    name: Code Style & Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Run Black
+        working-directory: ./src/backend
+        run: black . --check --diff
+        continue-on-error: true
+
+      - name: Run isort
+        working-directory: ./src/backend
+        run: isort . --check --diff
+        continue-on-error: true
+
+      - name: Run Ruff
+        working-directory: ./src/backend
+        run: ruff check . --output-format=github
+        continue-on-error: true
+
+  tests:
+    name: Pytest
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Run pytest
+        working-directory: ./src/backend
+        run: pytest -v
+
+  validate-migrations:
+    name: Check Django Migrations
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Check for pending migrations
+        working-directory: ./src/backend
+        run: |
+          python manage.py makemigrations --check --dry-run
+
+  apply-migrations:
+    name: Check Django migrate (SQLite)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Apply migrations using SQLite
+        working-directory: ./src/backend
+        run: python manage.py migrate --noinput

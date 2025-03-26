@@ -27,6 +27,9 @@ services:
     restart: always
     env_file:
       - backend/prod.env
+    command: >
+      postgres
+      -c log_timezone=Europe/Moscow
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:

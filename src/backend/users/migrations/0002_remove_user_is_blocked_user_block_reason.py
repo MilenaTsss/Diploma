@@ -6,17 +6,17 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('users', '0001_initial'),
+        ("users", "0001_initial"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='user',
-            name='is_blocked',
+            model_name="user",
+            name="is_blocked",
         ),
         migrations.AddField(
-            model_name='user',
-            name='block_reason',
-            field=models.CharField(blank=True, default='', max_length=255),
+            model_name="user",
+            name="block_reason",
+            field=models.CharField(blank=True, default="", max_length=255),
         ),
     ]
