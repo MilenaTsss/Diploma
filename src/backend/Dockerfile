@@ -39,5 +39,5 @@ COPY . .
 # Expose the Django port
 EXPOSE 8000
 
-# Migrate database, Collect static files for admin panel and rest framework, Run Django’s server using gunicorn and configure logging
-CMD ["sh", "-c", "echo 'Applying migrations...'; python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 backend.wsgi:application --access-logfile - --error-logfile - --access-logformat '{\"time\": \"%(t)s\", \"status\": %(s)s, \"method\": \"%(m)s\", \"url\": \"%(U)s\", \"size\": %(b)s, \"ip\": \"%(h)s\", \"user_agent\": \"%(a)s\"}'"]
+# Migrate database, Collect static files for admin panel and rest framework, Create superadmin, Run Django’s server using gunicorn and configure logging
+CMD ["sh", "/backend_app/entrypoint.sh"]

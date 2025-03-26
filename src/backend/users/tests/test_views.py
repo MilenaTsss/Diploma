@@ -1,4 +1,5 @@
 import pytest
+from django.urls import reverse
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -11,8 +12,9 @@ class TestAdminPasswordVerificationView:
 
     def test_admin_password_verification(self, api_client, admin_user):
         """Test verifying admin password"""
+
         response = api_client.post(
-            "/auth/admin/password_verification/",
+            reverse("admin_password_verification"),
             {"phone": admin_user.phone, "password": "adminpassword"},
             format="json",
         )
@@ -22,7 +24,7 @@ class TestAdminPasswordVerificationView:
         """Test verifying an incorrect admin password"""
 
         response = api_client.post(
-            "/auth/admin/password_verification/",
+            reverse("admin_password_verification"),
             {"phone": admin_user.phone, "password": "wrongpassword"},
             format="json",
         )
@@ -37,7 +39,7 @@ class TestLoginView:
         """Test successful login"""
 
         response = api_client.post(
-            "/auth/login/",
+            reverse("login"),
             {"phone": user.phone, "verification_token": verified_verification.verification_token},
             format="json",
         )
@@ -52,7 +54,7 @@ class TestLoginView:
         """Test login with unverified code"""
 
         response = api_client.post(
-            "/auth/login/",
+            reverse("login"),
             {"phone": login_verification.phone, "verification_token": login_verification.verification_token},
             format="json",
         )
@@ -62,7 +64,7 @@ class TestLoginView:
         """Test login with blocked user"""
 
         response = api_client.post(
-            "/auth/login/",
+            reverse("login"),
             {"phone": blocked_user.phone, "verification_token": verified_verification.verification_token},
             format="json",
         )
@@ -77,7 +79,7 @@ class TestCheckAdminView:
         """Test checking if an admin user is recognized correctly"""
 
         response = api_client.post(
-            "/users/check-admin/",
+            reverse("check_admin"),
             {"phone": admin_user.phone},
             format="json",
         )
@@ -89,7 +91,7 @@ class TestCheckAdminView:
         """Test checking if a regular user is not an admin"""
 
         response = api_client.post(
-            "/users/check-admin/",
+            reverse("check_admin"),
             {"phone": user.phone},
             format="json",
         )
@@ -101,7 +103,7 @@ class TestCheckAdminView:
         """Test checking a non-existing user returns is_admin: false"""
 
         response = api_client.post(
-            "/users/check-admin/",
+            reverse("check_admin"),
             {"phone": "+79990000000"},
             format="json",
         )
@@ -113,7 +115,7 @@ class TestCheckAdminView:
         """Test checking admin status without providing a phone number"""
 
         response = api_client.post(
-            "/users/check-admin/",
+            reverse("check_admin"),
             {},
             format="json",
         )
@@ -130,7 +132,7 @@ class TestTokenRefreshView:
         """Test refreshing JWT token"""
 
         refresh = RefreshToken.for_user(user)
-        response = api_client.post("/auth/token/refresh/", {"refresh": str(refresh)}, format="json")
+        response = api_client.post(reverse("token_refresh"), {"refresh": str(refresh)}, format="json")
 
         assert response.status_code == status.HTTP_200_OK
         assert "access" in response.data
@@ -146,7 +148,7 @@ class TestUserAccountView:
         refresh = RefreshToken.for_user(user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.get("/users/me/")
+        response = api_client.get(reverse("user_account"))
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["phone"] == user.phone
@@ -159,7 +161,7 @@ class TestUserAccountView:
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
         new_data = {"full_name": "New Name", "phone_privacy": "private"}
-        response = api_client.patch("/users/me/", new_data, format="json")
+        response = api_client.patch(reverse("user_account"), new_data, format="json")
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["full_name"] == "New Name"
@@ -172,7 +174,7 @@ class TestUserAccountView:
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
         response = api_client.delete(
-            "/users/me/", {"verification_token": delete_verification.verification_token}, format="json"
+            reverse("user_account"), {"verification_token": delete_verification.verification_token}, format="json"
         )
 
         assert response.status_code == status.HTTP_204_NO_CONTENT
@@ -187,7 +189,7 @@ class TestUserAccountView:
         refresh = RefreshToken.for_user(user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.delete("/users/me/", {"verification_token": "invalid"}, format="json")
+        response = api_client.delete(reverse("user_account"), {"verification_token": "invalid"}, format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -204,7 +206,7 @@ class TestChangePhoneView:
 
         new_phone = "+79991112233"
         response = api_client.patch(
-            "/users/me/phone/",
+            reverse("change_phone"),
             {
                 "new_phone": new_phone,
                 "old_verification_token": old_verification.verification_token,
@@ -234,7 +236,7 @@ class TestChangePasswordView:
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
         response = api_client.patch(
-            "/users/me/password/",
+            reverse("admin_change_password"),
             {
                 "old_password": "adminpassword",
                 "new_password": "NewPass456!",
@@ -259,7 +261,7 @@ class TestResetPasswordView:
         """Test resetting password successfully"""
 
         response = api_client.patch(
-            "/users/me/password/reset/",
+            reverse("admin_reset_password"),
             {
                 "phone": admin_user.phone,
                 "new_password": "NewSecurePass!",
@@ -286,7 +288,7 @@ class TestAdminUserAccountView:
         refresh = RefreshToken.for_user(admin_user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.get(f"/admin/users/{user.id}/", format="json")
+        response = api_client.get(reverse("admin_get_user", args=[user.id]), format="json")
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["phone"] == user.phone
@@ -296,7 +298,7 @@ class TestAdminUserAccountView:
         refresh = RefreshToken.for_user(admin_user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.get("/admin/users/999999/", format="json")
+        response = api_client.get(reverse("admin_get_user", args=[999999]), format="json")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -311,7 +313,7 @@ class TestAdminBlockUserView:
         refresh = RefreshToken.for_user(admin_user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.patch(f"/admin/users/{user.id}/block/", {"reason": "Spamming"}, format="json")
+        response = api_client.patch(reverse("admin_block_user", args=[user.id]), {"reason": "Spamming"}, format="json")
 
         assert response.status_code == status.HTTP_200_OK
         user.refresh_from_db()
@@ -324,7 +326,7 @@ class TestAdminBlockUserView:
         refresh = RefreshToken.for_user(admin_user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.patch(f"/admin/users/{user.id}/block/", {}, format="json")
+        response = api_client.patch(reverse("admin_block_user", args=[user.id]), {}, format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -335,7 +337,7 @@ class TestAdminBlockUserView:
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
         response = api_client.patch(
-            f"/admin/users/{blocked_user.id}/block/", {"reason": "Multiple violations"}, format="json"
+            reverse("admin_block_user", args=[blocked_user.id]), {"reason": "Multiple violations"}, format="json"
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
@@ -351,7 +353,7 @@ class TestAdminUnblockUserView:
         refresh = RefreshToken.for_user(admin_user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.patch(f"/admin/users/{blocked_user.id}/unblock/", format="json")
+        response = api_client.patch(reverse("admin_unblock_user", args=[blocked_user.id]), format="json")
 
         assert response.status_code == status.HTTP_200_OK
         blocked_user.refresh_from_db()
@@ -363,7 +365,7 @@ class TestAdminUnblockUserView:
         refresh = RefreshToken.for_user(admin_user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.patch(f"/admin/users/{user.id}/unblock/", format="json")
+        response = api_client.patch(reverse("admin_unblock_user", args=[user.id]), format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
@@ -376,7 +378,7 @@ class TestAdminUnblockUserView:
         refresh = RefreshToken.for_user(admin_user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.patch(f"/admin/users/{superuser.id}/unblock/", format="json")
+        response = api_client.patch(reverse("admin_unblock_user", args=[superuser.id]), format="json")
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
@@ -391,7 +393,7 @@ class TestAdminSearchUserView:
         refresh = RefreshToken.for_user(admin_user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.post("/admin/users/search/", {"phone": user.phone}, format="json")
+        response = api_client.post(reverse("admin_search_user"), {"phone": user.phone}, format="json")
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["phone"] == user.phone
@@ -402,7 +404,7 @@ class TestAdminSearchUserView:
         refresh = RefreshToken.for_user(admin_user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.post("/admin/users/search/", {"phone": "+79990000000"}, format="json")
+        response = api_client.post(reverse("admin_search_user"), {"phone": "+79990000000"}, format="json")
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
@@ -412,6 +414,6 @@ class TestAdminSearchUserView:
         refresh = RefreshToken.for_user(admin_user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 
-        response = api_client.post("/admin/users/search/", {"phone": "invalid_phone"}, format="json")
+        response = api_client.post(reverse("admin_search_user"), {"phone": "invalid_phone"}, format="json")
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST

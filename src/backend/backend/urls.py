@@ -26,6 +26,6 @@ admin.site.site_header = "Admin Panel"
 urlpatterns = [
     path("admin_panel/password_change/", admin_block_password_change_view),
     path('admin_panel/', admin.site.urls),
-    path("", include("users.urls")),
-    path("", include("verifications.urls")),
+    path("api/", include("users.urls")),
+    path("api/", include("verifications.urls")),
 ]
