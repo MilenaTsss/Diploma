@@ -104,6 +104,7 @@ class UserAdmin(BaseUserAdmin):
         ),
     )
 
+
 class CustomAuthenticationForm(AuthenticationForm):
     def clean_username(self):
         phone = self.cleaned_data.get("username")
