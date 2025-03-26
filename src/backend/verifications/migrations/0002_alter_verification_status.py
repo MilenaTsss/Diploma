@@ -6,16 +6,16 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('verifications', '0001_initial'),
+        ("verifications", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='verification',
-            name='status',
+            model_name="verification",
+            name="status",
             field=models.CharField(
-                choices=[('sent', 'Sent'), ('verified', 'Verified'), ('used', 'Used'), ('expired', 'Expired')],
-                default='sent',
+                choices=[("sent", "Sent"), ("verified", "Verified"), ("used", "Used"), ("expired", "Expired")],
+                default="sent",
                 max_length=20,
             ),
         ),

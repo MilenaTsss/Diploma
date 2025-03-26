@@ -19,7 +19,7 @@ class CustomJWTAuthentication(JWTAuthentication):
         except InvalidToken as e:
             raise e
         except AuthenticationFailed as e:
-            if e.detail == _('User not found'):
+            if e.detail == _("User not found"):
                 raise e
             else:
                 raise PermissionDenied(_("User is blocked"))
