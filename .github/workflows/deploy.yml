@@ -29,12 +29,12 @@ jobs:
             
             if [ -d Diploma/.git ]; then
               echo "Repo already exists. Pulling latest changes..."
-              cd Diploma
+              cd Diploma/
               git pull origin main
             else
               echo "Cloning fresh repo..."
               git clone git@github.com:${{ github.repository }}.git Diploma
-              cd Diploma
+              cd Diploma/
             fi
             cd src/
             
