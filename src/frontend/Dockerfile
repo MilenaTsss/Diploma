@@ -6,6 +6,9 @@ WORKDIR /frontend_app
 COPY package*.json  .
 RUN npm install --frozen-lockfile
 
+# Install curl for healthcheck
+RUN apk add --no-cache curl
+
 # Copy the rest of the application and build
 COPY . .
 RUN npm run build
@@ -27,14 +30,17 @@ EXPOSE 5173
 # Run Vite development server
 CMD ["npm", "run", "dev"]
 
-# --- Stage 3: Production (Nginx) ---
-FROM nginx:stable-alpine AS production
+# --- Stage 3: Production ---
+FROM node:22.14.0-alpine AS production
+WORKDIR /frontend_app
 
-# Copy the built React app to Nginx's public folder
-COPY --from=build /frontend_app/dist /etc/nginx/html/
+# Copy built app and dependencies for production preview
+COPY --from=build /frontend_app/dist ./dist
+COPY --from=build /frontend_app/node_modules ./node_modules
+COPY --from=build /frontend_app/package.json ./
 
-# Expose port 80
-EXPOSE 80
+# Expose port used by Vite preview
+EXPOSE 4173
 
-# Start Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Run vite preview server
+CMD ["npx", "vite", "preview", "--port", "4173", "--host"]

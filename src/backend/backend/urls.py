@@ -16,6 +16,7 @@ Including another URLconf
 """
 
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import include, path
 
 from users.views import admin_block_password_change_view
@@ -23,9 +24,15 @@ from users.views import admin_block_password_change_view
 admin.site.site_url = "/admin_panel/"
 admin.site.site_header = "Admin Panel"
 
+
+def health_check(request):
+    return JsonResponse({"status": "ok"})
+
+
 urlpatterns = [
     path("admin_panel/password_change/", admin_block_password_change_view),
     path("admin_panel/", admin.site.urls),
     path("api/", include("users.urls")),
     path("api/", include("verifications.urls")),
+    path("health/", health_check),
 ]

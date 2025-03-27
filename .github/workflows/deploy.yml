@@ -19,11 +19,30 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            set -e
+            
             cd /${{ secrets.SSH_USER }}
+            
+            echo "Cleaning up old repo..."
             rm -rf Diploma
+            
+            echo "Cloning updated repo..."
             git clone git@github.com:${{ github.repository }}.git Diploma
             cd Diploma/src/
+            
+            echo "Writing environment files..."
             echo "${{ secrets.ENV_FILE_PROD_BACK }}" > backend/prod.env
             echo "${{ secrets.ENV_FILE_PROD_FRONT }}" > frontend/prod.env
+            echo "${{ secrets.ENV_FILE_KAFKA }}" > kafka/kafka.env
+            echo "${{ secrets.ENV_FILE_KAFKA_UI }}" > kafka/kafka-ui.env
+            
+            echo "Setting up certs..."
+            mkdir -p certs
+            echo "${{ secrets.SSL_CERT }}" > certs/server.crt
+            echo "${{ secrets.SSL_KEY }}" > certs/server.key
+            
+            echo "Pulling dependencies & rebuilding containers..."
             docker-compose -f docker-compose.prod.yml down
             docker-compose -f docker-compose.prod.yml up -d --build
+
+            echo "Deployment complete!"
