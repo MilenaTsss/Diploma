@@ -97,7 +97,6 @@ services:
       - kafka/kafka.env
     volumes:
       - kafka_data:/bitnami/kafka
-      - ./kafka/log4j.properties:/opt/bitnami/kafka/config/log4j.properties
     healthcheck:
       test: [ "CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list" ]
       interval: 60s
