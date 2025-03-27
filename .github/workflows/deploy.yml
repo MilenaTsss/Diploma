@@ -1,10 +1,6 @@
 name: Docker Compose CI/CD
 
 on:
-  pull_request:
-    types:
-      - opened
-      - synchronize
   push:
     branches: [ "main" ]
 
