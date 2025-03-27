@@ -6,9 +6,6 @@ WORKDIR /frontend_app
 COPY package*.json  .
 RUN npm install --frozen-lockfile
 
-# Install curl for healthcheck
-RUN apk add --no-cache curl
-
 # Copy the rest of the application and build
 COPY . .
 RUN npm run build
@@ -33,6 +30,9 @@ CMD ["npm", "run", "dev"]
 # --- Stage 3: Production ---
 FROM node:22.14.0-alpine AS production
 WORKDIR /frontend_app
+
+# Install curl for healthcheck
+RUN apk add --no-cache curl
 
 # Copy built app and dependencies for production preview
 COPY --from=build /frontend_app/dist ./dist
