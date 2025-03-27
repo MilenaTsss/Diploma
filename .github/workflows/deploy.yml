@@ -27,11 +27,13 @@ jobs:
             
             cd /home/${{ secrets.SSH_USER }}
             
-            echo "Cleaning up old repo..."
-            rm -rf Diploma
-            
-            echo "Cloning updated repo..."
-            git clone https://github.com/${{ github.repository }}.git Diploma
+            if [ -d Diploma/.git ]; then
+              echo "Repo already exists. Pulling latest changes..."
+              git pull origin main
+            else
+              echo "Cloning fresh repo..."
+              git clone git@github.com:${{ github.repository }}.git Diploma
+            fi
             cd Diploma/src/
             
             echo "Writing environment files..."
