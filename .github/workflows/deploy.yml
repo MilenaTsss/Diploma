@@ -1,6 +1,10 @@
 name: Docker Compose CI/CD
 
 on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
   push:
     branches: [ "main" ]
 
@@ -21,7 +25,7 @@ jobs:
           script: |
             set -e
             
-            cd /${{ secrets.SSH_USER }}
+            cd /home/${{ secrets.SSH_USER }}
             
             echo "Cleaning up old repo..."
             rm -rf Diploma
