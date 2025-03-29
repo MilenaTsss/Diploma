@@ -1,71 +1,76 @@
 from django.db.models import Q
-from rest_framework import generics, permissions
-from rest_framework.response import Response
+from rest_framework import generics
+from rest_framework.exceptions import PermissionDenied
 
-from barriers.models import Barrier
+from barriers.models import Barrier, UserBarrier
 from barriers.serializers import BarrierSerializer
-from core.pagination import CustomPageNumberPagination
+from core.pagination import BasePaginatedListView
 
 
-class ListBarriersView(generics.ListAPIView):
-    """Список всех публичных шлагбаумов с поиском и пагинацией"""
+class ListBarriersView(BasePaginatedListView):
+    """List all public barriers with search by address, ordering, pagination"""
 
     serializer_class = BarrierSerializer
-    pagination_class = CustomPageNumberPagination
+    pagination_response_key = "barriers"
+
+    ALLOWED_ORDERING_FIELDS = {"address"}
+    DEFAULT_ORDERING = "address"
 
     def get_queryset(self):
-        """Выбираем только публичные шлагбаумы и применяем фильтр по адресу"""
+        """
+        Use the `ordering` query parameter to sort results.
+        """
+
+        ordering = self.request.query_params.get("ordering", self.DEFAULT_ORDERING)
+        if ordering.lstrip("-") not in self.ALLOWED_ORDERING_FIELDS:
+            ordering = self.DEFAULT_ORDERING
 
         queryset = Barrier.objects.filter(is_public=True, is_active=True)
-
-        # Фильтрация по части адреса
         address = self.request.query_params.get("address", "").strip()
         if address:
-            queryset = queryset.filter(Q(address__icontains = address.lower()))
+            queryset = queryset.filter(Q(address__icontains=address.lower()))
 
-        return queryset
-
-    def list(self, request, *args, **kwargs):
-        """Добавляем в ответ total_count, current_page и page_size"""
-
-        queryset = self.get_queryset()
-        page = self.paginate_queryset(queryset)
-
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return queryset.order_by(ordering)
 
 
-    def get_paginated_response(self, data):
-        """Формируем ответ с учетом параметров пагинации"""
-
-        paginator = self.pagination_class()
-        paginator.page = self.paginator.page
-
-        return Response({
-            "total_count": paginator.page.paginator.count,
-            "current_page": paginator.page.number,
-            "page_size": paginator.get_page_size(self.request),
-            "barriers": data,
-        })
-
-
-class MyBarriersListView(generics.ListAPIView):
-    """Получить список шлагбаумов, доступных текущему пользователю"""
+class MyBarriersListView(BasePaginatedListView):
+    """Retrieve a list of barriers accessible by the current user"""
 
     serializer_class = BarrierSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    pagination_response_key = "barriers"
+
+    ALLOWED_ORDERING_FIELDS = {"address"}
+    DEFAULT_ORDERING = "address"
 
     def get_queryset(self):
-        return Barrier.objects.filter(owner=self.request.user, is_active=True)
+        """
+        Use the `ordering` query parameter to sort results.
+        """
+
+        ordering = self.request.query_params.get("ordering", self.DEFAULT_ORDERING)
+        if ordering.lstrip("-") not in self.ALLOWED_ORDERING_FIELDS:
+            ordering = self.DEFAULT_ORDERING
+
+        queryset = Barrier.objects.filter(users_access__user=self.request.user, is_active=True)
+
+        return queryset.order_by(ordering)
 
 
-# class BarrierDetailView(generics.RetrieveAPIView):
-#     """Получить информацию о конкретном шлагбауме"""
-#
-#     queryset = Barrier.objects.filter(is_active=True)
-#     serializer_class = BarrierSerializer
-#     permission_classes = [permissions.AllowAny]
+class BarrierView(generics.RetrieveAPIView):
+    """
+    Retrieve detailed information about a single barrier by ID.
+    Accessible only if the barrier is public or the user has access.
+    """
+
+    serializer_class = BarrierSerializer
+    queryset = Barrier.objects.filter(is_active=True)
+    lookup_field = "id"
+
+    def get_object(self):
+        obj = super().get_object()
+        user = self.request.user
+
+        if obj.is_public or (UserBarrier.user_has_access_to_barrier(user, obj)):
+            return obj
+
+        raise PermissionDenied("You do not have access to this barrier.")

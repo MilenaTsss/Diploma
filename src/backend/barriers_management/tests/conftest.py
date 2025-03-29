@@ -1,0 +1,52 @@
+import pytest
+from rest_framework.test import APIClient
+
+from barriers.models import Barrier
+from users.models import User
+
+
+@pytest.fixture
+def api_client():
+    """Fixture for API client"""
+
+    return APIClient()
+
+
+@pytest.fixture
+def admin_user():
+    """Create an admin user"""
+
+    return User.objects.create_admin(phone="+79995554433", password="adminpassword")
+
+
+@pytest.fixture
+def admin_barrier(admin_user):
+    return Barrier.objects.create(
+        address="ул. Примерная",
+        owner=admin_user,
+        device_phone="+79995551122",
+        device_model=Barrier.Model.RTU5035,
+        device_phones_amount=1,
+        device_password="adminpass",
+        additional_info="Тестовый шлагбаум",
+        is_public=True,
+    )
+
+
+@pytest.fixture
+def another_admin(db):
+    return User.objects.create_user(phone="+79992223333", password="otherpass", role=User.Role.ADMIN, is_staff=True)
+
+
+@pytest.fixture
+def other_barrier(another_admin):
+    return Barrier.objects.create(
+        address="ул. Чужая 9",
+        owner=another_admin,
+        device_phone="+79995554433",
+        device_model=Barrier.Model.ELFOC,
+        device_phones_amount=1,
+        device_password="4321",
+        additional_info="Private",
+        is_public=False,
+    )

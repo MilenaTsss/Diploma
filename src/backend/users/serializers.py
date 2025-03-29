@@ -2,8 +2,8 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 from core.constants import PHONE_MAX_LENGTH
-from users.models import User
 from core.validators import PhoneNumberValidator
+from users.models import User
 from verifications.constants import VERIFICATION_TOKEN_MAX_LENGTH
 from verifications.validators import VerificationTokenValidator
 

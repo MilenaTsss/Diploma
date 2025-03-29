@@ -1,9 +1,8 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
-from django.core.exceptions import PermissionDenied
 
 from core.constants import (
     CHOICE_MAX_LENGTH,
