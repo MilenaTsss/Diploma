@@ -15,58 +15,58 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='Verification',
+            name="Verification",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 (
-                    'phone',
+                    "phone",
                     models.CharField(
                         db_index=True,
-                        help_text='Enter a phone number in the format +7XXXXXXXXXX.',
+                        help_text="Enter a phone number in the format +7XXXXXXXXXX.",
                         max_length=20,
                         validators=[core.validators.PhoneNumberValidator()],
                     ),
                 ),
                 (
-                    'code',
+                    "code",
                     models.CharField(max_length=6, validators=[verifications.validators.VerificationCodeValidator()]),
                 ),
                 (
-                    'verification_token',
+                    "verification_token",
                     models.CharField(
-                        help_text='Unique token for verifying the code.',
+                        help_text="Unique token for verifying the code.",
                         max_length=32,
                         unique=True,
                         validators=[verifications.validators.VerificationTokenValidator()],
                     ),
                 ),
                 (
-                    'mode',
+                    "mode",
                     models.CharField(
                         choices=[
-                            ('login', 'Login'),
-                            ('change_phone_old', 'Change Old Phone'),
-                            ('change_phone_new', 'Change New Phone'),
-                            ('reset_password', 'Reset Password'),
-                            ('change_password', 'Change Password'),
-                            ('delete_account', 'Delete Account'),
+                            ("login", "Login"),
+                            ("change_phone_old", "Change Old Phone"),
+                            ("change_phone_new", "Change New Phone"),
+                            ("reset_password", "Reset Password"),
+                            ("change_password", "Change Password"),
+                            ("delete_account", "Delete Account"),
                         ],
                         max_length=20,
                     ),
                 ),
                 (
-                    'status',
+                    "status",
                     models.CharField(
-                        choices=[('sent', 'Sent'), ('verified', 'Verified'), ('expired', 'Expired')],
-                        default='sent',
+                        choices=[("sent", "Sent"), ("verified", "Verified"), ("expired", "Expired")],
+                        default="sent",
                         max_length=20,
                     ),
                 ),
-                ('failed_attempts', models.PositiveIntegerField(default=0)),
-                ('created_at', models.DateTimeField(default=django.utils.timezone.now)),
+                ("failed_attempts", models.PositiveIntegerField(default=0)),
+                ("created_at", models.DateTimeField(default=django.utils.timezone.now)),
             ],
             options={
-                'db_table': 'verification',
+                "db_table": "verification",
             },
         ),
     ]

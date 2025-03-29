@@ -2,7 +2,7 @@
 [tool.black]
 line-length = 120
 target-version = ["py313"]
-skip-string-normalization = true  # Disables automatic quote normalization
+skip-string-normalization = false  # Disables automatic quote normalization
 
 # isort settings (import sorting)
 [tool.isort]
@@ -32,12 +32,3 @@ python_files = ["test_*.py", "*_test.py"]
 pytest_plugins = ["pytest_mock"]
 testpaths = ["tests"]
 addopts = "-ra --strict-markers --disable-warnings"
-
-
-# Pre-commit settings (pre-commit hooks)
-[tool.pre-commit]
-repos = [
-    { repo = "https://github.com/psf/black", rev = "25.1.0", hooks = [{ id = "black" }] },
-    { repo = "https://github.com/pycqa/isort", rev = "6.0.1", hooks = [{ id = "isort" }] },
-    { repo = "https://github.com/charliermarsh/ruff-pre-commit", rev = "0.9.10", hooks = [{ id = "ruff" }] }
-]
