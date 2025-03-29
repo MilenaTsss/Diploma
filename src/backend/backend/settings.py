@@ -55,11 +55,11 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "rest_framework_simplejwt",
-    'corsheaders',
-    'barriers',
-    'barriers_management',
-    'users',
-    'verifications',
+    "corsheaders",
+    "barriers",
+    "barriers_management",
+    "users",
+    "verifications",
 ]
 
 MIDDLEWARE = [
@@ -181,7 +181,7 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
-        'barriers_management': {
+        "barriers_management": {
             "handlers": ["console", "file"] if not DEBUG else ["console"],
             "level": "INFO",
             "propagate": False,
