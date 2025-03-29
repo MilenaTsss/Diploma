@@ -1,7 +1,7 @@
 import pytest
 from django.core.exceptions import ValidationError
 
-from users.validators import PhoneNumberValidator
+from core.validators import PhoneNumberValidator
 
 
 @pytest.mark.parametrize(

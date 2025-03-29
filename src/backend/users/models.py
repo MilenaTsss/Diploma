@@ -1,14 +1,14 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
-from users.constants import (
+from core.constants import (
     CHOICE_MAX_LENGTH,
     PHONE_MAX_LENGTH,
 )
-from users.validators import PhoneNumberValidator
+from core.validators import PhoneNumberValidator
 
 MAX_LENGTH = 255
 
@@ -152,3 +152,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         """Returns True if the user is blocked (inactive)."""
 
         return not self.is_active
+
+    def delete(self, *args, **kwargs):
+        raise PermissionDenied("Deletion of this object is not allowed.")

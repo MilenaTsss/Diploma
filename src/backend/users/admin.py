@@ -5,8 +5,8 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
 
+from core.validators import PhoneNumberValidator
 from users.models import User
-from users.validators import PhoneNumberValidator
 
 
 class AdminCreationForm(forms.ModelForm):
