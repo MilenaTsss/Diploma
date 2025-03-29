@@ -34,7 +34,7 @@ urlpatterns = [
     path("admin_panel/", admin.site.urls),
     path("api/", include("barriers.urls")),
     path("api/", include("barriers_management.urls")),
-    path("api", include("users.urls")),
+    path("api/", include("users.urls")),
     path("api/", include("verifications.urls")),
     path("health/", health_check),
 ]

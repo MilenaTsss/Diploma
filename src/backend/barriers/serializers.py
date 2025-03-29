@@ -39,9 +39,6 @@ class BarrierSerializer(serializers.ModelSerializer):
             if request_user and UserBarrier.user_has_access_to_barrier(request_user, obj):
                 owner_data["phone"] = obj.owner.phone
 
-        logger.info(request_user)
-        logger.info(owner_data)
-
         return owner_data
 
     def get_device_phone(self, obj):
@@ -49,8 +46,6 @@ class BarrierSerializer(serializers.ModelSerializer):
 
         request = self.context.get("request")
         request_user = request.user
-
-        logger.debug(request_user)
 
         # Show if user has access to this barrier
         if request_user and UserBarrier.user_has_access_to_barrier(request_user, obj):

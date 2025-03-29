@@ -21,17 +21,14 @@ jobs:
       - name: Run Black
         working-directory: ./src/backend
         run: black . --check --diff
-        continue-on-error: true
 
       - name: Run isort
         working-directory: ./src/backend
         run: isort . --check --diff
-        continue-on-error: true
 
       - name: Run Ruff
         working-directory: ./src/backend
         run: ruff check . --output-format=github
-        continue-on-error: true
 
   tests:
     name: Pytest
