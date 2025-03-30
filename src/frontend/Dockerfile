@@ -38,9 +38,10 @@ RUN apk add --no-cache curl
 COPY --from=build /frontend_app/dist ./dist
 COPY --from=build /frontend_app/node_modules ./node_modules
 COPY --from=build /frontend_app/package.json ./
+COPY --from=build ./frontend_app/vite.config.js ./
 
 # Expose port used by Vite preview
 EXPOSE 4173
 
 # Run vite preview server
-CMD ["npx", "vite", "preview", "--port", "4173", "--host"]
+CMD ["npx", "vite", "preview", "--host"]
