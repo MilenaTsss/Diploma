@@ -1,5 +1,6 @@
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
+from django.utils.timezone import now
 
 from core.constants import CHOICE_MAX_LENGTH
 
@@ -21,13 +22,13 @@ class AccessRequest(models.Model):
 
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
-        APPROVED = "approved", "Approved"
+        ACCEPTED = "accepted", "Accepted"
         REJECTED = "rejected", "Rejected"
         CANCELLED = "cancelled", "Cancelled"
 
     ALLOWED_STATUS_TRANSITIONS = {
-        Status.PENDING: {Status.APPROVED, Status.REJECTED, Status.CANCELLED},
-        Status.APPROVED: set(),
+        Status.PENDING: {Status.ACCEPTED, Status.REJECTED, Status.CANCELLED},
+        Status.ACCEPTED: set(),
         Status.REJECTED: set(),
         Status.CANCELLED: set(),
     }
@@ -66,7 +67,7 @@ class AccessRequest(models.Model):
     hidden_for_admin = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
-    finished_at = models.DateTimeField(null=True, blank=False)
+    finished_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
         if self.request_type == AccessRequest.RequestType.FROM_USER:
@@ -91,7 +92,5 @@ class AccessRequest(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()  # Will raise if invalid
         if self.status != self.Status.PENDING and not self.finished_at:
-            from django.utils.timezone import now
-
             self.finished_at = now()
         super().save(*args, **kwargs)

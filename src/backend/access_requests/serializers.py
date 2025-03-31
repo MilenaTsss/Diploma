@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from access_requests.models import AccessRequest
+from barriers.models import UserBarrier
 
 
 class AccessRequestSerializer(serializers.ModelSerializer):
@@ -21,64 +22,87 @@ class AccessRequestSerializer(serializers.ModelSerializer):
             return "outgoing" if obj.request_type == AccessRequest.RequestType.FROM_USER else "incoming"
 
 
-class BaseCreateAccessRequestSerializer(serializers.ModelSerializer):
-    """Base serializer for creating access requests with shared validation logic."""
+class CreateAccessRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating a new access request - by user or admin.
+    Need to have `as_admin` set to `True` in context to serialize request as admin.
+    """
 
     class Meta:
         model = AccessRequest
         fields = ["user", "barrier"]
 
-    request_type: str  # This will be overridden in subclasses
-
     def validate(self, attrs):
-        attrs["request_type"] = self.request_type
-
         current_user = self.context["request"].user
+        as_admin = self.context.get("as_admin", False)
+
+        request_type = AccessRequest.RequestType.FROM_BARRIER if as_admin else AccessRequest.RequestType.FROM_USER
+        attrs["request_type"] = request_type
+
         user = attrs["user"]
         barrier = attrs["barrier"]
 
-        if not self.request_type:
-            raise NotImplementedError("Subclasses must set request_type")
+        if not barrier.is_active:
+            raise serializers.ValidationError("Cannot create access request for an inactive barrier.")
+
+        if request_type == AccessRequest.RequestType.FROM_USER:
+            if user != current_user:
+                raise serializers.ValidationError("Users can only create requests for themselves.")
+            if not barrier.is_public:
+                raise serializers.ValidationError("Cannot request access to a private barrier.")
+        else:
+            if barrier.owner != current_user:
+                raise serializers.ValidationError("You are not the owner of this barrier.")
+            if not user.is_active:
+                raise serializers.ValidationError("Cannot create access request for an inactive user.")
 
         # Check for existing pending request
         if AccessRequest.objects.filter(user=user, barrier=barrier, status=AccessRequest.Status.PENDING).exists():
             raise serializers.ValidationError("An active request already exists for this user and barrier.")
 
-        if not barrier.is_active:
-            raise serializers.ValidationError("Cannot create access request for an inactive barrier.")
-
-        if not user.is_active:
-            raise serializers.ValidationError("Cannot create access request for an inactive user.")
-
-        # Call specific validation hook
-        self.run_custom_validation(current_user, user, barrier)
+        # Check if user already has access
+        if UserBarrier.objects.filter(user=user, barrier=barrier, is_active=True).exists():
+            raise serializers.ValidationError("This user already has access to the barrier.")
 
         return attrs
 
-    def run_custom_validation(self, current_user, user, barrier):
-        """Custom validation to be overridden by subclasses."""
 
-        raise NotImplementedError("Subclasses must implement run_custom_validation()")
+class UpdateAccessRequestSerializer(serializers.ModelSerializer):
+    """Serializer for updating access requests"""
 
+    class Meta:
+        model = AccessRequest
+        fields = ["status", "hidden_for_user", "hidden_for_admin"]
 
-class CreateAccessRequestSerializer(BaseCreateAccessRequestSerializer):
-    """Serializer for creating a new access request - by user"""
+    def validate(self, attrs):
+        instance: AccessRequest = self.instance
+        as_admin = self.context.get("as_admin", False)
 
-    request_type = AccessRequest.RequestType.FROM_USER
+        request_type = instance.request_type
+        current_status = instance.status
+        new_status = attrs.get("status", instance.status)
 
-    def run_custom_validation(self, current_user, user, barrier):
-        if not barrier.is_public:
-            raise serializers.ValidationError("Cannot request access to a private barrier.")
+        allowed_transitions = AccessRequest.ALLOWED_STATUS_TRANSITIONS.get(current_status, set())
+        if new_status != current_status and new_status not in allowed_transitions:
+            raise serializers.ValidationError(
+                {"status": f"Invalid status transition: {current_status} -> {new_status}"}
+            )
 
-        if user != current_user:
-            raise serializers.ValidationError("Users can only create requests for themselves.")
+        if new_status == AccessRequest.Status.CANCELLED:
+            if (not as_admin and request_type == AccessRequest.RequestType.FROM_BARRIER) or (
+                as_admin and request_type == AccessRequest.RequestType.FROM_USER
+            ):
+                raise serializers.ValidationError({"status": "You can only cancel your own requests."})
 
+        if new_status in {AccessRequest.Status.ACCEPTED, AccessRequest.Status.REJECTED}:
+            if (not as_admin and request_type == AccessRequest.RequestType.FROM_USER) or (
+                as_admin and request_type == AccessRequest.RequestType.FROM_BARRIER
+            ):
+                raise serializers.ValidationError({"status": "You are not allowed to accept or reject this request."})
 
-class AdminCreateAccessRequestSerializer(BaseCreateAccessRequestSerializer):
-    """Serializer for creating a new access request - by admin"""
+        if "hidden_for_admin" in attrs and not as_admin:
+            raise serializers.ValidationError({"hidden_for_admin": "Only admins can modify this field."})
+        if "hidden_for_user" in attrs and as_admin:
+            raise serializers.ValidationError({"hidden_for_user": "Only users can modify this field."})
 
-    request_type = AccessRequest.RequestType.FROM_BARRIER
-
-    def run_custom_validation(self, current_user, user, barrier):
-        if barrier.owner != current_user:
-            raise serializers.ValidationError("You are not the owner of this barrier.")
+        return attrs

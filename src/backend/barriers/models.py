@@ -1,4 +1,4 @@
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
@@ -23,9 +23,9 @@ class Barrier(models.Model):
 
     address = models.CharField(
         max_length=MAX_LENGTH * 2,
-        blank=False,
         db_index=True,
         null=False,
+        blank=False,
         help_text=_("Full address of the barrier, validated based on frontend suggestions."),
     )
 
@@ -54,7 +54,7 @@ class Barrier(models.Model):
     )
 
     device_password = models.CharField(
-        max_length=20, null=True, blank=False, help_text=_("Device password for managing.")
+        max_length=20, null=True, blank=True, help_text=_("Device password for managing.")
     )
 
     additional_info = models.TextField(blank=True, null=False, help_text=_("Additional details about the barrier."))
@@ -96,17 +96,34 @@ class UserBarrier(models.Model):
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
-    # TODO - add access request from which this was created
-    # access_request = models.ForeignKey(
-    #     "requests.AccessRequest",
-    #     on_delete=models.SET_NULL,
-    #     null=True,
-    #     blank=True,
-    #     help_text=_("The request from which this access was created.")
-    # )
+    is_active = models.BooleanField(default=True)
+
+    access_request = models.ForeignKey(
+        "access_requests.AccessRequest",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text=_("The request from which this access was created."),
+    )
 
     def __str__(self):
         return f"{self.user} - {self.barrier}"
+
+    @classmethod
+    def create(cls, user, barrier, access_request=None):
+        """Create new or reactivate existing inactive user-barrier link"""
+
+        existing = cls.objects.filter(user=user, barrier=barrier).first()
+        if existing:
+            if existing.is_active:
+                raise ValidationError("An active access already exists for this user and barrier.")
+            else:
+                existing.is_active = True
+                existing.access_request = access_request
+                existing.save(update_fields=["is_active", "access_request"])
+                return existing
+
+        return cls.objects.create(user=user, barrier=barrier, access_request=access_request)
 
     @classmethod
     def user_has_access_to_barrier(cls, user, barrier):
@@ -114,7 +131,7 @@ class UserBarrier(models.Model):
         Returns True if the given user has access to the specified barrier.
         """
 
-        return cls.objects.filter(user=user, barrier=barrier).exists()
+        return cls.objects.filter(user=user, barrier=barrier, is_active=True).exists()
 
     def delete(self, *args, **kwargs):
         raise PermissionDenied("Deletion of this object is not allowed.")
