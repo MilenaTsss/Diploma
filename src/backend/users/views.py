@@ -116,7 +116,7 @@ class CheckAdminView(APIView):
         if not phone:
             return Response({"error": "Phone number is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.filter(phone=phone).first()
+        user = User.objects.filter(phone=phone, is_active=True).first()
 
         if not user:
             return Response({"is_admin": False}, status=status.HTTP_200_OK)

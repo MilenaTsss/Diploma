@@ -115,3 +115,6 @@ class UserBarrier(models.Model):
         """
 
         return cls.objects.filter(user=user, barrier=barrier).exists()
+
+    def delete(self, *args, **kwargs):
+        raise PermissionDenied("Deletion of this object is not allowed.")

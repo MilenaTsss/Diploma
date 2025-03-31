@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
+    "access_requests",
     "barriers",
     "barriers_management",
     "users",
@@ -172,6 +173,11 @@ LOGGING = {
             "propagate": False,
         },
         "django.server": {
+            "handlers": ["console", "file"] if not DEBUG else ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "access_requests": {
             "handlers": ["console", "file"] if not DEBUG else ["console"],
             "level": "INFO",
             "propagate": False,
