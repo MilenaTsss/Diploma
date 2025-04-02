@@ -1,5 +1,5 @@
 import pytest
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import PermissionDenied
 
 from access_requests.models import AccessRequest
 
@@ -30,20 +30,6 @@ class TestAccessRequestModel:
         )
         with pytest.raises(PermissionDenied):
             request.delete()
-
-    def test_invalid_status_transition(self, user, barrier):
-        request = AccessRequest.objects.create(
-            user=user,
-            barrier=barrier,
-            request_type=AccessRequest.RequestType.FROM_USER,
-            status=AccessRequest.Status.PENDING,
-        )
-        request.status = AccessRequest.Status.ACCEPTED
-        request.save()
-
-        request.status = AccessRequest.Status.PENDING
-        with pytest.raises(ValidationError):
-            request.save()
 
     def test_valid_status_transition_sets_finished_at(self, user, barrier):
         request = AccessRequest.objects.create(

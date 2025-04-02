@@ -39,7 +39,6 @@ class Barrier(models.Model):
 
     device_phone = models.CharField(
         max_length=PHONE_MAX_LENGTH,
-        unique=True,
         db_index=True,
         validators=[PhoneNumberValidator()],
         null=False,
@@ -95,9 +94,6 @@ class UserBarrier(models.Model):
         help_text=_("Barrier to which the user has access."),
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True)
-
     access_request = models.ForeignKey(
         "access_requests.AccessRequest",
         on_delete=models.SET_NULL,
@@ -105,6 +101,9 @@ class UserBarrier(models.Model):
         blank=True,
         help_text=_("The request from which this access was created."),
     )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.user} - {self.barrier}"

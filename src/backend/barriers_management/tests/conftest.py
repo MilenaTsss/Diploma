@@ -22,14 +22,15 @@ def admin_user():
 @pytest.fixture
 def admin_barrier(admin_user):
     return Barrier.objects.create(
-        address="ул. Примерная",
+        address="St. Example",
         owner=admin_user,
         device_phone="+79995551122",
         device_model=Barrier.Model.RTU5035,
         device_phones_amount=1,
         device_password="adminpass",
-        additional_info="Тестовый шлагбаум",
+        additional_info="Test barrier",
         is_public=True,
+        is_active=True,
     )
 
 
@@ -41,7 +42,7 @@ def another_admin(db):
 @pytest.fixture
 def other_barrier(another_admin):
     return Barrier.objects.create(
-        address="ул. Чужая 9",
+        address="St. Another, 9",
         owner=another_admin,
         device_phone="+79995554433",
         device_model=Barrier.Model.ELFOC,

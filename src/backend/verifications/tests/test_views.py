@@ -107,3 +107,17 @@ class TestVerifyCodeView:
             format="json",
         )
         assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    def test_verify_code_phone_mismatch(self, api_client, verification):
+        """Test verifying a code with mismatched phone number"""
+        response = api_client.patch(
+            reverse("verify_code"),
+            {
+                "phone": "+70000000000",  # mismatched phone
+                "code": verification.code,
+                "verification_token": verification.verification_token,
+            },
+            format="json",
+        )
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["error"] == "Phone number does not match the verification record."

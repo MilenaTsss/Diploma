@@ -11,7 +11,7 @@ class TestCreateBarrierView:
         api_client.force_authenticate(user=admin_user)
 
         payload = {
-            "address": "ул. Тестовая 5",
+            "address": "St. Test, 5",
             "device_phone": "+79991112233",
             "device_model": Barrier.Model.RTU5025,
             "device_phones_amount": 1,
@@ -23,7 +23,7 @@ class TestCreateBarrierView:
         response = api_client.post(reverse("create_barrier"), payload, format="json")
 
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data["address"] == "ул. тестовая 5"
+        assert response.data["address"] == "st. test, 5"
         assert response.data["device_phone"] == "+79991112233"
         assert "device_password" not in response.data
 

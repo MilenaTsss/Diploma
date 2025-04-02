@@ -1,4 +1,4 @@
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import PermissionDenied
 from django.db import models
 from django.utils.timezone import now
 
@@ -75,22 +75,10 @@ class AccessRequest(models.Model):
         else:
             return f"`{self.barrier}` -> `{self.user}` [{self.status}]"
 
-    def delete(self, *args, **kwargs):
-        raise PermissionDenied("Deletion of this object is not allowed.")
-
-    def clean(self):
-        """Restrict invalid status transitions"""
-
-        if not self.pk:
-            return  # New object — skip check
-
-        old = AccessRequest.objects.get(pk=self.pk)
-        allowed = self.ALLOWED_STATUS_TRANSITIONS.get(old.status, set())
-        if self.status != old.status and self.status not in allowed:
-            raise ValidationError(f"Invalid status transition: {old.status} → {self.status}")
-
     def save(self, *args, **kwargs):
-        self.full_clean()  # Will raise if invalid
         if self.status != self.Status.PENDING and not self.finished_at:
             self.finished_at = now()
         super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise PermissionDenied("Deletion of this object is not allowed.")

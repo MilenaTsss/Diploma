@@ -87,24 +87,19 @@ class BaseAccessRequestListView(BasePaginatedListView):
 
         ordering = request.query_params.get("ordering", self.DEFAULT_ORDERING)
         if ordering.lstrip("-") not in self.ALLOWED_ORDERING_FIELDS:
-            logger.info(f"Invalid ordering: {ordering}")
             ordering = self.DEFAULT_ORDERING
 
         queryset = self.get_base_queryset()
-        logger.info(f"Base queryset: {queryset}")
 
         # Filter by status
         status_value = request.query_params.get("status")
-        logger.info(f"Status value: {status_value}")
         if status_value and status_value in AccessRequest.Status.values:
             queryset = queryset.filter(status=status_value)
-            logger.info(f"Valid status value got new queryset: {queryset}")
 
         # Filter by barrier
         barrier_id = request.query_params.get("barrier_id")
         if barrier_id and barrier_id.isdigit():
             queryset = queryset.filter(barrier_id=int(barrier_id))
-            logger.info(f"Got new queryset after barrier_id filter: {queryset}")
 
         # Filter by hidden flag
         hidden_bool = request.query_params.get("hidden", "false").lower() == "true"
@@ -113,19 +108,10 @@ class BaseAccessRequestListView(BasePaginatedListView):
 
         # Filter by type: incoming / outgoing
         type = request.query_params.get("type")
-        logger.info(f"Direction: {type}")
-        if type == "incoming":
-            if self.as_admin:
-                queryset = queryset.filter(request_type=AccessRequest.RequestType.FROM_USER)
-            else:
-                queryset = queryset.filter(request_type=AccessRequest.RequestType.FROM_BARRIER)
-            logger.info(f"Got new queryset after direction: {queryset}")
-        elif type == "outgoing":
-            if self.as_admin:
-                queryset = queryset.filter(request_type=AccessRequest.RequestType.FROM_BARRIER)
-            else:
-                queryset = queryset.filter(request_type=AccessRequest.RequestType.FROM_USER)
-            logger.info(f"Got new queryset after direction: {queryset}")
+        if type == "incoming" and self.as_admin or type == "outgoing" and not self.as_admin:
+            queryset = queryset.filter(request_type=AccessRequest.RequestType.FROM_USER)
+        elif type == "outgoing" and self.as_admin or type == "incoming" and not self.as_admin:
+            queryset = queryset.filter(request_type=AccessRequest.RequestType.FROM_BARRIER)
 
         # Filter cancelled requests created by someone else
         if self.as_admin:
@@ -192,7 +178,6 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        # Create UserBarrier if accepted
         if instance.status == AccessRequest.Status.ACCEPTED:
             UserBarrier.create(user=instance.user, barrier=instance.barrier, access_request=instance)
 

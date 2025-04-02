@@ -38,7 +38,7 @@ class CreateBarrierSerializer(serializers.ModelSerializer):
     def validate_device_phone(self, value):
         """Check if a device with the given phone number already exists"""
 
-        if Barrier.objects.filter(device_phone=value).exists():
+        if Barrier.objects.filter(device_phone=value, is_active=True).exists():
             raise serializers.ValidationError("A barrier with this phone number already exists.")
         return value
 

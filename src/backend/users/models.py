@@ -20,6 +20,7 @@ class UserManager(BaseUserManager):
 
     def validate_phone(self, phone: str):
         """Validate phone number using PhoneNumberValidator"""
+
         try:
             self.phone_validator(phone)
         except ValidationError as e:
@@ -28,6 +29,7 @@ class UserManager(BaseUserManager):
 
     def create_user(self, phone, password=None, **extra_fields):
         """Creates a regular user"""
+
         if not phone:
             raise ValueError("Phone number must be provided")
 
@@ -47,6 +49,7 @@ class UserManager(BaseUserManager):
 
     def create_admin(self, phone, password=None, **extra_fields):
         """Creates an admin (can only be created via Django Admin)"""
+
         extra_fields.setdefault("role", User.Role.ADMIN)
         extra_fields.setdefault("is_staff", True)
 
@@ -57,6 +60,7 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, phone, password=None, **extra_fields):
         """Creates a superuser"""
+
         if self.model.objects.filter(role=User.Role.SUPERUSER).exists():
             raise ValueError("There can be only one superuser")
 
@@ -137,15 +141,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.phone
 
     @classmethod
-    def get_user_by_phone(cls, phone: str):
-        """Fetches user by phone number or returns None."""
-
-        return cls.objects.filter(phone=phone).first()
-
-    @classmethod
     def is_phone_blocked(cls, phone: str) -> bool:
         """Checks if a user with the given phone number is blocked"""
-        user = cls.get_user_by_phone(phone)
+
+        user = cls.objects.filter(phone=phone).first()
         return user.is_blocked_user() if user else False
 
     def is_blocked_user(self):
