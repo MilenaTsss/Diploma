@@ -1437,7 +1437,7 @@
                 "-address",
                 "created_at",
                 "-created_at",
-                "updated_at",
+                "updated_at"
               ]
             }
           },
@@ -1689,7 +1689,7 @@
         }
       }
     },
-    "/admin/barriers/{barrier_id}/limits": {
+    "/admin/barriers/{barrier_id}/limits/": {
       "put": {
         "tags": [
           "Limits"
