@@ -18,9 +18,7 @@ class CreateBarrierView(generics.CreateAPIView):
     """Create a new barrier (admin only)."""
 
     queryset = Barrier.objects.all()
-
-    def get_serializer_class(self):
-        return CreateBarrierSerializer
+    serializer_class = CreateBarrierSerializer
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -39,7 +37,7 @@ class CreateBarrierView(generics.CreateAPIView):
 
 
 @permission_classes([IsAdminUser])
-class MyAdminBarrierView(BasePaginatedListView):
+class MyAdminBarrierListView(BasePaginatedListView):
     """Get a list of barriers managed by the current admin"""
 
     serializer_class = AdminBarrierSerializer

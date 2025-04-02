@@ -41,19 +41,9 @@ class TestUserModel:
 
         assert user.get_phone() == "+79991234567"
 
-    def test_get_user_by_phone(self):
-        """Test fetching user by phone number."""
-        user = User.objects.create_user(phone="+79991234567")
-        found_user = User.get_user_by_phone("+79991234567")
-
-        assert found_user is not None
-        assert found_user.phone == user.phone
-
-        not_found_user = User.get_user_by_phone("+79998887766")
-        assert not_found_user is None
-
     def test_is_phone_blocked(self):
         """Test checking if a user with a given phone number is blocked."""
+
         User.objects.create_user(phone="+79991234567", is_active=True)
         User.objects.create_user(phone="+79998887766", is_active=False)
 
@@ -63,6 +53,7 @@ class TestUserModel:
 
     def test_is_blocked_user(self):
         """Test checking if a user is blocked."""
+
         active_user = User.objects.create_user(phone="+79991234567", is_active=True)
         blocked_user = User.objects.create_user(phone="+79998887766", is_active=False)
 

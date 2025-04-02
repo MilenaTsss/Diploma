@@ -22,7 +22,7 @@ def client_admin(admin_user):
 def create_barriers(admin_user):
     return [
         Barrier.objects.create(
-            address=f"ул. Тестовая {i}",
+            address=f"st. Test {i}",
             owner=admin_user,
             device_phone=f"+7999000000{i}",
             device_model=Barrier.Model.RTU5025,

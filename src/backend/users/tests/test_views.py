@@ -277,6 +277,25 @@ class TestResetPasswordView:
         reset_verification.refresh_from_db()
         assert reset_verification.status == Verification.Status.USED
 
+    def test_reset_password_blocked_user(self, api_client, admin_user, reset_verification):
+        """Test that blocked admin cannot reset password"""
+
+        admin_user.is_active = False
+        admin_user.save()
+
+        response = api_client.patch(
+            reverse("admin_reset_password"),
+            {
+                "phone": admin_user.phone,
+                "new_password": "BlockedUserPass!",
+                "verification_token": reset_verification.verification_token,
+            },
+            format="json",
+        )
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["error"] == "User is blocked."
+
 
 @pytest.mark.django_db
 class TestAdminUserAccountView:
@@ -295,6 +314,7 @@ class TestAdminUserAccountView:
 
     def test_get_user_not_found(self, api_client, admin_user):
         """Test retrieving details of a non-existent user"""
+
         refresh = RefreshToken.for_user(admin_user)
         api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
 

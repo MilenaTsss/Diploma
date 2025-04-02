@@ -116,12 +116,12 @@ class CheckAdminView(APIView):
         if not phone:
             return Response({"error": "Phone number is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.filter(phone=phone).first()
+        user = User.objects.filter(phone=phone, is_active=True).first()
 
         if not user:
             return Response({"is_admin": False}, status=status.HTTP_200_OK)
 
-        return Response({"is_admin": user.is_staff}, status=status.HTTP_200_OK)
+        return Response({"is_admin": user.role != User.Role.USER}, status=status.HTTP_200_OK)
 
 
 class UserAccountView(RetrieveUpdateDestroyAPIView):
@@ -247,6 +247,8 @@ class ResetPasswordView(APIView):
         user = User.objects.filter(phone=serializer.validated_data["phone"]).first()
         if not user:
             return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        if not user.is_active:
+            return Response({"error": "User is blocked."}, status=status.HTTP_403_FORBIDDEN)
         if user.role == User.Role.USER:
             return Response({"error": "Only for admins."}, status=status.HTTP_403_FORBIDDEN)
 
