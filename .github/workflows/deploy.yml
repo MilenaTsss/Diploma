@@ -39,6 +39,7 @@ jobs:
             echo "${{ secrets.ENV_FILE_PROD_FRONT }}" > frontend/prod.env
             echo "${{ secrets.ENV_FILE_KAFKA }}" > kafka/kafka.env
             echo "${{ secrets.ENV_FILE_KAFKA_UI }}" > kafka/kafka-ui.env
+            echo "${{ secrets.ENV_FILE_GRAFANA }}" > monitoring/grafana.env
             
             echo "Setting up certs..."
             mkdir -p certs
