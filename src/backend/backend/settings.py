@@ -26,7 +26,9 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", default="django-insecure")
 # Set DEBUG based on the environment
 DEBUG = os.getenv("DJANGO_ENV", "development").lower() == "development"
 
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
+CSRF_TRUSTED_ORIGINS = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "https://localhost,https://127.0.0.1").split(",")
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("users.custom_jwt_auth.CustomJWTAuthentication",),
