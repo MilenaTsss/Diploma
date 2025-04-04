@@ -6,6 +6,7 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from rest_framework import generics, status
 from rest_framework.decorators import authentication_classes, permission_classes
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.generics import RetrieveUpdateDestroyAPIView, get_object_or_404
 from rest_framework.permissions import AllowAny, IsAdminUser
 from rest_framework.response import Response
@@ -168,6 +169,9 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
         verification.save(update_fields=["status"])
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def put(self, request, *args, **kwargs):
+        raise MethodNotAllowed("PUT")
 
 
 class ChangePhoneView(APIView):

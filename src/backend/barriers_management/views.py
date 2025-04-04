@@ -2,12 +2,18 @@ import logging
 
 from rest_framework import generics, status
 from rest_framework.decorators import permission_classes
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
 
-from barriers.models import Barrier
-from barriers_management.serializers import AdminBarrierSerializer, CreateBarrierSerializer, UpdateBarrierSerializer
+from barriers.models import Barrier, BarrierLimit
+from barriers.serializers import BarrierLimitSerializer
+from barriers_management.serializers import (
+    AdminBarrierSerializer,
+    CreateBarrierSerializer,
+    UpdateBarrierLimitSerializer,
+    UpdateBarrierSerializer,
+)
 from core.pagination import BasePaginatedListView
 
 logger = logging.getLogger(__name__)
@@ -64,10 +70,9 @@ class MyAdminBarrierListView(BasePaginatedListView):
 
 @permission_classes([IsAdminUser])
 class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
-    """
-    Retrieve, update, or delete a barrier by ID (admin only).
-    """
+    """Retrieve, update, or delete a barrier by ID (admin only)."""
 
+    queryset = Barrier.objects.filter(is_active=True)
     lookup_field = "id"
 
     def get_serializer_class(self):
@@ -79,11 +84,6 @@ class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
         context = super().get_serializer_context()
         context["request"] = self.request
         return context
-
-    def get_queryset(self):
-        """Admin can only access their own barriers"""
-
-        return Barrier.objects.filter(is_active=True)
 
     def get_object(self):
         """Add explicit permission check and better 403 response"""
@@ -110,3 +110,35 @@ class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
         barrier.is_active = False
         barrier.save(update_fields=["is_active"])
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def put(self, request, *args, **kwargs):
+        raise MethodNotAllowed("PUT")
+
+
+@permission_classes([IsAdminUser])
+class AdminBarrierLimitUpdateView(generics.UpdateAPIView):
+    """Update or create limits for a barrier (admins only)"""
+
+    serializer_class = UpdateBarrierLimitSerializer
+    queryset = Barrier.objects.filter(is_active=True)
+    lookup_field = "id"
+
+    def get_object(self):
+        barrier = super().get_object()
+
+        if barrier.owner != self.request.user:
+            raise PermissionDenied("You are not the owner of this barrier.")
+
+        limit, _ = BarrierLimit.objects.get_or_create(barrier=barrier)
+        return limit
+
+    def patch(self, request, *args, **kwargs):
+        limit = self.get_object()
+        serializer = self.get_serializer(limit, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(BarrierLimitSerializer(limit).data, status=status.HTTP_200_OK)
+
+    def put(self, request, *args, **kwargs):
+        raise MethodNotAllowed("PUT")

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from barriers.models import Barrier
+from barriers.models import Barrier, BarrierLimit
 from barriers.validators import DevicePasswordValidator
 
 
@@ -76,3 +76,21 @@ class UpdateBarrierSerializer(serializers.ModelSerializer):
         model = Barrier
         # TODO - how to change password? there need to be stop for sms when password changes!
         fields = ["device_password", "additional_info", "is_public"]
+
+
+class UpdateBarrierLimitSerializer(serializers.ModelSerializer):
+    """Serializer for updating/creating barrier limits"""
+
+    user_phone_limit = serializers.IntegerField(min_value=0, allow_null=True, required=False)
+    user_temp_phone_limit = serializers.IntegerField(min_value=0, allow_null=True, required=False)
+    global_temp_phone_limit = serializers.IntegerField(min_value=0, allow_null=True, required=False)
+    sms_weekly_limit = serializers.IntegerField(min_value=0, allow_null=True, required=False)
+
+    class Meta:
+        model = BarrierLimit
+        fields = [
+            "user_phone_limit",
+            "user_temp_phone_limit",
+            "global_temp_phone_limit",
+            "sms_weekly_limit",
+        ]

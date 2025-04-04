@@ -1,9 +1,10 @@
 import pytest
 
-from barriers.models import Barrier
+from barriers.models import Barrier, BarrierLimit
 from barriers_management.serializers import (
     AdminBarrierSerializer,
     CreateBarrierSerializer,
+    UpdateBarrierLimitSerializer,
     UpdateBarrierSerializer,
 )
 
@@ -125,3 +126,38 @@ class TestUpdateBarrierSerializer:
 
         assert updated.device_password == "newpassword"
         assert updated.additional_info == "Updated info"
+
+
+@pytest.mark.django_db
+class TestUpdateBarrierLimitSerializer:
+    def test_valid_update(self, admin_barrier):
+        limit = BarrierLimit.objects.create(barrier=admin_barrier)
+        data = {
+            "user_phone_limit": 5,
+            "sms_weekly_limit": 20,
+        }
+
+        serializer = UpdateBarrierLimitSerializer(limit, data=data, partial=True)
+        assert serializer.is_valid(), serializer.errors
+        result = serializer.save()
+
+        assert result.user_phone_limit == 5
+        assert result.sms_weekly_limit == 20
+
+    def test_null_values_allowed(self, admin_barrier):
+        limit = BarrierLimit.objects.create(barrier=admin_barrier, sms_weekly_limit=10)
+        data = {"sms_weekly_limit": None}
+
+        serializer = UpdateBarrierLimitSerializer(limit, data=data, partial=True)
+        assert serializer.is_valid(), serializer.errors
+        result = serializer.save()
+
+        assert result.sms_weekly_limit is None
+
+    def test_negative_value_not_allowed(self, admin_barrier):
+        limit = BarrierLimit.objects.create(barrier=admin_barrier)
+        data = {"user_temp_phone_limit": -1}
+
+        serializer = UpdateBarrierLimitSerializer(limit, data=data, partial=True)
+        assert not serializer.is_valid()
+        assert "user_temp_phone_limit" in serializer.errors

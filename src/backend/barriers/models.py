@@ -134,3 +134,49 @@ class UserBarrier(models.Model):
 
     def delete(self, *args, **kwargs):
         raise PermissionDenied("Deletion of this object is not allowed.")
+
+
+class BarrierLimit(models.Model):
+    """Limits for a barrier."""
+
+    class Meta:
+        db_table = "barrier_limit"
+
+    barrier = models.OneToOneField(
+        "barriers.Barrier",
+        on_delete=models.PROTECT,
+        related_name="limits",
+        help_text="Barrier associated with the limits.",
+    )
+
+    user_phone_limit = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Maximum number of phone numbers a user can register"
+    )
+
+    user_temp_phone_limit = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Maximum number of temporary phone numbers allowed per user"
+    )
+
+    global_temp_phone_limit = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Maximum number of temporary phone numbers allowed in total"
+    )
+
+    sms_weekly_limit = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Maximum number of SMS messages a user can send per week"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp when limits were created")
+    updated_at = models.DateTimeField(auto_now=True, help_text="Timestamp when limits were last updated")
+
+    def __str__(self):
+        return (
+            f"Limits for Barrier '{self.barrier.address}' "
+            f"(ID: {self.barrier}) — "
+            f"user_phones: {self.user_phone_limit}, "
+            f"user_temp_phones: {self.user_temp_phone_limit}, "
+            f"temp_all: {self.global_temp_phone_limit}, "
+            f"sms_in_week: {self.sms_weekly_limit}"
+        )
+
+    def delete(self, *args, **kwargs):
+        raise PermissionDenied("Deletion of this object is not allowed.")
