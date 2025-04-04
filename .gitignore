@@ -10,3 +10,6 @@ logs
 *.log
 *.http
 staticfiles
+trash/
+certs/
+tmp/

@@ -8,9 +8,14 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 
-from users.constants import PHONE_MAX_LENGTH
-from users.validators import PhoneNumberValidator
-from verifications.constants import CHOICE_MAX_LENGTH, VERIFICATION_CODE_MAX_LENGTH, VERIFICATION_TOKEN_MAX_LENGTH
+from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH
+from core.validators import PhoneNumberValidator
+from verifications.constants import (
+    DELETION_DAYS,
+    EXPIRATION_MINUTES,
+    VERIFICATION_CODE_MAX_LENGTH,
+    VERIFICATION_TOKEN_MAX_LENGTH,
+)
 from verifications.validators import VerificationCodeValidator, VerificationTokenValidator
 
 logger = logging.getLogger(__name__)
@@ -46,8 +51,8 @@ class VerificationService:
         """Deletes outdated verification codes and marks old sent codes as expired."""
 
         now_time = now()
-        expiration_time = now_time - timedelta(minutes=15)
-        deletion_time = now_time - timedelta(days=1)
+        expiration_time = now_time - timedelta(minutes=EXPIRATION_MINUTES)
+        deletion_time = now_time - timedelta(days=DELETION_DAYS)
 
         Verification.objects.filter(created_at__lte=deletion_time).delete()
         Verification.objects.filter(status=Verification.Status.SENT, created_at__lte=expiration_time).update(
@@ -80,7 +85,7 @@ class VerificationService:
             return None, _("Invalid verification token."), status.HTTP_404_NOT_FOUND
 
         if verification.phone != phone:
-            return None, _("Invalid phone number."), status.HTTP_404_NOT_FOUND
+            return None, _("Invalid verification phone number."), status.HTTP_404_NOT_FOUND
 
         if verification.mode != mode:
             return None, _("Invalid verification mode."), status.HTTP_404_NOT_FOUND
@@ -108,6 +113,7 @@ class Verification(models.Model):
     class Status(models.TextChoices):
         SENT = "sent", "Sent"
         VERIFIED = "verified", "Verified"
+        USED = "used", _("Used")
         EXPIRED = "expired", "Expired"
 
     phone = models.CharField(

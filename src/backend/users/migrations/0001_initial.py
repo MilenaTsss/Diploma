@@ -3,7 +3,7 @@
 import django.utils.timezone
 from django.db import migrations, models
 
-import users.validators
+import core.validators
 
 
 class Migration(migrations.Migration):
@@ -11,95 +11,95 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('auth', '0012_alter_user_first_name_max_length'),
+        ("auth", "0012_alter_user_first_name_max_length"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='User',
+            name="User",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ("id", models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name="ID")),
                 (
-                    'phone',
+                    "phone",
                     models.CharField(
-                        error_messages={'unique': 'A user with this phone number already exists.'},
-                        help_text='Enter a phone number in the format +7XXXXXXXXXX.',
+                        error_messages={"unique": "A user with this phone number already exists."},
+                        help_text="Enter a phone number in the format +7XXXXXXXXXX.",
                         max_length=20,
                         unique=True,
-                        validators=[users.validators.PhoneNumberValidator()],
+                        validators=[core.validators.PhoneNumberValidator()],
                     ),
                 ),
-                ('full_name', models.CharField(blank=True, default='', max_length=255)),
-                ('password', models.CharField(blank=True, default='', max_length=255)),
+                ("full_name", models.CharField(blank=True, default="", max_length=255)),
+                ("password", models.CharField(blank=True, default="", max_length=255)),
                 (
-                    'role',
+                    "role",
                     models.CharField(
-                        choices=[('admin', 'Admin'), ('user', 'User'), ('superuser', 'Superuser')],
-                        default='user',
+                        choices=[("admin", "Admin"), ("user", "User"), ("superuser", "Superuser")],
+                        default="user",
                         max_length=20,
                     ),
                 ),
                 (
-                    'phone_privacy',
+                    "phone_privacy",
                     models.CharField(
-                        choices=[('public', 'Public'), ('private', 'Private'), ('protected', 'Protected')],
-                        default='private',
+                        choices=[("public", "Public"), ("private", "Private"), ("protected", "Protected")],
+                        default="private",
                         max_length=20,
                     ),
                 ),
                 (
-                    'is_staff',
+                    "is_staff",
                     models.BooleanField(
-                        default=False, help_text='Designates whether the user can log into this admin site.'
+                        default=False, help_text="Designates whether the user can log into this admin site."
                     ),
                 ),
                 (
-                    'is_superuser',
+                    "is_superuser",
                     models.BooleanField(
-                        default=False, help_text='Designates whether the user can manage all aspects of the system.'
+                        default=False, help_text="Designates whether the user can manage all aspects of the system."
                     ),
                 ),
                 (
-                    'is_blocked',
+                    "is_blocked",
                     models.BooleanField(
                         default=False,
-                        help_text='If the user is blocked, they will be restricted from performing certain actions, but their account remains active.',
+                        help_text="If the user is blocked, they will be restricted from performing certain actions, but their account remains active.",
                     ),
                 ),
                 (
-                    'is_active',
+                    "is_active",
                     models.BooleanField(
                         default=True,
-                        help_text='Designates whether this user should be treated as active. Unselect this instead of deleting accounts.',
+                        help_text="Designates whether this user should be treated as active. Unselect this instead of deleting accounts.",
                     ),
                 ),
-                ('date_joined', models.DateTimeField(default=django.utils.timezone.now)),
-                ('last_login', models.DateTimeField(blank=True, null=True)),
+                ("date_joined", models.DateTimeField(default=django.utils.timezone.now)),
+                ("last_login", models.DateTimeField(blank=True, null=True)),
                 (
-                    'groups',
+                    "groups",
                     models.ManyToManyField(
                         blank=True,
-                        help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.',
-                        related_name='user_set',
-                        related_query_name='user',
-                        to='auth.group',
-                        verbose_name='groups',
+                        help_text="The groups this user belongs to. A user will get all permissions granted to each of their groups.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.group",
+                        verbose_name="groups",
                     ),
                 ),
                 (
-                    'user_permissions',
+                    "user_permissions",
                     models.ManyToManyField(
                         blank=True,
-                        help_text='Specific permissions for this user.',
-                        related_name='user_set',
-                        related_query_name='user',
-                        to='auth.permission',
-                        verbose_name='user permissions',
+                        help_text="Specific permissions for this user.",
+                        related_name="user_set",
+                        related_query_name="user",
+                        to="auth.permission",
+                        verbose_name="user permissions",
                     ),
                 ),
             ],
             options={
-                'db_table': 'user',
+                "db_table": "user",
             },
         ),
     ]

@@ -1,11 +1,12 @@
 from django import forms
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import Group
 from django.utils.translation import gettext_lazy as _
 
+from core.validators import PhoneNumberValidator
 from users.models import User
-from users.validators import PhoneNumberValidator
 
 
 class AdminCreationForm(forms.ModelForm):
@@ -19,7 +20,7 @@ class AdminCreationForm(forms.ModelForm):
 
     password = forms.CharField(
         label=_("Password"),
-        widget=forms.PasswordInput,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
         help_text=_("Set a password for the new admin."),
     )
 
@@ -86,7 +87,6 @@ class UserAdmin(BaseUserAdmin):
         "phone_privacy",
         "is_staff",
         "is_superuser",
-        "is_blocked",
         "date_joined",
         "last_login",
     )
@@ -105,7 +105,18 @@ class UserAdmin(BaseUserAdmin):
     )
 
 
+class CustomAuthenticationForm(AuthenticationForm):
+    def clean_username(self):
+        phone = self.cleaned_data.get("username")
+        validator = PhoneNumberValidator()
+        validator(phone)
+        return phone
+
+
 # Register the model in admin
 admin.site.register(User, UserAdmin)
 # Delete the model for Groups managing
 admin.site.unregister(Group)
+
+# Add custom errors into login form
+admin.site.login_form = CustomAuthenticationForm

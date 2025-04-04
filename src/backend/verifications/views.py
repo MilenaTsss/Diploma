@@ -1,5 +1,4 @@
 from django.utils.timezone import now
-from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.permissions import AllowAny
@@ -17,7 +16,7 @@ def check_fail_limits(phone):
 
     if VerificationService.count_failed_attempts(phone) >= 5:
         return Response(
-            {"error": _("Too many verification attempts. Try again later.")},
+            {"error": "Too many verification attempts. Try again later."},
             status=status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
@@ -27,7 +26,7 @@ def check_unverified_limits(phone):
 
     if VerificationService.count_unverified_codes(phone) >= 5:
         return Response(
-            {"error": _("Too many unverified codes. Try again later.")},
+            {"error": "Too many unverified codes. Try again later."},
             status=status.HTTP_429_TOO_MANY_REQUESTS,
         )
 
@@ -47,7 +46,7 @@ class SendVerificationCodeView(APIView):
         # Check if user with this phone is blocked or not.
         if User.is_phone_blocked(phone):
             return Response(
-                {"error": _("This account is blocked. Contact support for assistance.")},
+                {"error": "This account is blocked. Contact support for assistance."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -63,7 +62,7 @@ class SendVerificationCodeView(APIView):
         if recent_verification:
             resend_delay = VERIFICATION_CODE_RESEND_DELAY - (now() - recent_verification.created_at).seconds
             return Response(
-                {"error": _("Verification code was already sent. Try again later."), "retry_after": resend_delay},
+                {"error": "Verification code was already sent. Try again later.", "retry_after": resend_delay},
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
                 headers={"Retry-After": str(resend_delay)},
             )
@@ -71,9 +70,10 @@ class SendVerificationCodeView(APIView):
         verification = VerificationService.create_new_verification(phone, mode)
 
         # TODO!: Here send the code via SMS, REMOVE code from answer
+        # TODO!: Add extra checks for every request mode.
         return Response(
             {
-                "message": _("Verification code sent."),
+                "message": "Verification code sent.",
                 "verification_token": verification.verification_token,
                 "code": verification.code,
             },
@@ -97,7 +97,7 @@ class VerifyCodeView(APIView):
         # Check if user with this phone is blocked or not.
         if User.is_phone_blocked(phone):
             return Response(
-                {"error": _("This account is blocked. Contact support for assistance.")},
+                {"error": "This account is blocked. Contact support for assistance."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -111,13 +111,17 @@ class VerifyCodeView(APIView):
         # Retrieve verification entry by token
         verification = Verification.get_verification_by_token(verification_token)
 
+        if verification and verification.phone != phone:
+            error_message = "Phone number does not match the verification record."
+            return Response({"error": error_message}, status=status.HTTP_400_BAD_REQUEST)
+
         error_responses = {
-            None: (_("No verification codes found."), status.HTTP_400_BAD_REQUEST),
+            None: ("No verification codes found.", status.HTTP_400_BAD_REQUEST),
             Verification.Status.VERIFIED: (
-                _("This code has already been used. Please request a new one."),
+                "This code has already been used. Please request a new one.",
                 status.HTTP_409_CONFLICT,
             ),
-            Verification.Status.EXPIRED: (_("This code has expired. Please request a new one."), status.HTTP_410_GONE),
+            Verification.Status.EXPIRED: ("This code has expired. Please request a new one.", status.HTTP_410_GONE),
         }
 
         if verification is None or verification.status in error_responses:
@@ -127,9 +131,9 @@ class VerifyCodeView(APIView):
         if verification.code != code:
             verification.failed_attempts += 1
             verification.save()
-            return Response({"error": _("Invalid code.")}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Invalid code."}, status=status.HTTP_400_BAD_REQUEST)
 
         verification.status = Verification.Status.VERIFIED
         verification.save()
 
-        return Response({"message": _("Code verified successfully.")}, status=status.HTTP_200_OK)
+        return Response({"message": "Code verified successfully."}, status=status.HTTP_200_OK)

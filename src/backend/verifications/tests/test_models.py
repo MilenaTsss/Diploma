@@ -3,7 +3,12 @@ from datetime import timedelta
 import pytest
 from django.utils.timezone import now
 
-from verifications.constants import VERIFICATION_CODE_MAX_LENGTH, VERIFICATION_TOKEN_MAX_LENGTH
+from verifications.constants import (
+    DELETION_DAYS,
+    EXPIRATION_MINUTES,
+    VERIFICATION_CODE_MAX_LENGTH,
+    VERIFICATION_TOKEN_MAX_LENGTH,
+)
 from verifications.models import Verification, VerificationService
 
 
@@ -35,7 +40,7 @@ class TestVerificationService:
     def test_clean_old_verifications(self):
         """Test that old verifications are cleaned up correctly."""
         old_verification = VerificationService.create_new_verification("+79991234567", Verification.Mode.LOGIN)
-        old_verification.created_at = now() - timedelta(days=2)
+        old_verification.created_at = now() - timedelta(days=DELETION_DAYS + 1)
         old_verification.save()
 
         VerificationService.clean()
@@ -44,7 +49,7 @@ class TestVerificationService:
     def test_mark_expired_codes(self, verification):
         """Test marking expired codes as expired."""
         verification = VerificationService.create_new_verification("+79991234567", Verification.Mode.LOGIN)
-        verification.created_at = now() - timedelta(minutes=20)
+        verification.created_at = now() - timedelta(minutes=EXPIRATION_MINUTES + 1)
         verification.save()
 
         VerificationService.clean()
@@ -82,7 +87,7 @@ class TestVerificationService:
         [
             ("+79991234567", "valid_token", Verification.Mode.LOGIN, None, None),
             ("+79991234567", "invalid_token", Verification.Mode.LOGIN, 404, "Invalid verification token."),
-            ("+79991112233", "valid_token", Verification.Mode.LOGIN, 404, "Invalid phone number."),
+            ("+79991112233", "valid_token", Verification.Mode.LOGIN, 404, "Invalid verification phone number."),
             ("+79991234567", "valid_token", Verification.Mode.RESET_PASSWORD, 404, "Invalid verification mode."),
             ("+79991234567", "expired_token", Verification.Mode.LOGIN, 400, "Phone number has not been verified."),
         ],

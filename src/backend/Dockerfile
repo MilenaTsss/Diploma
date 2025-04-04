@@ -1,5 +1,5 @@
 # --- Stage 1: Base Python Image ---
-FROM python:3.13 AS base
+FROM python:3.13-alpine AS base
 
 # Prevents Python from writing pyc files to disk
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -17,6 +17,9 @@ COPY requirements.txt  .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# Install curl for healthcheck
+RUN apk add --no-cache curl
 
 # --- Stage 2: Development ---
 FROM base AS development
@@ -39,5 +42,5 @@ COPY . .
 # Expose the Django port
 EXPOSE 8000
 
-# Migrate database, Collect static files for admin panel and rest framework, Run Django’s server using gunicorn and configure logging
-CMD ["sh", "-c", "echo 'Applying migrations...'; python manage.py migrate && python manage.py collectstatic --noinput && gunicorn --bind 0.0.0.0:8000 backend.wsgi:application --access-logfile - --error-logfile - --access-logformat '{\"time\": \"%(t)s\", \"status\": %(s)s, \"method\": \"%(m)s\", \"url\": \"%(U)s\", \"size\": %(b)s, \"ip\": \"%(h)s\", \"user_agent\": \"%(a)s\"}'"]
+# Migrate database, Collect static files for admin panel and rest framework, Create superadmin, Run Django’s server using gunicorn and configure logging
+CMD ["sh", "/backend_app/entrypoint.sh"]

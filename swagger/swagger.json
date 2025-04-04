@@ -34,7 +34,8 @@
                     "type": "string",
                     "enum": [
                       "login",
-                      "change_phone",
+                      "change_phone_old",
+                      "change_phone_new",
                       "change_password",
                       "reset_password",
                       "delete_account"
@@ -80,7 +81,7 @@
         }
       }
     },
-    "/auth/codes/verify": {
+    "/auth/codes/verify/": {
       "patch": {
         "tags": [
           "Auth"
@@ -315,6 +316,58 @@
           },
           "403": {
             "description": "Доступ запрещен. Неверный пароль."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/users/check-admin/": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Проверить является ли пользователь администратором. ",
+        "description": "Принимает номер телефона и проверяет, является ли пользователь с этим номером администратором. \n\nВ случае, если пользователя с таким номером телефона не существует также отправляет ответ, что это не администратор.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+7\\d{10}$",
+                    "description": "Номер телефона в формате `+7XXXXXXXXXX`.",
+                    "example": "+79991234567"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Пользователь найден и проверен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "is_admin": {
+                      "type": "boolean",
+                      "description": "Флаг, указывающий, является ли пользователь администратором.",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса. Некорректный формат нового телефона."
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -623,6 +676,12 @@
               "schema": {
                 "type": "object",
                 "properties": {
+                  "phone": {
+                    "type": "string",
+                    "pattern": "^\\+7\\d{10}$",
+                    "description": "Номер телефона в формате `+7XXXXXXXXXX`.",
+                    "example": "+79991234567"
+                  },
                   "new_password": {
                     "type": "string",
                     "pattern": "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d@$!%*?&]{8,64}$",
@@ -641,20 +700,7 @@
         },
         "responses": {
           "200": {
-            "description": "Пароль успешно восстановлен.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "message": {
-                      "type": "string",
-                      "example": "Пароль успешно изменен."
-                    }
-                  }
-                }
-              }
-            }
+            "description": "Пароль успешно восстановлен."
           },
           "400": {
             "description": "Некорректные параметры запроса. Некорректный формат нового пароля."
@@ -674,7 +720,71 @@
         }
       }
     },
-    "/users/{user_id}/": {
+    "/admin/users/": {
+      "get": {
+        "tags": [
+          "Admin. Users."
+        ],
+        "summary": "Получение списка пользователей по `id` (только для администраторов).",
+        "description": "Позволяет администраторам получить информацию о нескольких пользователях по их `id`. \n\n**Фильтрация по `id` обязательна** – нельзя запросить всех пользователей сразу.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              },
+              "example": [
+                42,
+                1
+              ]
+            },
+            "description": "Фильтр по `id` пользователей. **Обязательный параметр**."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список пользователей получен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/User"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/admin/users/{user_id}/": {
       "get": {
         "tags": [
           "Admin. Users."
@@ -727,7 +837,7 @@
         }
       }
     },
-    "/users/{user_id}/block/": {
+    "/admin/users/{user_id}/block/": {
       "patch": {
         "tags": [
           "Admin. Users."
@@ -797,7 +907,60 @@
         }
       }
     },
-    "/users/search/": {
+    "/admin/users/{user_id}/unblock/": {
+      "patch": {
+        "tags": [
+          "Admin. Users."
+        ],
+        "summary": "Отмена блокировки пользователя (только для администраторов).",
+        "description": "Позволяет администратору разблокировать пользователя, разрешив ему вход в систему.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "Уникальный идентификатор пользователя."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно разблокирован.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `user_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "404": {
+            "description": "Пользователь с указанным `id` не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/admin/users/search/": {
       "post": {
         "tags": [
           "Admin. Users."
@@ -862,7 +1025,7 @@
           "Barriers"
         ],
         "summary": "Получение списка всех шлагбаумов (поиск, фильтрация, пагинация).",
-        "description": "Позволяет получить список всех зарегистрированных шлагбаумов.\n\nМожно использовать фильтрацию по адресу, поддерживает пагинацию.",
+        "description": "Позволяет получить список всех зарегистрированных шлагбаумов.\n\nМожно использовать фильтрацию по адресу, поддерживает пагинацию. Также поддерживает сортировку по адресу.",
         "security": [
           {
             "BearerAuth": []
@@ -870,7 +1033,18 @@
         ],
         "parameters": [
           {
-            "name": "street_address",
+            "name": "ordering",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "address",
+                "-address"
+              ]
+            }
+          },
+          {
+            "name": "address",
             "in": "query",
             "required": false,
             "schema": {
@@ -925,7 +1099,7 @@
                     "barriers": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Barrier"
+                        "$ref": "#/components/schemas/BarrierView"
                       }
                     }
                   }
@@ -946,105 +1120,6 @@
             "description": "Ошибка сервера. Попробуйте позже."
           }
         }
-      },
-      "post": {
-        "tags": [
-          "Admin. Barriers."
-        ],
-        "summary": "Создание нового шлагбаума (только для администраторов).",
-        "description": "Позволяет администратору создать новый шлагбаум, указав все необходимые параметры.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "address": {
-                    "type": "string",
-                    "description": "Адрес шлагбаума.",
-                    "example": "Манежная площадь, 1, Москва"
-                  },
-                  "device_phone_number": {
-                    "type": "string",
-                    "description": "Номер телефона устройства управления шлагбаумом.",
-                    "example": "+79991234567"
-                  },
-                  "device_model": {
-                    "type": "string",
-                    "enum": [
-                      "rtu5024",
-                      "rtu5025",
-                      "telemetrica"
-                    ],
-                    "description": "Модель GSM модуля.",
-                    "example": "rtu5025"
-                  },
-                  "device_phones_amount": {
-                    "type": "integer",
-                    "description": "Количество номеров, поддерживаемых устройством.",
-                    "example": 999
-                  },
-                  "password": {
-                    "type": "integer",
-                    "description": "Пароль от устройства, если устройство его требует. Обычно состоит из 4 цифр.",
-                    "example": 1234
-                  },
-                  "contact_phone": {
-                    "type": "string",
-                    "description": "Contact phone number for user inquiries.",
-                    "example": "+79991234567"
-                  },
-                  "additional_info": {
-                    "type": "string",
-                    "description": "Дополнительная информация о шлагбауме.",
-                    "example": "Время работы администратора: По будням с 10 до 18."
-                  },
-                  "is_public": {
-                    "type": "boolean",
-                    "description": "Можно ли найти шлагбаум в системе через поиск.",
-                    "example": true
-                  },
-                  "limits": {
-                    "$ref": "#/components/schemas/BarrierLimits"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Шлагбаум успешно создан.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Barrier"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
-          "401": {
-            "description": "Пользователь не авторизован."
-          },
-          "403": {
-            "description": "Доступ запрещен. Только для администраторов."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
-          },
-          "500": {
-            "description": "Ошибка сервера. Попробуйте позже."
-          }
-        }
       }
     },
     "/barriers/my/": {
@@ -1053,13 +1128,24 @@
           "Barriers"
         ],
         "summary": "Получение списка шлагбаумов, доступных пользователю.",
-        "description": "Список шлагбаумов, к которым у пользователя есть доступ.\n\nЕсли администратор делает этот запрос, он видит только те шлагбаумы, в которых он добавлен, как обычный пользователь.",
+        "description": "Список шлагбаумов, к которым у пользователя есть доступ.\n\nЕсли администратор делает этот запрос, он видит только те шлагбаумы, в которых он добавлен, как обычный пользователь.\n\nПоддерживает сортировку по адресу.",
         "security": [
           {
             "BearerAuth": []
           }
         ],
         "parameters": [
+          {
+            "name": "ordering",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "address",
+                "-address"
+              ]
+            }
+          },
           {
             "name": "page",
             "in": "query",
@@ -1106,7 +1192,7 @@
                     "barriers": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Barrier"
+                        "$ref": "#/components/schemas/BarrierView"
                       }
                     }
                   }
@@ -1129,19 +1215,232 @@
         }
       }
     },
-    "/barriers/admin/": {
+    "/barriers/{barrier_id}/": {
       "get": {
         "tags": [
-          "Admin. Barriers."
+          "Barriers"
         ],
-        "summary": "Получение списка шлагбаумов, которыми управляет администратор.",
-        "description": "Возвращает список всех шлагбаумов, которыми управляет текущий администратор.",
+        "summary": "Получение информации о шлагбауме.",
+        "description": "Возвращает полную информацию о шлагбауме по его `ID`.",
         "security": [
           {
             "BearerAuth": []
           }
         ],
         "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "Уникальный идентификатор шлагбаума."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Детальная информация о шлагбауме.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BarrierView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `barrier_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет доступа к данному шлагбауму."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/{barrier_id}/limits/": {
+      "get": {
+        "tags": [
+          "Limits"
+        ],
+        "summary": "Получение всех лимитов шлагбаума.",
+        "description": "Возвращает объект с установленными лимитами. Если лимит не установлен, поле отсутствует.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список лимитов получен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BarrierLimitsWithId"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректный параметр запроса - `barrier_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/admin/barriers/": {
+      "post": {
+        "tags": [
+          "Admin. Barriers."
+        ],
+        "summary": "Создание нового шлагбаума (только для администраторов).",
+        "description": "Позволяет администратору создать новый шлагбаум, указав все необходимые параметры.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "address": {
+                    "type": "string",
+                    "description": "Адрес шлагбаума.",
+                    "example": "Манежная площадь, 1, Москва"
+                  },
+                  "device_phone_number": {
+                    "type": "string",
+                    "description": "Номер телефона устройства управления шлагбаумом.",
+                    "example": "+79991234567"
+                  },
+                  "device_model": {
+                    "type": "string",
+                    "enum": [
+                      "rtu5024",
+                      "rtu5025",
+                      "telemetrica"
+                    ],
+                    "description": "Модель GSM модуля.",
+                    "example": "rtu5025"
+                  },
+                  "device_phones_amount": {
+                    "type": "integer",
+                    "description": "Количество номеров, поддерживаемых устройством.",
+                    "example": 999
+                  },
+                  "device_password": {
+                    "type": "integer",
+                    "description": "Пароль от устройства, если устройство его требует. Обычно состоит из 4 цифр.",
+                    "example": 1234
+                  },
+                  "additional_info": {
+                    "type": "string",
+                    "description": "Дополнительная информация о шлагбауме.",
+                    "example": "Время работы администратора: По будням с 10 до 18."
+                  },
+                  "is_public": {
+                    "type": "boolean",
+                    "description": "Можно ли найти шлагбаум в системе через поиск.",
+                    "example": true
+                  },
+                  "limits": {
+                    "$ref": "#/components/schemas/BarrierLimits"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Шлагбаум успешно создан.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BarrierView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/admin/barriers/my/": {
+      "get": {
+        "tags": [
+          "Admin. Barriers."
+        ],
+        "summary": "Получение списка шлагбаумов, которыми управляет администратор.",
+        "description": "Возвращает список всех шлагбаумов, которыми управляет текущий администратор.\n\nПоддерживает сортировку по адресу, времени создания и времени изменения.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ordering",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "address",
+                "-address",
+                "created_at",
+                "-created_at",
+                "updated_at"
+              ]
+            }
+          },
           {
             "name": "page",
             "in": "query",
@@ -1188,7 +1487,7 @@
                     "barriers": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Barrier"
+                        "$ref": "#/components/schemas/BarrierView"
                       }
                     }
                   }
@@ -1211,13 +1510,13 @@
         }
       }
     },
-    "/barriers/{barrier_id}/": {
+    "/admin/barriers/{barrier_id}/": {
       "get": {
         "tags": [
-          "Barriers"
+          "Admin. Barriers."
         ],
-        "summary": "Получение информации о шлагбауме.",
-        "description": "Возвращает полную информацию о шлагбауме по его `ID`.",
+        "summary": "Получение данных шлагбаума - для администраторов.",
+        "description": "Получение расширенного списка данных для шлагбаума. Только для администратора.",
         "security": [
           {
             "BearerAuth": []
@@ -1232,7 +1531,7 @@
               "type": "integer",
               "example": 42
             },
-            "description": "Уникальный идентификатор шлагбаума."
+            "description": "`ID` удаляемого шлагбаума."
           }
         ],
         "responses": {
@@ -1241,7 +1540,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Barrier"
+                  "$ref": "#/components/schemas/AdminBarrierView"
                 }
               }
             }
@@ -1253,10 +1552,13 @@
             "description": "Пользователь не авторизован."
           },
           "403": {
-            "description": "Нет доступа к данному шлагбауму."
+            "description": "Доступ запрещен. Только для администраторов."
           },
           "404": {
             "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "429": {
+            "description": "Превышен лимит запросов. Попробуйте позже."
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1361,7 +1663,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Barrier"
+                  "$ref": "#/components/schemas/BarrierView"
                 }
               }
             }
@@ -1387,55 +1689,7 @@
         }
       }
     },
-    "/barriers/{barrier_id}/limits/": {
-      "get": {
-        "tags": [
-          "Limits"
-        ],
-        "summary": "Получение всех лимитов шлагбаума.",
-        "description": "Возвращает объект с установленными лимитами. Если лимит не установлен, поле отсутствует.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "barrier_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "example": 42
-            },
-            "description": "`ID` шлагбаума."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Список лимитов получен.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BarrierLimitsWithId"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
-          "401": {
-            "description": "Пользователь не авторизован."
-          },
-          "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
-          },
-          "500": {
-            "description": "Ошибка сервера. Попробуйте позже."
-          }
-        }
-      },
+    "/admin/barriers/{barrier_id}/limits/": {
       "put": {
         "tags": [
           "Limits"
@@ -1501,7 +1755,7 @@
         }
       }
     },
-    "/barriers/{barrier_id}/settings/": {
+    "/admin/barriers/{barrier_id}/settings/": {
       "get": {
         "tags": [
           "Admin. Barriers."
@@ -1696,18 +1950,90 @@
       }
     },
     "/access_requests/": {
+      "post": {
+        "tags": [
+          "Access Requests"
+        ],
+        "summary": "Отправка запроса на доступ.",
+        "description": "Позволяет пользователю отправить запрос на доступ к публичному шлагбауму.\n\nЗапрещено отправлять запрос, если шлагбаум приватный, удалённый, если уже существует активная заявка или активный доступ.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user": {
+                    "type": "integer",
+                    "description": "`ID` пользователя.",
+                    "example": 42
+                  },
+                  "barrier": {
+                    "type": "integer",
+                    "description": "`ID` шлагбаума.",
+                    "example": 42
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Запрос успешно создан.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/access_requests/my": {
       "get": {
         "tags": [
           "Access Requests"
         ],
-        "summary": "Просмотр всех заявок.",
-        "description": "Позволяет фильтровать заявки по входящим/исходящим, статусу, шлагбауму, скрытию и поддерживает пагинацию.",
+        "summary": "Просмотр своих заявок.",
+        "description": "Позволяет фильтровать заявки по входящим/исходящим, статусу, шлагбауму, скрытию и поддерживает пагинацию.\n\nТакже есть сортировка по времени создания, времени закрытия заявки и по статусу.",
         "security": [
           {
             "BearerAuth": []
           }
         ],
         "parameters": [
+          {
+            "name": "ordering",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "-created_at",
+                "finished_at",
+                "-finished_at",
+                "status",
+                "-status"
+              ]
+            }
+          },
           {
             "name": "type",
             "in": "query",
@@ -1727,7 +2053,7 @@
               "type": "string",
               "enum": [
                 "pending",
-                "approved",
+                "accepted",
                 "rejected",
                 "cancelled"
               ]
@@ -1740,7 +2066,7 @@
             "schema": {
               "type": "integer"
             },
-            "description": "`ID` шлагбаума."
+            "description": "Фильтр по `ID` шлагбаума."
           },
           {
             "name": "hidden",
@@ -1749,14 +2075,6 @@
               "type": "boolean"
             },
             "description": "Фильтр по скрытым заявкам (`true` - скрытые, `false` - только видимые). По умолчанию показываются только видимые."
-          },
-          {
-            "name": "as_admin",
-            "in": "query",
-            "schema": {
-              "type": "boolean"
-            },
-            "description": "Фильтр режима просмотра: `true` - администратор просматривает заявки в свои шлагбаумы, false - просматривает свои личные запросы как пользователь."
           },
           {
             "name": "page",
@@ -1802,7 +2120,7 @@
                     "requests": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/AccessRequests"
+                        "$ref": "#/components/schemas/AccessRequest"
                       }
                     }
                   }
@@ -1820,56 +2138,39 @@
             "description": "Ошибка сервера. Попробуйте позже."
           }
         }
-      },
-      "post": {
+      }
+    },
+    "/access_requests/{request_id}/": {
+      "get": {
         "tags": [
           "Access Requests"
         ],
-        "summary": "Отправка запроса на доступ.",
-        "description": "Позволяет пользователю отправить запрос на доступ к шлагбауму или администратору пригласить пользователя.",
+        "summary": "Просмотр заявки на доступ.",
+        "description": "Позволяет получить информацию о конкретной заявке на доступ по её `ID`.",
         "security": [
           {
             "BearerAuth": []
           }
         ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "user_id": {
-                    "type": "integer",
-                    "description": "`ID` пользователя.",
-                    "example": 42
-                  },
-                  "barrier_id": {
-                    "type": "integer",
-                    "description": "`ID` шлагбаума.",
-                    "example": 42
-                  },
-                  "request_type": {
-                    "type": "string",
-                    "enum": [
-                      "from_user",
-                      "from_barrier"
-                    ],
-                    "description": "Кто отправляет запрос: `from_user` - пользователь, `from_barrier` - администратор.",
-                    "example": "from_user"
-                  }
-                }
-              }
-            }
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` запроса."
           }
-        },
+        ],
         "responses": {
-          "201": {
-            "description": "Запрос успешно создан.",
+          "200": {
+            "description": "Информация о заявке получена.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AccessRequests"
+                  "$ref": "#/components/schemas/AccessRequest"
                 }
               }
             }
@@ -1881,30 +2182,19 @@
             "description": "Пользователь не авторизован."
           },
           "403": {
-            "description": "Нет прав на отправку такого запроса."
-          },
-          "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
-          },
-          "409": {
-            "description": "Такой запрос уже существует."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Доступ запрещен."
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
           }
         }
-      }
-    },
-    "/access_requests/{request_id}/": {
+      },
       "patch": {
         "tags": [
           "Access Requests"
         ],
-        "summary": "Обновление заявки на доступ.",
-        "description": "Позволяет принять, отклонить или отменить запрос. \n\nЕсли `status` = `cancelled`, запрос отменяет отправитель. Если `status` = `approved` или `rejected`, это делает получатель запроса.\n\nТакже позволяет скрыть запрос у пользователя и у администратора.",
+        "summary": "Обновление заявки пользователем.",
+        "description": "Позволяет принять, отклонить или отменить запрос. \n\nЕсли `status` = `cancelled`, запрос отменяет отправитель. Если `status` = `accepted` или `rejected`, это делает получатель запроса.\n\nТакже позволяет скрыть запрос у пользователя или отменить скрытие.",
         "security": [
           {
             "BearerAuth": []
@@ -1932,7 +2222,8 @@
                   "status": {
                     "type": "string",
                     "enum": [
-                      "approved",
+                      "pending",
+                      "accepted",
                       "rejected",
                       "cancelled"
                     ],
@@ -1941,6 +2232,317 @@
                   "hidden_for_user": {
                     "type": "boolean",
                     "description": "Скрыть заявку для пользователя."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Заявка обновлена.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет прав на изменение."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/admin/access_requests/": {
+      "post": {
+        "tags": [
+          "Access Requests"
+        ],
+        "summary": "Приглашение пользователя к шлагбауму администратором.",
+        "description": "Позволяет администратору отправить приглашение пользователю на доступ к своему шлагбауму.\n\nАдминистратор не может пригласить неактивного пользователя. Также запрещено приглашать, если уже есть активная заявка или у пользователя уже есть доступ.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user": {
+                    "type": "integer",
+                    "description": "`ID` пользователя.",
+                    "example": 42
+                  },
+                  "barrier": {
+                    "type": "integer",
+                    "description": "`ID` шлагбаума.",
+                    "example": 42
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Запрос успешно создан.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/admin/access_requests/my": {
+      "get": {
+        "tags": [
+          "Access Requests"
+        ],
+        "summary": "Просмотр заявок на доступ к шлагбаумам администратора.",
+        "description": "Позволяет фильтровать заявки по входящим/исходящим, статусу, шлагбауму, скрытию и поддерживает пагинацию.\n\nТакже есть сортировка по времени создания, времени закрытия заявки и по статусу.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "ordering",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "created_at",
+                "-created_at",
+                "finished_at",
+                "-finished_at",
+                "status",
+                "-status"
+              ]
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "incoming",
+                "outgoing"
+              ]
+            },
+            "description": "Фильтр по типу заявок: `incoming` - входящие (те, которые можно принять/отклонить), `outgoing` - исходящие (те, которые отправил текущий пользователь)."
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "pending",
+                "accepted",
+                "rejected",
+                "cancelled"
+              ]
+            },
+            "description": "Фильтр по статусу заявки."
+          },
+          {
+            "name": "barrier_id",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Фильтр по `ID` шлагбаума."
+          },
+          {
+            "name": "hidden",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Фильтр по скрытым заявкам (`true` - скрытые, `false` - только видимые). По умолчанию показываются только видимые."
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "example": 1
+            },
+            "description": "Номер страницы (для пагинации)."
+          },
+          {
+            "name": "page_size",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 10,
+              "example": 10
+            },
+            "description": "Количество элементов на странице."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Список заявок получен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "total_count": {
+                      "type": "integer",
+                      "example": 100
+                    },
+                    "current_page": {
+                      "type": "integer",
+                      "example": 1
+                    },
+                    "page_size": {
+                      "type": "integer",
+                      "example": 10
+                    },
+                    "requests": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AccessRequest"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/admin/access_requests/{request_id}/": {
+      "get": {
+        "tags": [
+          "Access Requests"
+        ],
+        "summary": "Просмотр заявки на доступ.",
+        "description": "Позволяет получить информацию о конкретной заявке на доступ по её `ID`.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` запроса."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о заявке получена.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Access Requests"
+        ],
+        "summary": "Обновление заявки администратором.",
+        "description": "Позволяет принять, отклонить или отменить запрос. \n\nЕсли `status` = `cancelled`, запрос отменяет отправитель. Если `status` = `accepted` или `rejected`, это делает получатель запроса.\n\nТакже позволяет скрыть запрос у администратора или отменить скрытие.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` запроса."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "accepted",
+                      "rejected",
+                      "cancelled"
+                    ],
+                    "description": "Новый статус заявки."
                   },
                   "hidden_for_admin": {
                     "type": "boolean",
@@ -1957,13 +2559,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AccessRequests"
+                  "$ref": "#/components/schemas/AccessRequest"
                 }
               }
             }
           },
           "400": {
-            "description": "Некорректный параметр запроса - `request_id`."
+            "description": "Некорректные параметры запроса."
           },
           "401": {
             "description": "Пользователь не авторизован."
@@ -1971,11 +2573,51 @@
           "403": {
             "description": "Нет прав на изменение."
           },
-          "404": {
-            "description": "Запрос с указанным `id` не найден."
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/barriers/{barrier_id}/leave/": {
+      "delete": {
+        "tags": [
+          "Barriers. Users."
+        ],
+        "summary": "Пользователь выходит из шлагбаума.",
+        "description": "Позволяет текущему пользователю покинуть группу доступа к шлагбауму.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Пользователь успешно вышел из шлагбаума."
           },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Пользователь не имеет доступа к этому шлагбауму."
+          },
+          "404": {
+            "description": "Шлагбаум не найден."
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1983,7 +2625,7 @@
         }
       }
     },
-    "/barriers/{barrier_id}/users/": {
+    "/admin/barriers/{barrier_id}/users/": {
       "get": {
         "tags": [
           "Barriers. Users."
@@ -2074,9 +2716,100 @@
             "description": "Ошибка сервера. Попробуйте позже."
           }
         }
+      },
+      "delete": {
+        "tags": [
+          "Barriers. Users."
+        ],
+        "summary": "Удаление списка пользователей из шлагбаума (только для администраторов).",
+        "description": "Позволяет администратору удалить несколько пользователей из группы доступа к шлагбауму.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_ids": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    },
+                    "description": "Список `ID` пользователей для удаления.",
+                    "example": [
+                      42,
+                      27,
+                      1
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Пользователи успешно удалены из шлагбаума.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "removed_users": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "description": "Список `ID` удаленных пользователей."
+                    },
+                    "not_found": {
+                      "type": "array",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "description": "Список `ID` пользователей, которых не удалось найти."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен. Только для администраторов."
+          },
+          "404": {
+            "description": "Шлагбаум не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
       }
     },
-    "/barriers/{barrier_id}/users/{user_id}/": {
+    "/admin/barriers/{barrier_id}/users/{user_id}/": {
       "delete": {
         "tags": [
           "Barriers. Users."
@@ -2125,52 +2858,6 @@
           },
           "404": {
             "description": "Шлагбаум или пользователь не найден."
-          },
-          "500": {
-            "description": "Ошибка сервера. Попробуйте позже."
-          }
-        }
-      }
-    },
-    "/barriers/{barrier_id}/leave/": {
-      "delete": {
-        "tags": [
-          "Barriers. Users."
-        ],
-        "summary": "Пользователь выходит из шлагбаума.",
-        "description": "Позволяет текущему пользователю покинуть группу доступа к шлагбауму.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "barrier_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "example": 42
-            },
-            "description": "`ID` шлагбаума."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Пользователь успешно вышел из шлагбаума."
-          },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
-          "401": {
-            "description": "Пользователь не авторизован."
-          },
-          "403": {
-            "description": "Пользователь не имеет доступа к этому шлагбауму."
-          },
-          "404": {
-            "description": "Шлагбаум не найден."
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2753,9 +3440,9 @@
             "example": "admin",
             "default": "user"
           },
-          "is_blocked": {
+          "is_active": {
             "type": "boolean",
-            "description": "Флаг, указывающий, заблокирован ли пользователь.",
+            "description": "Флаг, указывающий, заблокирован ли пользователь. `is_active` = False если заблокирован.",
             "default": false
           },
           "phone_privacy": {
@@ -2775,7 +3462,49 @@
           "wrapped": true
         }
       },
-      "Barrier": {
+      "BarrierView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 42
+          },
+          "address": {
+            "type": "string",
+            "example": "Манежная площадь, 1, Москва"
+          },
+          "owner": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "example": 42
+              },
+              "full_name": {
+                "type": "string",
+                "example": "Ivanov Ivan"
+              },
+              "phone": {
+                "type": "string",
+                "example": "+79991234567"
+              }
+            }
+          },
+          "device_phone": {
+            "type": "string",
+            "example": "+79991234567"
+          },
+          "additional_info": {
+            "type": "string",
+            "example": "Время работы администратора: По будням с 10 до 18."
+          },
+          "is_public": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "AdminBarrierView": {
         "type": "object",
         "properties": {
           "id": {
@@ -2790,18 +3519,18 @@
             "type": "integer",
             "example": 42
           },
-          "device_phone_number": {
+          "device_phone": {
             "type": "string",
             "example": "+79991234567"
           },
           "device_model": {
             "type": "string",
             "enum": [
-              "rtu5024",
-              "rtu5025",
-              "telemetrica"
+              "RTU5024",
+              "RTU5025",
+              "Telemetrica"
             ],
-            "example": "rtu5024"
+            "example": "RTU5024"
           },
           "device_phones_amount": {
             "type": "integer",
@@ -2812,6 +3541,10 @@
             "example": "Время работы администратора: По будням с 10 до 18."
           },
           "is_public": {
+            "type": "boolean",
+            "default": true
+          },
+          "is_active": {
             "type": "boolean",
             "default": true
           }
@@ -2859,20 +3592,28 @@
           }
         }
       },
-      "AccessRequests": {
+      "AccessRequest": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
             "example": 42
           },
-          "user_id": {
+          "user": {
             "type": "integer",
             "example": 42
           },
-          "barrier_id": {
+          "barrier": {
             "type": "integer",
             "example": 42
+          },
+          "request_type": {
+            "type": "string",
+            "enum": [
+              "from_user",
+              "from_barrier"
+            ],
+            "example": "from_user"
           },
           "type": {
             "type": "string",
@@ -2886,7 +3627,7 @@
             "type": "string",
             "enum": [
               "pending",
-              "approved",
+              "accepted",
               "rejected",
               "cancelled"
             ],

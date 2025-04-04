@@ -1,14 +1,14 @@
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 
-from users.constants import (
+from core.constants import (
     CHOICE_MAX_LENGTH,
     PHONE_MAX_LENGTH,
 )
-from users.validators import PhoneNumberValidator
+from core.validators import PhoneNumberValidator
 
 MAX_LENGTH = 255
 
@@ -20,6 +20,7 @@ class UserManager(BaseUserManager):
 
     def validate_phone(self, phone: str):
         """Validate phone number using PhoneNumberValidator"""
+
         try:
             self.phone_validator(phone)
         except ValidationError as e:
@@ -28,6 +29,7 @@ class UserManager(BaseUserManager):
 
     def create_user(self, phone, password=None, **extra_fields):
         """Creates a regular user"""
+
         if not phone:
             raise ValueError("Phone number must be provided")
 
@@ -47,6 +49,7 @@ class UserManager(BaseUserManager):
 
     def create_admin(self, phone, password=None, **extra_fields):
         """Creates an admin (can only be created via Django Admin)"""
+
         extra_fields.setdefault("role", User.Role.ADMIN)
         extra_fields.setdefault("is_staff", True)
 
@@ -57,6 +60,7 @@ class UserManager(BaseUserManager):
 
     def create_superuser(self, phone, password=None, **extra_fields):
         """Creates a superuser"""
+
         if self.model.objects.filter(role=User.Role.SUPERUSER).exists():
             raise ValueError("There can be only one superuser")
 
@@ -109,19 +113,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_superuser = models.BooleanField(
         default=False, help_text=_("Designates whether the user can manage all aspects of the system.")
     )
-    is_blocked = models.BooleanField(
-        default=False,
-        help_text=_(
-            "If the user is blocked, they will be restricted from performing certain actions, "
-            "but their account remains active."
-        ),
-    )
     is_active = models.BooleanField(
         default=True,
         help_text=_(
             "Designates whether this user should be treated as active. " "Unselect this instead of deleting accounts."
         ),
     )
+    block_reason = models.CharField(max_length=MAX_LENGTH, blank=True, default="")
     date_joined = models.DateTimeField(default=now)
     last_login = models.DateTimeField(blank=True, null=True)
 
@@ -143,18 +141,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         return self.phone
 
     @classmethod
-    def get_user_by_phone(cls, phone: str):
-        """Fetches user by phone number or returns None."""
-
-        return cls.objects.filter(phone=phone).first()
-
-    @classmethod
     def is_phone_blocked(cls, phone: str) -> bool:
         """Checks if a user with the given phone number is blocked"""
-        user = cls.get_user_by_phone(phone)
+
+        user = cls.objects.filter(phone=phone).first()
         return user.is_blocked_user() if user else False
 
     def is_blocked_user(self):
         """Returns True if the user is blocked (inactive)."""
 
-        return (not self.is_active) or self.is_blocked
+        return not self.is_active
+
+    def delete(self, *args, **kwargs):
+        raise PermissionDenied("Deletion of this object is not allowed.")
