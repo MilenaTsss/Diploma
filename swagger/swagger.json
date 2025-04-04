@@ -323,7 +323,7 @@
         }
       }
     },
-    "/users/check-admin/": {
+    "/users/check_admin/": {
       "post": {
         "tags": [
           "Auth"
