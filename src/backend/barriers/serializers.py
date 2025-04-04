@@ -2,7 +2,7 @@ import logging
 
 from rest_framework import serializers
 
-from barriers.models import Barrier, UserBarrier
+from barriers.models import Barrier, BarrierLimit, UserBarrier
 from users.models import User
 
 logger = logging.getLogger(__name__)
@@ -52,3 +52,9 @@ class BarrierSerializer(serializers.ModelSerializer):
             return obj.device_phone
 
         return None  # Hide by default
+
+
+class BarrierLimitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BarrierLimit
+        exclude = ["created_at", "updated_at"]

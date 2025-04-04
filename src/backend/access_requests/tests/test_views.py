@@ -106,3 +106,15 @@ class TestAccessRequestDetailView:
         )
         response = authenticated_client.get(reverse("access_request_view", args=[ar.id]))
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_put_method_not_allowed(self, authenticated_client, user, barrier):
+        ar = AccessRequest.objects.create(
+            user=user,
+            barrier=barrier,
+            request_type=AccessRequest.RequestType.FROM_USER,
+            status=AccessRequest.Status.PENDING,
+        )
+        url = reverse("access_request_view", args=[ar.id])
+        response = authenticated_client.put(url, data={})
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        assert response.data["detail"].lower() == 'method "put" not allowed.'

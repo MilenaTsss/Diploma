@@ -1,9 +1,10 @@
 from django.db.models import Q
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from barriers.models import Barrier, UserBarrier
-from barriers.serializers import BarrierSerializer
+from barriers.serializers import BarrierLimitSerializer, BarrierSerializer
 from core.pagination import BasePaginatedListView
 
 
@@ -67,10 +68,33 @@ class BarrierView(generics.RetrieveAPIView):
     lookup_field = "id"
 
     def get_object(self):
-        obj = super().get_object()
+        barrier = super().get_object()
         user = self.request.user
 
-        if obj.is_public or (UserBarrier.user_has_access_to_barrier(user, obj)):
-            return obj
+        if barrier.is_public or (UserBarrier.user_has_access_to_barrier(user, barrier)):
+            return barrier
 
         raise PermissionDenied("You do not have access to this barrier.")
+
+
+class BarrierLimitView(generics.RetrieveAPIView):
+    """Retrieve limits for a specific barrier (for all authenticated users)"""
+
+    serializer_class = BarrierLimitSerializer
+    queryset = Barrier.objects.filter(is_active=True)
+    lookup_field = "id"
+
+    def get_object(self):
+        barrier = super().get_object()
+        user = self.request.user
+
+        if barrier.is_public or UserBarrier.user_has_access_to_barrier(user, barrier):
+            return getattr(barrier, "limits", None)  # Can be None
+
+        raise PermissionDenied("You do not have access to this barrier.")
+
+    def get(self, request, *args, **kwargs):
+        limit = self.get_object()
+        if limit is None:
+            return Response({}, status=status.HTTP_200_OK)
+        return self.retrieve(request, *args, **kwargs)

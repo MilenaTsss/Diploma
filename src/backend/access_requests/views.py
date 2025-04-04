@@ -2,7 +2,7 @@ import logging
 
 from rest_framework import generics, status
 from rest_framework.decorators import permission_classes
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
@@ -184,6 +184,9 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
         return Response(
             AccessRequestSerializer(instance, context=self.get_serializer_context()).data, status=status.HTTP_200_OK
         )
+
+    def put(self, request, *args, **kwargs):
+        raise MethodNotAllowed("PUT")
 
 
 class AccessRequestView(BaseAccessRequestView):

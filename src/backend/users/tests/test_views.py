@@ -193,6 +193,14 @@ class TestUserAccountView:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
+    def test_put_method_not_allowed(self, api_client, user):
+        """Test that PUT method is not allowed on user account view"""
+        refresh = RefreshToken.for_user(user)
+        api_client.credentials(HTTP_AUTHORIZATION=f"Bearer {str(refresh.access_token)}")
+
+        response = api_client.put(reverse("user_account"), {}, format="json")
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
 
 @pytest.mark.django_db
 class TestChangePhoneView:

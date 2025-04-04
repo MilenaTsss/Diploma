@@ -2,7 +2,7 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
-from barriers.models import Barrier
+from barriers.models import Barrier, BarrierLimit
 
 
 @pytest.mark.django_db
@@ -84,3 +84,67 @@ class TestAdminBarrierView:
 
         admin_barrier.refresh_from_db()
         assert not admin_barrier.is_active
+
+    def test_put_method_not_allowed(self, api_client, admin_user, admin_barrier):
+        api_client.force_authenticate(user=admin_user)
+
+        url = reverse("admin_barrier_view", args=[admin_barrier.id])
+        payload = {"device_password": "updatedpass"}
+
+        response = api_client.put(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+
+@pytest.mark.django_db
+class TestBarrierLimitUpdateView:
+    def test_update_limit_successfully(self, api_client, admin_user, admin_barrier):
+        api_client.force_authenticate(user=admin_user)
+        url = reverse("update_barrier_limit", kwargs={"id": admin_barrier.id})
+        payload = {"sms_weekly_limit": 5}
+
+        response = api_client.patch(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["sms_weekly_limit"] == 5
+        assert admin_barrier.limits.sms_weekly_limit == 5
+
+    def test_update_limit_creates_if_missing(self, api_client, admin_user, admin_barrier):
+        api_client.force_authenticate(user=admin_user)
+        url = reverse("update_barrier_limit", kwargs={"id": admin_barrier.id})
+        payload = {"user_phone_limit": 2}
+
+        response = api_client.patch(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["user_phone_limit"] == 2
+        assert BarrierLimit.objects.filter(barrier=admin_barrier).exists()
+
+    def test_update_limit_forbidden_for_non_owner(self, api_client, another_admin, admin_barrier):
+        api_client.force_authenticate(user=another_admin)
+        url = reverse("update_barrier_limit", kwargs={"id": admin_barrier.id})
+        payload = {"user_temp_phone_limit": 3}
+
+        response = api_client.patch(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You are not the owner of this barrier."
+
+    def test_update_limit_invalid_negative_value(self, api_client, admin_user, admin_barrier):
+        api_client.force_authenticate(user=admin_user)
+        url = reverse("update_barrier_limit", kwargs={"id": admin_barrier.id})
+        payload = {"global_temp_phone_limit": -1}
+
+        response = api_client.patch(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "global_temp_phone_limit" in response.data
+
+    def test_put_method_not_allowed(self, api_client, admin_user, admin_barrier):
+        api_client.force_authenticate(user=admin_user)
+        url = reverse("update_barrier_limit", kwargs={"id": admin_barrier.id})
+        payload = {"sms_weekly_limit": 7}
+
+        response = api_client.put(url, payload, format="json")
+
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
