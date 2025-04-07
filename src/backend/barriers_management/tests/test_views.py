@@ -25,6 +25,7 @@ class TestCreateBarrierView:
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["address"] == "st. test, 5"
         assert response.data["device_phone"] == "+79991112233"
+        assert response.data["owner"] == admin_user.id
         assert "device_password" not in response.data
 
 

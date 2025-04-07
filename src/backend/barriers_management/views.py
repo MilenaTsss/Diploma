@@ -68,6 +68,7 @@ class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
     Retrieve, update, or delete a barrier by ID (admin only).
     """
 
+    queryset = Barrier.objects.filter(is_active=True)
     lookup_field = "id"
 
     def get_serializer_class(self):
@@ -79,11 +80,6 @@ class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
         context = super().get_serializer_context()
         context["request"] = self.request
         return context
-
-    def get_queryset(self):
-        """Admin can only access their own barriers"""
-
-        return Barrier.objects.filter(is_active=True)
 
     def get_object(self):
         """Add explicit permission check and better 403 response"""

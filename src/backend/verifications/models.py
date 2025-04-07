@@ -27,11 +27,13 @@ class VerificationService:
     @staticmethod
     def generate_verification_code():
         """Generates a random 6-digit verification code."""
+
         return "".join(random.choices(string.digits, k=VERIFICATION_CODE_MAX_LENGTH))
 
     @staticmethod
     def generate_verification_token():
         """Generates a random alphanumeric verification token."""
+
         return "".join(random.choices(string.ascii_letters + string.digits, k=VERIFICATION_TOKEN_MAX_LENGTH))
 
     @staticmethod
@@ -79,6 +81,7 @@ class VerificationService:
     @staticmethod
     def confirm_verification(phone, verification_token, mode):
         """Validates the verification token for given mode."""
+
         verification = Verification.objects.filter(verification_token=verification_token).first()
 
         if not verification:
