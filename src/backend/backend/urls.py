@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.http import JsonResponse
 from django.urls import include, path
 
-from users.views import admin_block_password_change_view
+from users.admin_views import admin_block_password_change_view
 
 admin.site.site_url = "/admin_panel/"
 admin.site.site_header = "Admin Panel"
