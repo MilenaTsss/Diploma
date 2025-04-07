@@ -114,14 +114,12 @@ class BaseAccessRequestListView(BasePaginatedListView):
             queryset = queryset.filter(request_type=AccessRequest.RequestType.FROM_BARRIER)
 
         # Filter cancelled requests created by someone else
-        if self.as_admin:
-            queryset = queryset.exclude(
-                status=AccessRequest.Status.CANCELLED, request_type=AccessRequest.RequestType.FROM_USER
-            )
-        else:
-            queryset = queryset.exclude(
-                status=AccessRequest.Status.CANCELLED, request_type=AccessRequest.RequestType.FROM_BARRIER
-            )
+        queryset = queryset.exclude(
+            status=AccessRequest.Status.CANCELLED,
+            request_type=(
+                AccessRequest.RequestType.FROM_USER if self.as_admin else AccessRequest.RequestType.FROM_BARRIER
+            ),
+        )
 
         return queryset.order_by(ordering)
 
@@ -159,16 +157,12 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
         return context
 
     def get_object(self):
-        obj = super().get_object()
+        access_request = super().get_object()
         user = self.request.user
 
-        if self.as_admin:
-            if obj.barrier.owner != user:
-                raise PermissionDenied("You don't have access to this request.")
-        else:
-            if obj.user != user:
-                raise PermissionDenied("You don't have access to this request.")
-        return obj
+        if self.as_admin and access_request.barrier.owner != user or not self.as_admin and access_request.user != user:
+            raise PermissionDenied("You don't have access to this access request.")
+        return access_request
 
     def patch(self, request, *args, **kwargs):
         instance = self.get_object()

@@ -1,36 +1,6 @@
 import pytest
-from rest_framework.test import APIClient
 
 from barriers.models import Barrier, UserBarrier
-from users.models import User
-
-
-@pytest.fixture
-def api_client():
-    """Fixture for API client"""
-
-    return APIClient()
-
-
-@pytest.fixture
-def user():
-    """Create a test user"""
-
-    return User.objects.create_user(phone="+79991234567")
-
-
-@pytest.fixture
-def authenticated_client(api_client, user):
-
-    api_client.force_authenticate(user=user)
-    return api_client
-
-
-@pytest.fixture
-def admin_user():
-    """Create an admin user"""
-
-    return User.objects.create_admin(phone="+79995554433", password="adminpassword")
 
 
 @pytest.fixture
