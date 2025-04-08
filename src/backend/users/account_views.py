@@ -2,6 +2,7 @@ import logging
 
 from rest_framework import status
 from rest_framework.decorators import permission_classes
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.views import APIView
@@ -63,6 +64,9 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
         verification.save(update_fields=["status"])
 
         return deleted_response()
+
+    def put(self, request, *args, **kwargs):
+        raise MethodNotAllowed("PUT")
 
 
 class ChangePhoneView(APIView):
