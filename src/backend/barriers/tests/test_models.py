@@ -1,8 +1,7 @@
 import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
 
-from barriers.models import Barrier, BarrierLimit, UserBarrier
-from users.models import User
+from barriers.models import BarrierLimit, UserBarrier
 
 
 @pytest.mark.django_db
@@ -80,19 +79,7 @@ class TestUserBarrier:
 
 @pytest.mark.django_db
 class TestBarrierLimit:
-    def test_creation_with_all_fields(self):
-        user = User.objects.create_admin(phone="+79991112233", password="adminpass")
-        barrier = Barrier.objects.create(
-            address="Limit Test",
-            owner=user,
-            device_phone="+79991112234",
-            device_model=Barrier.Model.RTU5025,
-            device_phones_amount=1,
-            device_password="1234",
-            additional_info="With limits",
-            is_public=True,
-        )
-
+    def test_creation_with_all_fields(self, user, barrier):
         limits = BarrierLimit.objects.create(
             barrier=barrier,
             user_phone_limit=3,

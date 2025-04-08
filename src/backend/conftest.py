@@ -9,12 +9,14 @@ from verifications.models import Verification, VerificationService
 
 USER_PHONE = "+79991234567"
 ADMIN_PHONE = "+79995554433"
+ANOTHER_ADMIN_PHONE = "+79992223311"
 SUPERUSER_PHONE = "+79994443322"
 OTHER_PHONE = "+79999999999"
 BARRIER_DEVICE_PHONE = "+70000000001"
 PRIVATE_BARRIER_DEVICE_PHONE = "+70000000002"
 BLOCKED_USER_PHONE = "+79993332211"
 ADMIN_PASSWORD = "adminpassword"
+ANOTHER_ADMIN_PASSWORD = "anotheradminpass"
 SUPERUSER_PASSWORD = "SuperSecurePass"
 USER_NAME = "John User"
 ADMIN_NAME = "Admin"
@@ -48,6 +50,11 @@ def user():
 @pytest.fixture
 def admin_user():
     return User.objects.create_admin(phone=ADMIN_PHONE, password=ADMIN_PASSWORD)
+
+
+@pytest.fixture
+def another_admin():
+    return User.objects.create_admin(phone=ANOTHER_ADMIN_PHONE, password=ANOTHER_ADMIN_PASSWORD)
 
 
 @pytest.fixture

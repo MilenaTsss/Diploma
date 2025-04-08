@@ -2,17 +2,9 @@ import pytest
 
 from barriers.models import Barrier
 from conftest import BARRIER_DEVICE_PASSWORD
-from users.models import User
 
-ANOTHER_ADMIN_PHONE = "+79992223311"
-ANOTHER_ADMIN_PASSWORD = "anotheradminpass"
 OTHER_BARRIER_ADDRESS = "St. Another, 9"
 OTHER_BARRIER_DEVICE_PHONE = "+70000000003"
-
-
-@pytest.fixture
-def another_admin():
-    return User.objects.create_admin(phone=ANOTHER_ADMIN_PHONE, password=ANOTHER_ADMIN_PASSWORD)
 
 
 @pytest.fixture

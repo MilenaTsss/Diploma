@@ -2,7 +2,6 @@ import pytest
 
 from access_requests.models import AccessRequest
 from access_requests.serializers import CreateAccessRequestSerializer, UpdateAccessRequestSerializer
-from users.models import User
 
 
 @pytest.mark.django_db
@@ -45,8 +44,7 @@ class TestCreateAccessRequestSerializer:
 
         assert serializer.is_valid(), serializer.errors
 
-    def test_admin_cannot_create_for_barrier_they_do_not_own(self, user, barrier):
-        another_admin = User.objects.create_admin(phone="+79998887777", password="pass")
+    def test_admin_cannot_create_for_barrier_they_do_not_own(self, user, barrier, another_admin):
         context = {"request": type("Request", (), {"user": another_admin})(), "as_admin": True}
         serializer = CreateAccessRequestSerializer(
             data={"user": user.id, "barrier": barrier.id},
