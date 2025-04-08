@@ -3,11 +3,13 @@ from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
 from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
+from rest_framework import status
 
 from core.constants import (
     CHOICE_MAX_LENGTH,
     PHONE_MAX_LENGTH,
 )
+from core.utils import error_response
 from core.validators import PhoneNumberValidator
 
 MAX_LENGTH = 255
@@ -72,6 +74,19 @@ class UserManager(BaseUserManager):
             raise ValueError("Superuser requires a password")
 
         return self.create_user(phone, password, **extra_fields)
+
+    def get_by_phone(self, phone: str):
+        """Return a user by phone number or None"""
+
+        return self.filter(phone=phone).first()
+
+    def check_phone_blocked(self, phone: str):
+        """Returns an error response if the user with this phone is blocked."""
+
+        user = self.get_by_phone(phone)
+        if user and not user.is_active:
+            reason = user.block_reason
+            return error_response(f"This account is blocked for reason: `{reason}`", status.HTTP_403_FORBIDDEN)
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -139,18 +154,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def get_phone(self):
         return self.phone
-
-    @classmethod
-    def is_phone_blocked(cls, phone: str) -> bool:
-        """Checks if a user with the given phone number is blocked"""
-
-        user = cls.objects.filter(phone=phone).first()
-        return user.is_blocked_user() if user else False
-
-    def is_blocked_user(self):
-        """Returns True if the user is blocked (inactive)."""
-
-        return not self.is_active
 
     def delete(self, *args, **kwargs):
         raise PermissionDenied("Deletion of this object is not allowed.")

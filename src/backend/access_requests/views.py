@@ -2,7 +2,7 @@ import logging
 
 from rest_framework import generics, status
 from rest_framework.decorators import permission_classes
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
@@ -114,14 +114,12 @@ class BaseAccessRequestListView(BasePaginatedListView):
             queryset = queryset.filter(request_type=AccessRequest.RequestType.FROM_BARRIER)
 
         # Filter cancelled requests created by someone else
-        if self.as_admin:
-            queryset = queryset.exclude(
-                status=AccessRequest.Status.CANCELLED, request_type=AccessRequest.RequestType.FROM_USER
-            )
-        else:
-            queryset = queryset.exclude(
-                status=AccessRequest.Status.CANCELLED, request_type=AccessRequest.RequestType.FROM_BARRIER
-            )
+        queryset = queryset.exclude(
+            status=AccessRequest.Status.CANCELLED,
+            request_type=(
+                AccessRequest.RequestType.FROM_USER if self.as_admin else AccessRequest.RequestType.FROM_BARRIER
+            ),
+        )
 
         return queryset.order_by(ordering)
 
@@ -159,31 +157,31 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
         return context
 
     def get_object(self):
-        obj = super().get_object()
+        access_request = super().get_object()
         user = self.request.user
 
-        if self.as_admin:
-            if obj.barrier.owner != user:
-                raise PermissionDenied("You don't have access to this request.")
-        else:
-            if obj.user != user:
-                raise PermissionDenied("You don't have access to this request.")
-        return obj
+        if self.as_admin and access_request.barrier.owner != user or not self.as_admin and access_request.user != user:
+            raise PermissionDenied("You don't have access to this access request.")
+        return access_request
 
     def patch(self, request, *args, **kwargs):
-        instance = self.get_object()
+        access_request = self.get_object()
         serializer = UpdateAccessRequestSerializer(
-            instance, data=request.data, partial=True, context=self.get_serializer_context()
+            access_request, data=request.data, partial=True, context=self.get_serializer_context()
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        if instance.status == AccessRequest.Status.ACCEPTED:
-            UserBarrier.create(user=instance.user, barrier=instance.barrier, access_request=instance)
+        if access_request.status == AccessRequest.Status.ACCEPTED:
+            UserBarrier.create(user=access_request.user, barrier=access_request.barrier, access_request=access_request)
 
         return Response(
-            AccessRequestSerializer(instance, context=self.get_serializer_context()).data, status=status.HTTP_200_OK
+            AccessRequestSerializer(access_request, context=self.get_serializer_context()).data,
+            status=status.HTTP_200_OK,
         )
+
+    def put(self, request, *args, **kwargs):
+        raise MethodNotAllowed("PUT")
 
 
 class AccessRequestView(BaseAccessRequestView):

@@ -45,6 +45,7 @@ class UserAdmin(BaseUserAdmin):
 
     def add_view(self, request, form_url="", extra_context=None):
         """Change the page title from 'Add user' to 'Add admin'"""
+
         extra_context = extra_context or {}
         extra_context["title"] = _("Add admin")
         return super().add_view(request, form_url, extra_context)

@@ -1,53 +1,35 @@
 import pytest
-from rest_framework.test import APIClient
 
 from barriers.models import Barrier
-from users.models import User
+from conftest import BARRIER_DEVICE_PASSWORD
 
-
-@pytest.fixture
-def api_client():
-    """Fixture for API client"""
-
-    return APIClient()
-
-
-@pytest.fixture
-def admin_user():
-    """Create an admin user"""
-
-    return User.objects.create_admin(phone="+79995554433", password="adminpassword")
-
-
-@pytest.fixture
-def admin_barrier(admin_user):
-    return Barrier.objects.create(
-        address="St. Example",
-        owner=admin_user,
-        device_phone="+79995551122",
-        device_model=Barrier.Model.RTU5035,
-        device_phones_amount=1,
-        device_password="adminpass",
-        additional_info="Test barrier",
-        is_public=True,
-        is_active=True,
-    )
-
-
-@pytest.fixture
-def another_admin(db):
-    return User.objects.create_user(phone="+79992223333", password="otherpass", role=User.Role.ADMIN, is_staff=True)
+OTHER_BARRIER_ADDRESS = "St. Another, 9"
+OTHER_BARRIER_DEVICE_PHONE = "+70000000003"
 
 
 @pytest.fixture
 def other_barrier(another_admin):
     return Barrier.objects.create(
-        address="St. Another, 9",
+        address=OTHER_BARRIER_ADDRESS,
         owner=another_admin,
-        device_phone="+79995554433",
+        device_phone=OTHER_BARRIER_DEVICE_PHONE,
         device_model=Barrier.Model.ELFOC,
-        device_phones_amount=1,
-        device_password="4321",
-        additional_info="Private",
-        is_public=False,
+        device_phones_amount=10,
+        device_password=BARRIER_DEVICE_PASSWORD,
+        additional_info="Testing other barrier",
+        is_public=True,
+    )
+
+
+@pytest.fixture
+def other_admin_barrier(admin_user):
+    return Barrier.objects.create(
+        address=OTHER_BARRIER_ADDRESS,
+        owner=admin_user,
+        device_phone=OTHER_BARRIER_DEVICE_PHONE,
+        device_model=Barrier.Model.ELFOC,
+        device_phones_amount=10,
+        device_password=BARRIER_DEVICE_PASSWORD,
+        additional_info="Testing other barrier",
+        is_public=True,
     )
