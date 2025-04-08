@@ -13,6 +13,7 @@ class TestCreateAccessRequestSerializer:
             data={"user": user.id, "barrier": barrier.id},
             context=context,
         )
+
         assert serializer.is_valid(), serializer.errors
 
     def test_user_cannot_request_private_barrier(self, user, private_barrier):
@@ -21,6 +22,7 @@ class TestCreateAccessRequestSerializer:
             data={"user": user.id, "barrier": private_barrier.id},
             context=context,
         )
+
         assert not serializer.is_valid()
         assert "non_field_errors" in serializer.errors or "barrier" in serializer.errors
 
@@ -30,6 +32,7 @@ class TestCreateAccessRequestSerializer:
             data={"user": admin_user.id, "barrier": barrier.id},
             context=context,
         )
+
         assert not serializer.is_valid()
         assert "non_field_errors" in serializer.errors or "user" in serializer.errors
 
@@ -39,6 +42,7 @@ class TestCreateAccessRequestSerializer:
             data={"user": user.id, "barrier": barrier.id},
             context=context,
         )
+
         assert serializer.is_valid(), serializer.errors
 
     def test_admin_cannot_create_for_barrier_they_do_not_own(self, user, barrier):
@@ -48,6 +52,7 @@ class TestCreateAccessRequestSerializer:
             data={"user": user.id, "barrier": barrier.id},
             context=context,
         )
+
         assert not serializer.is_valid()
         assert "non_field_errors" in serializer.errors or "barrier" in serializer.errors
 
@@ -57,6 +62,7 @@ class TestCreateAccessRequestSerializer:
             data={"user": user.id, "barrier": private_barrier_with_access.id},
             context=context,
         )
+
         assert not serializer.is_valid()
         assert "non_field_errors" in serializer.errors
 
@@ -76,6 +82,7 @@ class TestUpdateAccessRequestSerializer:
             partial=True,
             context={"as_admin": False},
         )
+
         assert serializer.is_valid(), serializer.errors
 
     def test_invalid_status_transition(self, user, barrier):
@@ -91,6 +98,7 @@ class TestUpdateAccessRequestSerializer:
             partial=True,
             context={"as_admin": False},
         )
+
         assert not serializer.is_valid()
         assert "status" in serializer.errors
 
@@ -107,6 +115,7 @@ class TestUpdateAccessRequestSerializer:
             partial=True,
             context={"as_admin": False},
         )
+
         assert not serializer.is_valid()
         assert "status" in serializer.errors
 
@@ -123,6 +132,7 @@ class TestUpdateAccessRequestSerializer:
             partial=True,
             context={"as_admin": True},
         )
+
         assert serializer.is_valid(), serializer.errors
 
     def test_user_cannot_change_hidden_for_admin(self, user, barrier):
@@ -137,6 +147,7 @@ class TestUpdateAccessRequestSerializer:
             partial=True,
             context={"as_admin": False},
         )
+
         assert not serializer.is_valid()
         assert "hidden_for_admin" in serializer.errors
 
@@ -152,5 +163,6 @@ class TestUpdateAccessRequestSerializer:
             partial=True,
             context={"as_admin": True},
         )
+
         assert not serializer.is_valid()
         assert "hidden_for_user" in serializer.errors

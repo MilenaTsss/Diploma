@@ -109,8 +109,14 @@ class UserBarrier(models.Model):
         return f"{self.user} - {self.barrier}"
 
     @classmethod
-    def create(cls, user, barrier, access_request=None):
+    def create(cls, user, barrier, access_request):
         """Create new or reactivate existing inactive user-barrier link"""
+
+        if access_request is None:
+            raise ValidationError("Access request is required to create a user-barrier link.")
+
+        if access_request.user != user or access_request.barrier != barrier:
+            raise ValidationError("Access request does not match given user and barrier.")
 
         existing = cls.objects.filter(user=user, barrier=barrier).first()
         if existing:
@@ -169,14 +175,20 @@ class BarrierLimit(models.Model):
     updated_at = models.DateTimeField(auto_now=True, help_text="Timestamp when limits were last updated")
 
     def __str__(self):
-        return (
-            f"Limits for Barrier '{self.barrier.address}' "
-            f"(ID: {self.barrier}) — "
-            f"user_phones: {self.user_phone_limit}, "
-            f"user_temp_phones: {self.user_temp_phone_limit}, "
-            f"temp_all: {self.global_temp_phone_limit}, "
-            f"sms_in_week: {self.sms_weekly_limit}"
-        )
+        limits = []
+
+        if self.user_phone_limit is not None:
+            limits.append(f"user_phones: {self.user_phone_limit}")
+        if self.user_temp_phone_limit is not None:
+            limits.append(f"user_temp_phones: {self.user_temp_phone_limit}")
+        if self.global_temp_phone_limit is not None:
+            limits.append(f"temp_all: {self.global_temp_phone_limit}")
+        if self.sms_weekly_limit is not None:
+            limits.append(f"sms_in_week: {self.sms_weekly_limit}")
+
+        limits_str = f"[{', '.join(limits)}]" if limits else "[]"
+
+        return f"Limits for Barrier '{self.barrier.address}' (ID: {self.barrier.id}) — {limits_str}"
 
     def delete(self, *args, **kwargs):
         raise PermissionDenied("Deletion of this object is not allowed.")

@@ -165,18 +165,19 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
         return access_request
 
     def patch(self, request, *args, **kwargs):
-        instance = self.get_object()
+        access_request = self.get_object()
         serializer = UpdateAccessRequestSerializer(
-            instance, data=request.data, partial=True, context=self.get_serializer_context()
+            access_request, data=request.data, partial=True, context=self.get_serializer_context()
         )
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        if instance.status == AccessRequest.Status.ACCEPTED:
-            UserBarrier.create(user=instance.user, barrier=instance.barrier, access_request=instance)
+        if access_request.status == AccessRequest.Status.ACCEPTED:
+            UserBarrier.create(user=access_request.user, barrier=access_request.barrier, access_request=access_request)
 
         return Response(
-            AccessRequestSerializer(instance, context=self.get_serializer_context()).data, status=status.HTTP_200_OK
+            AccessRequestSerializer(access_request, context=self.get_serializer_context()).data,
+            status=status.HTTP_200_OK,
         )
 
     def put(self, request, *args, **kwargs):
