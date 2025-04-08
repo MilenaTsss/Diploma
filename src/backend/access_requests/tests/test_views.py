@@ -24,9 +24,8 @@ class TestCreateAccessRequestView:
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
 
-    def test_admin_creates_access_request(self, api_client, admin_user, user, barrier):
-        api_client.force_authenticate(user=admin_user)
-        response = api_client.post(self.admin_url, data={"user": user.id, "barrier": barrier.id})
+    def test_admin_creates_access_request(self, authenticated_admin_client, admin_user, user, barrier):
+        response = authenticated_admin_client.post(self.admin_url, data={"user": user.id, "barrier": barrier.id})
 
         assert response.status_code == status.HTTP_201_CREATED
 
@@ -48,15 +47,14 @@ class TestAccessRequestListViews:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["access_requests"]
 
-    def test_admin_sees_requests_for_their_barriers(self, api_client, admin_user, user, barrier):
-        api_client.force_authenticate(user=admin_user)
+    def test_admin_sees_requests_for_their_barriers(self, authenticated_admin_client, admin_user, user, barrier):
         AccessRequest.objects.create(
             user=user,
             barrier=barrier,
             request_type=AccessRequest.RequestType.FROM_USER,
             status=AccessRequest.Status.PENDING,
         )
-        response = api_client.get(self.admin_url)
+        response = authenticated_admin_client.get(self.admin_url)
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["access_requests"]
@@ -66,10 +64,7 @@ class TestAccessRequestListViews:
 class TestAccessRequestDetailView:
     def test_user_can_cancel_own_request(self, authenticated_client, user, barrier):
         access_request = AccessRequest.objects.create(
-            user=user,
-            barrier=barrier,
-            request_type=AccessRequest.RequestType.FROM_USER,
-            status=AccessRequest.Status.PENDING,
+            user=user, barrier=barrier, request_type=AccessRequest.RequestType.FROM_USER
         )
         response = authenticated_client.patch(
             reverse("access_request_view", args=[access_request.id]),
@@ -81,15 +76,11 @@ class TestAccessRequestDetailView:
         access_request.refresh_from_db()
         assert access_request.status == AccessRequest.Status.CANCELLED
 
-    def test_admin_can_accept_user_request(self, api_client, admin_user, user, barrier):
-        api_client.force_authenticate(user=admin_user)
+    def test_admin_can_accept_user_request(self, authenticated_admin_client, admin_user, user, barrier):
         access_request = AccessRequest.objects.create(
-            user=user,
-            barrier=barrier,
-            request_type=AccessRequest.RequestType.FROM_USER,
-            status=AccessRequest.Status.PENDING,
+            user=user, barrier=barrier, request_type=AccessRequest.RequestType.FROM_USER
         )
-        response = api_client.patch(
+        response = authenticated_admin_client.patch(
             reverse("admin_access_request_view", args=[access_request.id]),
             data=json.dumps({"status": AccessRequest.Status.ACCEPTED}),
             content_type="application/json",
