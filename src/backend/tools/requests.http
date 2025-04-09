@@ -347,3 +347,40 @@ Content-Type: application/json
   "hidden_for_admin": true
 }
 
+
+### Get limits - USER
+GET {{host}}/barriers/16/limits/
+Authorization: Bearer {{user_token}}
+
+### Get limits - ADMIN
+GET {{host}}/barriers/16/limits/
+Authorization: Bearer {{admin_token}}
+
+### Set limits - USER - access denied
+PATCH {{host}}/admin/barriers/16/limits/
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "phone_per_user_limit": 100
+}
+
+### PUT limits - ADMIN - access denied
+PUT {{host}}/admin/barriers/16/limits/
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "phone_per_user_limit": 100
+}
+
+### Set limits - ADMIN
+PATCH {{host}}/admin/barriers/16/limits/
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "user_phone_limit": 100,
+  "user_temp_phone_limit": 100,
+  "global_temp_phone_limit": null
+}
