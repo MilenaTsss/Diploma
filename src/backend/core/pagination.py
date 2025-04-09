@@ -1,6 +1,7 @@
 from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.response import Response
+
+from core.utils import success_response
 
 DEFAULT_PAGE_SIZE = 10
 MAX_PAGE_SIZE = 100
@@ -29,7 +30,7 @@ class BasePaginatedListView(ListAPIView):
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return success_response(serializer.data)
 
     def get_paginated_response(self, data):
         """Format the response with pagination details"""
@@ -37,7 +38,7 @@ class BasePaginatedListView(ListAPIView):
         paginator = self.pagination_class()
         paginator.page = self.paginator.page
 
-        return Response(
+        return success_response(
             {
                 "total_count": paginator.page.paginator.count,
                 "current_page": paginator.page.number,

@@ -1,4 +1,4 @@
-@host = http://127.0.0.1:8000
+@host = http://127.0.0.1:8000/api
 @admin_id =
 @admin_token =
 @user_id =
@@ -7,7 +7,7 @@
 @admin_refresh_token =
 
 ### Send code
-POST {{host}}/api/auth/codes/
+POST {{host}}/auth/codes/
 Content-Type: application/json
 
 {
@@ -16,7 +16,7 @@ Content-Type: application/json
 }
 
 ### Verify code
-PATCH {{host}}/api/auth/codes/verify/
+PATCH {{host}}/auth/codes/verify/
 Content-Type: application/json
 
 {
@@ -26,7 +26,7 @@ Content-Type: application/json
 }
 
 ### Login
-POST {{host}}/api/auth/login/
+POST {{host}}/auth/login/
 Content-Type: application/json
 
 {
@@ -35,15 +35,15 @@ Content-Type: application/json
 }
 
 ### Get profile - USER
-GET {{host}}/api/users/me/
+GET {{host}}/users/me/
 Authorization: Bearer {{user_token}}
 
 ### Get profile - ADMIN
-PATCH {{host}}/api/users/me/
+PATCH {{host}}/users/me/
 Authorization: Bearer {{admin_token}}
 
 ### Edit profile
-PATCH {{host}}/api/users/me/
+PATCH {{host}}/users/me/
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
@@ -53,7 +53,7 @@ Content-Type: application/json
 }
 
 ### Delete profile
-DELETE {{host}}/api/users/me/
+DELETE {{host}}/users/me/
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
@@ -62,7 +62,7 @@ Content-Type: application/json
 }
 
 ### Refresh token - USER
-POST {{host}}/api/auth/token/refresh/
+POST {{host}}/auth/token/refresh/
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
@@ -71,7 +71,7 @@ Content-Type: application/json
 }
 
 ### Refresh token - ADMIN
-POST {{host}}/api/auth/token/refresh/
+POST {{host}}/auth/token/refresh/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -80,7 +80,7 @@ Content-Type: application/json
 }
 
 ### Change main phone (need verification)
-PATCH {{host}}/api/users/me/phone/
+PATCH {{host}}/users/me/phone/
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
@@ -91,7 +91,7 @@ Content-Type: application/json
 }
 
 ### Change password - ADMIN (need verification)
-PATCH {{host}}/api/users/me/password/reset/
+PATCH {{host}}/users/me/password/reset/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -101,7 +101,7 @@ Content-Type: application/json
 }
 
 ### Reset password - ADMIN (need verification)
-PATCH {{host}}/api/users/me/password/reset/
+PATCH {{host}}/users/me/password/reset/
 Content-Type: application/json
 
 {
@@ -111,22 +111,22 @@ Content-Type: application/json
 }
 
 ### Get user - ADMIN
-GET {{host}}/api/admin/users/{{user_id}}/
+GET {{host}}/admin/users/{{user_id}}/
 Authorization: Bearer {{admin_token}}
 
 ### Block user - ADMIN
-PATCH {{host}}/api/admin/users/{{user_id}}/block/
+PATCH {{host}}/admin/users/{{user_id}}/block/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 ### Unblock user - ADMIN
-PATCH {{host}}/api/admin/users/{{user_id}}/unblock/
+PATCH {{host}}/admin/users/{{user_id}}/unblock/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 
 ### Search user by phone - ADMIN
-POST {{host}}/api/users/search/
+POST {{host}}/users/search/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -138,7 +138,7 @@ Content-Type: application/json
 
 
 ### Create barrier - ADMIN
-POST {{host}}/api/admin/barriers/
+POST {{host}}/admin/barriers/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -153,27 +153,27 @@ Content-Type: application/json
 }
 
 ### Get my barriers - ADMIN
-GET {{host}}/api/admin/barriers/my/?ordering=-created_at
+GET {{host}}/admin/barriers/my/?ordering=-created_at
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 ### Get my barriers - USER
-GET {{host}}/api/barriers/my/
+GET {{host}}/barriers/my/
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
 
 ### Get barriers - USER
-GET {{host}}/api/barriers/?page_size=15
+GET {{host}}/barriers/?page_size=15
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
 ### Get barrier - ADMIN
-GET {{host}}/api/admin/barriers/4/
+GET {{host}}/admin/barriers/4/
 Authorization: Bearer {{admin_token}}
 
 ### Patch barrier - ADMIN, fields = ["device_password", "additional_info", "is_public"]
-PATCH {{host}}/api/admin/barriers/3/
+PATCH {{host}}/admin/barriers/3/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -182,17 +182,17 @@ Content-Type: application/json
 }
 
 ### Delete barrier - ADMIN
-DELETE {{host}}/api/admin/barriers/4/
+DELETE {{host}}/admin/barriers/4/
 Authorization: Bearer {{admin_token}}
 
 ### Get barrier - USER
-GET {{host}}/api/barriers/16/
+GET {{host}}/barriers/16/
 Authorization: Bearer {{user_token}}
 
 
 
 ### Create access request - USER
-POST {{host}}/api/access_requests/
+POST {{host}}/access_requests/
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
@@ -202,7 +202,7 @@ Content-Type: application/json
 }
 
 ### Create access request - USER - Wrong user number
-POST {{host}}/api/access_requests/
+POST {{host}}/access_requests/
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
@@ -212,7 +212,7 @@ Content-Type: application/json
 }
 
 ### Create access request - USER - Wrong barrier number  (inactive, private, not exists)
-POST {{host}}/api/access_requests/
+POST {{host}}/access_requests/
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
@@ -223,7 +223,7 @@ Content-Type: application/json
 
 
 ### Create access request - ADMIN like user
-POST {{host}}/api/access_requests/
+POST {{host}}/access_requests/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -233,7 +233,7 @@ Content-Type: application/json
 }
 
 ### Create access request - ADMIN like user - Wrong user number
-POST {{host}}/api/access_requests/
+POST {{host}}/access_requests/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -243,7 +243,7 @@ Content-Type: application/json
 }
 
 ### Create access request - ADMIN like user - Wrong barrier number  (inactive, private, not exists)
-POST {{host}}/api/access_requests/
+POST {{host}}/access_requests/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -253,7 +253,7 @@ Content-Type: application/json
 }
 
 ### Create access request - ADMIN like admin
-POST {{host}}/api/admin/access_requests/
+POST {{host}}/admin/access_requests/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -263,7 +263,7 @@ Content-Type: application/json
 }
 
 ### Create access request - ADMIN like admin - Wrong barrier number
-POST {{host}}/api/admin/access_requests/
+POST {{host}}/admin/access_requests/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -273,7 +273,7 @@ Content-Type: application/json
 }
 
 ### Create access request - ADMIN like admin - Wrong user number
-POST {{host}}/api/admin/access_requests/
+POST {{host}}/admin/access_requests/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -283,42 +283,42 @@ Content-Type: application/json
 }
 
 ### Get my access requests - USER
-GET {{host}}/api/access_requests/my/
+GET {{host}}/access_requests/my/
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
 ### Get my access requests - ADMIN like user
-GET {{host}}/api/access_requests/my/?status=pending&type=outgoing
+GET {{host}}/access_requests/my/?status=pending&type=outgoing
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 
 ### Get my access requests - ADMIN like admin
-GET {{host}}/api/admin/access_requests/my/
+GET {{host}}/admin/access_requests/my/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 
 ### Get access request - USER
-GET {{host}}/api/access_requests/11/
+GET {{host}}/access_requests/11/
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
 
 ### Get access request - ADMIN like user
-GET {{host}}/api/access_requests/2/
+GET {{host}}/access_requests/2/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 
 ### Get access request - ADMIN like admin
-GET {{host}}/api/admin/access_requests/6/
+GET {{host}}/admin/access_requests/6/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 
 ### Update access request - USER
-PATCH {{host}}/api/access_requests/3/
+PATCH {{host}}/access_requests/3/
 Authorization: Bearer {{user_token}}
 Content-Type: application/json
 
@@ -328,7 +328,7 @@ Content-Type: application/json
 }
 
 ### Update access request - ADMIN like user
-PATCH {{host}}/api/access_requests/8/
+PATCH {{host}}/access_requests/8/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
@@ -338,11 +338,49 @@ Content-Type: application/json
 }
 
 ### Update access request - ADMIN like admin
-PATCH {{host}}/api/admin/access_requests/9/
+PATCH {{host}}/admin/access_requests/9/
 Authorization: Bearer {{admin_token}}
 Content-Type: application/json
 
 {
   "status": "cancelled",
   "hidden_for_admin": true
+}
+
+
+### Get limits - USER
+GET {{host}}/barriers/16/limits/
+Authorization: Bearer {{user_token}}
+
+### Get limits - ADMIN
+GET {{host}}/barriers/16/limits/
+Authorization: Bearer {{admin_token}}
+
+### Set limits - USER - access denied
+PATCH {{host}}/admin/barriers/16/limits/
+Authorization: Bearer {{user_token}}
+Content-Type: application/json
+
+{
+  "phone_per_user_limit": 100
+}
+
+### PUT limits - ADMIN - access denied
+PUT {{host}}/admin/barriers/16/limits/
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "phone_per_user_limit": 100
+}
+
+### Set limits - ADMIN
+PATCH {{host}}/admin/barriers/16/limits/
+Authorization: Bearer {{admin_token}}
+Content-Type: application/json
+
+{
+  "user_phone_limit": 100,
+  "user_temp_phone_limit": 100,
+  "global_temp_phone_limit": null
 }

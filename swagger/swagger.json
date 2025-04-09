@@ -5,6 +5,20 @@
     "description": "Спецификация API для системы контроля доступа шлагбаумов.",
     "version": "1.0.0"
   },
+  "servers": [
+    {
+      "url": "https://gsm-barrier.ru/api",
+      "description": "Production API"
+    },
+    {
+      "url": "http://localhost:8000/api",
+      "description": "Local development server"
+    },
+    {
+      "url": "http://localhost/api",
+      "description": "Local docker prod server"
+    }
+  ],
   "externalDocs": {
     "description": "Диаграмма базы данных",
     "url": "https://dbdiagram.io/d/Diploma-DB-673e9c25e9daa85aca2ed394"
@@ -1274,7 +1288,7 @@
           "Limits"
         ],
         "summary": "Получение всех лимитов шлагбаума.",
-        "description": "Возвращает объект с установленными лимитами. Если лимит не установлен, поле отсутствует.",
+        "description": "Возвращает объект с установленными лимитами. Если лимит не установлен, значение равно null.",
         "security": [
           {
             "BearerAuth": []
@@ -1298,7 +1312,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BarrierLimitsWithId"
+                  "$ref": "#/components/schemas/BarrierLimitResponse"
                 }
               }
             }
@@ -1308,6 +1322,9 @@
           },
           "401": {
             "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет доступа к данному шлагбауму."
           },
           "404": {
             "description": "Шлагбаум с указанным `id` не найден."
@@ -1376,9 +1393,6 @@
                     "type": "boolean",
                     "description": "Можно ли найти шлагбаум в системе через поиск.",
                     "example": true
-                  },
-                  "limits": {
-                    "$ref": "#/components/schemas/BarrierLimits"
                   }
                 }
               }
@@ -1695,7 +1709,7 @@
           "Limits"
         ],
         "summary": "Обновление или установка лимитов шлагбаума (только для администраторов).",
-        "description": "Позволяет установить новые лимиты или обновить существующие.\n\nМожно передавать только один или несколько лимитов, остальные останутся без изменений.\n\nЕсли передать `null`, лимит будет удален.",
+        "description": "Позволяет установить новые лимиты или обновить существующие.\n\nМожно передавать один или несколько лимитов, остальные останутся без изменений.\n\nЕсли передать `null`, лимит будет удален.",
         "security": [
           {
             "BearerAuth": []
@@ -1718,7 +1732,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BarrierLimits"
+                "$ref": "#/components/schemas/BarrierLimitRequest"
               }
             }
           }
@@ -1729,7 +1743,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/BarrierLimitsWithId"
+                  "$ref": "#/components/schemas/BarrierLimitResponse"
                 }
               }
             }
@@ -3550,29 +3564,29 @@
           }
         }
       },
-      "BarrierLimits": {
+      "BarrierLimitRequest": {
         "type": "object",
         "description": "Лимиты шлагбаума.",
         "properties": {
-          "phone_per_user": {
+          "user_phone_limit": {
             "type": "integer",
             "nullable": true,
             "description": "Максимальное количество номеров на пользователя.",
             "example": 10
           },
-          "temporary_per_user": {
+          "user_temp_phone_limit": {
             "type": "integer",
             "nullable": true,
             "description": "Максимальное количество временных номеров на пользователя.",
             "example": 5
           },
-          "temporary_all": {
+          "global_temp_phone_limit": {
             "type": "integer",
             "nullable": true,
             "description": "Общее количество временных номеров.",
             "example": 20
           },
-          "sms_in_week": {
+          "sms_weekly_limit": {
             "type": "integer",
             "nullable": true,
             "description": "Ограничение на количество SMS в неделю.",
@@ -3580,15 +3594,36 @@
           }
         }
       },
-      "BarrierLimitsWithId": {
+      "BarrierLimitResponse": {
         "properties": {
-          "barrier_id": {
+          "barrier": {
             "type": "integer",
             "description": "`ID` шлагбаума.",
             "example": 42
           },
-          "limits": {
-            "$ref": "#/components/schemas/BarrierLimits"
+          "user_phone_limit": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Максимальное количество номеров на пользователя.",
+            "example": 10
+          },
+          "user_temp_phone_limit": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Максимальное количество временных номеров на пользователя.",
+            "example": 5
+          },
+          "global_temp_phone_limit": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Общее количество временных номеров.",
+            "example": 20
+          },
+          "sms_weekly_limit": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Ограничение на количество SMS в неделю.",
+            "example": 50
           }
         }
       },

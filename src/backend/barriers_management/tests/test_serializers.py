@@ -75,7 +75,7 @@ class TestCreateBarrierSerializer:
         serializer = CreateBarrierSerializer(data=data, context=admin_context)
 
         assert not serializer.is_valid()
-        assert "device_password" in serializer.errors
+        assert serializer.errors["error"][0] == "Device password is required for this device model."
 
     def test_invalid_password_format(self, admin_context):
         data = copy.deepcopy(self.data)
@@ -153,3 +153,30 @@ class TestUpdateBarrierLimitSerializer:
         serializer = UpdateBarrierLimitSerializer(limit, data=data, partial=True)
         assert not serializer.is_valid()
         assert "user_temp_phone_limit" in serializer.errors
+
+    def test_unexpected_fields_raises_error(self, barrier):
+        limit = BarrierLimit.objects.create(barrier=barrier)
+        data = {"invalid_field": 1}
+
+        serializer = UpdateBarrierLimitSerializer(limit, data=data, partial=True)
+        assert not serializer.is_valid()
+        assert serializer.errors["error"][0].startswith("Unexpected fields:")
+
+    def test_empty_payload_raises_error(self, barrier):
+        limit = BarrierLimit.objects.create(barrier=barrier)
+        data = {}
+
+        serializer = UpdateBarrierLimitSerializer(limit, data=data, partial=True)
+        assert not serializer.is_valid()
+        assert serializer.errors["error"][0] == "At least one field must be provided."
+
+    def test_limit_exceeds_device_capacity(self, barrier):
+        barrier.device_phones_amount = 5
+        barrier.save()
+
+        limit = BarrierLimit.objects.create(barrier=barrier)
+        data = {"user_phone_limit": 6}
+
+        serializer = UpdateBarrierLimitSerializer(limit, data=data, partial=True)
+        assert not serializer.is_valid()
+        assert serializer.errors["error"][0] == "Each limit must not exceed the amount of phones in device."

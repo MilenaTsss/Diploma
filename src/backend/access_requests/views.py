@@ -1,11 +1,10 @@
 import logging
 
-from rest_framework import generics, status
+from rest_framework import generics
 from rest_framework.decorators import permission_classes
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser
-from rest_framework.response import Response
 
 from access_requests.models import AccessRequest
 from access_requests.serializers import (
@@ -15,6 +14,7 @@ from access_requests.serializers import (
 )
 from barriers.models import UserBarrier
 from core.pagination import BasePaginatedListView
+from core.utils import created_response, success_response
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +43,7 @@ class BaseCreateAccessRequestView(generics.CreateAPIView):
         # TODO - send an sms with invitation to users
 
         response_serializer = AccessRequestSerializer(serializer.instance, context=self.get_serializer_context())
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        return created_response(response_serializer.data)
 
 
 class CreateAccessRequestView(BaseCreateAccessRequestView):
@@ -175,10 +175,7 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
         if access_request.status == AccessRequest.Status.ACCEPTED:
             UserBarrier.create(user=access_request.user, barrier=access_request.barrier, access_request=access_request)
 
-        return Response(
-            AccessRequestSerializer(access_request, context=self.get_serializer_context()).data,
-            status=status.HTTP_200_OK,
-        )
+        return success_response(AccessRequestSerializer(access_request, context=self.get_serializer_context()).data)
 
     def put(self, request, *args, **kwargs):
         raise MethodNotAllowed("PUT")

@@ -1,11 +1,14 @@
-from django.db.models import Q
-from rest_framework import generics, status
-from rest_framework.exceptions import PermissionDenied
-from rest_framework.response import Response
+import logging
 
-from barriers.models import Barrier, UserBarrier
+from django.db.models import Q
+from rest_framework import generics
+from rest_framework.exceptions import PermissionDenied
+
+from barriers.models import Barrier, BarrierLimit, UserBarrier
 from barriers.serializers import BarrierLimitSerializer, BarrierSerializer
 from core.pagination import BasePaginatedListView
+
+logger = logging.getLogger(__name__)
 
 
 class ListBarriersView(BasePaginatedListView):
@@ -88,13 +91,14 @@ class BarrierLimitView(generics.RetrieveAPIView):
         barrier = super().get_object()
         user = self.request.user
 
-        if barrier.is_public or UserBarrier.user_has_access_to_barrier(user, barrier):
-            return getattr(barrier, "limits", None)  # Can be None
+        if not (barrier.is_public or UserBarrier.user_has_access_to_barrier(user, barrier) or barrier.owner == user):
+            raise PermissionDenied("You do not have access to this barrier.")
 
-        raise PermissionDenied("You do not have access to this barrier.")
+        if not hasattr(barrier, "limits") or barrier.limits is None:
+            logger.warning(f"BarrierLimit missing for barrier ID '{barrier.id}'. Creating an empty one.")
+            BarrierLimit.objects.create(barrier=barrier)
+
+        return barrier.limits
 
     def get(self, request, *args, **kwargs):
-        limit = self.get_object()
-        if limit is None:
-            return Response({}, status=status.HTTP_200_OK)
         return self.retrieve(request, *args, **kwargs)

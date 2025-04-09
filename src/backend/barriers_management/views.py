@@ -1,10 +1,9 @@
 import logging
 
-from rest_framework import generics, status
+from rest_framework import generics
 from rest_framework.decorators import permission_classes
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 from rest_framework.permissions import IsAdminUser
-from rest_framework.response import Response
 
 from barriers.models import Barrier, BarrierLimit
 from barriers.serializers import BarrierLimitSerializer
@@ -15,6 +14,7 @@ from barriers_management.serializers import (
     UpdateBarrierSerializer,
 )
 from core.pagination import BasePaginatedListView
+from core.utils import created_response, deleted_response, success_response
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +31,10 @@ class CreateBarrierView(generics.CreateAPIView):
         context["request"] = self.request
         return context
 
+    def perform_create(self, serializer):
+        barrier = serializer.save()
+        BarrierLimit.objects.create(barrier=barrier)
+
     def create(self, request, *args, **kwargs):
         """Use a different serializer for the response"""
 
@@ -39,7 +43,7 @@ class CreateBarrierView(generics.CreateAPIView):
         self.perform_create(serializer)
 
         response_serializer = AdminBarrierSerializer(serializer.instance, context=self.get_serializer_context())
-        return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+        return created_response(response_serializer.data)
 
 
 @permission_classes([IsAdminUser])
@@ -101,7 +105,7 @@ class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(barrier, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
-        return Response(AdminBarrierSerializer(barrier).data, status=status.HTTP_200_OK)
+        return success_response(AdminBarrierSerializer(barrier).data)
 
     def delete(self, request, *args, **kwargs):
         """Mark the barrier as inactive (soft delete)"""
@@ -109,7 +113,7 @@ class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
         barrier = self.get_object()
         barrier.is_active = False
         barrier.save(update_fields=["is_active"])
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return deleted_response()
 
     def put(self, request, *args, **kwargs):
         raise MethodNotAllowed("PUT")
@@ -138,7 +142,7 @@ class AdminBarrierLimitUpdateView(generics.UpdateAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        return Response(BarrierLimitSerializer(limit).data, status=status.HTTP_200_OK)
+        return success_response(BarrierLimitSerializer(limit).data)
 
     def put(self, request, *args, **kwargs):
         raise MethodNotAllowed("PUT")

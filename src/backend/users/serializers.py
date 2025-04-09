@@ -56,7 +56,7 @@ class ChangePhoneSerializer(serializers.Serializer):
         """Check if new phone number is already in use."""
 
         if User.objects.filter(phone=value).exists():
-            raise serializers.ValidationError("This phone number is already in use by another user.")
+            raise serializers.ValidationError({"error": "This phone number is already in use."})
         return value
 
 
@@ -72,7 +72,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 
         user = self.context["request"].user
         if not user.check_password(value):
-            raise serializers.ValidationError("Current password is incorrect.")
+            raise serializers.ValidationError({"error": "Current password is incorrect."})
         return value
 
 
