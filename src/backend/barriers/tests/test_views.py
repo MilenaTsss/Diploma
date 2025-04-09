@@ -50,13 +50,15 @@ class TestBarrierView:
 
 
 @pytest.mark.django_db
-class TestBarrierLimitRetrieveView:
-    def test_public_barrier_with_no_limits(self, authenticated_client, barrier):
+class TestBarrierLimitView:
+    def test_public_barrier_with_no_limits_creates_one(self, authenticated_client, barrier):
         url = reverse("get_barrier_limits", kwargs={"id": barrier.id})
+        assert not hasattr(barrier, "limits")  # Ensure no limit initially
+
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data == {}
+        assert BarrierLimit.objects.filter(barrier=barrier).exists()
 
     def test_public_barrier_with_limits(self, authenticated_client, barrier):
         BarrierLimit.objects.create(
@@ -74,13 +76,23 @@ class TestBarrierLimitRetrieveView:
         assert response.data["user_phone_limit"] == 3
         assert response.data["sms_weekly_limit"] == 50
 
-    def test_private_barrier_with_access(self, authenticated_client, user, private_barrier_with_access):
+    def test_private_barrier_with_access_and_no_limit_creates_one(
+        self, authenticated_client, private_barrier_with_access
+    ):
         url = reverse("get_barrier_limits", kwargs={"id": private_barrier_with_access.id})
         response = authenticated_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
+        assert BarrierLimit.objects.filter(barrier=private_barrier_with_access).exists()
 
-    def test_private_barrier_without_access(self, authenticated_client, user, private_barrier):
+    def test_owner_can_view_limits(self, authenticated_admin_client, private_barrier):
+        url = reverse("get_barrier_limits", kwargs={"id": private_barrier.id})
+        response = authenticated_admin_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data is not None
+
+    def test_private_barrier_without_access(self, authenticated_client, private_barrier):
         url = reverse("get_barrier_limits", kwargs={"id": private_barrier.id})
         response = authenticated_client.get(url)
 

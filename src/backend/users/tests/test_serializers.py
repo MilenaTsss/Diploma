@@ -188,6 +188,30 @@ def test_change_password_serializer(data, is_valid, mocker):
     assert serializer.is_valid() == is_valid
 
 
+@pytest.mark.django_db
+def test_change_phone_with_existing_number(user):
+    data = {
+        "new_phone": user.phone,  # already used phone
+        "old_verification_token": VALID_TOKEN,
+        "new_verification_token": VALID_TOKEN,
+    }
+    serializer = ChangePhoneSerializer(data=data)
+
+    assert not serializer.is_valid()
+    assert serializer.errors["new_phone"]["error"] == "This phone number is already in use."
+
+
+def test_incorrect_old_password_raises_error(mocker):
+    data = {"old_password": "WrongOldPass", "new_password": "NewPass456!", "verification_token": VALID_TOKEN}
+    request_mock = mocker.Mock()
+    request_mock.user.check_password.return_value = False
+
+    serializer = ChangePasswordSerializer(data=data, context={"request": request_mock})
+    assert not serializer.is_valid()
+
+    assert serializer.errors["old_password"]["error"] == "Current password is incorrect."
+
+
 @pytest.mark.parametrize(
     "data, is_valid",
     [

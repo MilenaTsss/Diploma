@@ -96,6 +96,7 @@ class TestBarrierLimit:
 
     def test_str_method_with_limits(self, barrier):
         """Should correctly format string with some limits"""
+
         limits = BarrierLimit.objects.create(
             barrier=barrier,
             user_phone_limit=3,

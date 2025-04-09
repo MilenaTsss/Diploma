@@ -40,7 +40,7 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
             serializer.save()
             return success_response(UserSerializer(user).data)
 
-        return error_response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return error_response(serializer.errors, status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request, *args, **kwargs):
         """Deactivate account (verification required)"""
