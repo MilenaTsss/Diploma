@@ -3,10 +3,6 @@ name: Docker Compose CI/CD
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    types:
-      - opened
-      - synchronize
 
 jobs:
   build-and-run-docker-compose:
