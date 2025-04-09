@@ -31,6 +31,10 @@ class CreateBarrierView(generics.CreateAPIView):
         context["request"] = self.request
         return context
 
+    def perform_create(self, serializer):
+        barrier = serializer.save()
+        BarrierLimit.objects.create(barrier=barrier)
+
     def create(self, request, *args, **kwargs):
         """Use a different serializer for the response"""
 

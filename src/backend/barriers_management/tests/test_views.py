@@ -28,6 +28,10 @@ class TestCreateBarrierView:
         assert response.data["owner"] == admin_user.id
         assert "device_password" not in response.data
 
+        # Ensure BarrierLimit is created
+        barrier_id = response.data["id"]
+        assert BarrierLimit.objects.filter(barrier_id=barrier_id).exists()
+
 
 @pytest.mark.django_db
 class TestMyAdminBarrierView:
