@@ -70,11 +70,11 @@ class TestChangePhoneView:
         """Test changing phone number successfully"""
 
         data = {
-                "new_phone": OTHER_PHONE,
-                "old_verification_token": old_phone_verification.verification_token,
-                "new_verification_token": new_phone_verification.verification_token,
-            }
-        response = authenticated_client.patch(reverse("change_phone"),data)
+            "new_phone": OTHER_PHONE,
+            "old_verification_token": old_phone_verification.verification_token,
+            "new_verification_token": new_phone_verification.verification_token,
+        }
+        response = authenticated_client.patch(reverse("change_phone"), data)
 
         assert response.status_code == status.HTTP_200_OK
         user.refresh_from_db()
