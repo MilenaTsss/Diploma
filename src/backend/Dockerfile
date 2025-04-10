@@ -31,7 +31,7 @@ COPY . .
 EXPOSE 8000
 
 # Run Django’s server after applying migrations
-CMD ["sh", "-c", "echo 'Applying migrations...'; python manage.py migrate && python manage.py runserver 0.0.0.0:8000"]
+CMD ["sh", "-c", "echo 'Collecting static files...'; python manage.py collectstatic --noinput && echo 'Applying migrations...'; python manage.py migrate && echo 'Starting server...'; python manage.py runserver 0.0.0.0:8000"]
 
 # --- Stage 3: Production (Gunicorn + Nginx)  ---
 FROM base AS production

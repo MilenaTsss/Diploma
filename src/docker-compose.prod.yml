@@ -52,7 +52,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -109,18 +109,12 @@ services:
       grafana:
         condition: service_healthy
     volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx.prod.conf:/etc/nginx/nginx.conf
       - ./certs:/etc/nginx/certs:ro
       - ./backend/staticfiles:/backend_app/staticfiles
-      - ../swagger:/swagger_ui:ro
+      - ./swagger:/swagger_ui:ro
     healthcheck:
-      test: [
-        "CMD-SHELL",
-        "curl -fs http://localhost/ && \
-           curl -fs http://localhost/admin_panel/ && \
-           curl -fs http://localhost/api/health/ && \
-           curl -fs http://localhost/kafka_ui/ || exit 1"
-      ]
+      test: ["CMD", "service", "nginx", "status"]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -255,7 +249,7 @@ services:
       - ./monitoring/promtail/tmp:/tmp
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
-      test: ["CMD-SHELL", "bash -c 'printf \"GET / HTTP/1.1\n\n\" > /dev/tcp/127.0.0.1/9080; exit $?;'"]
+      test: [ "CMD-SHELL", "bash -c 'printf \"GET / HTTP/1.1\n\n\" > /dev/tcp/127.0.0.1/9080; exit $?;'" ]
       interval: 20s
       timeout: 30s
       retries: 5
