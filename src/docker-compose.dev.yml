@@ -95,7 +95,7 @@ services:
     volumes:
       - ./nginx.dev.conf:/etc/nginx/nginx.conf
       - ./backend/staticfiles:/backend_app/staticfiles
-      - ../swagger:/swagger_ui:ro
+      - ./swagger:/swagger_ui:ro
     healthcheck:
       test: ["CMD", "service", "nginx", "status"]
       interval: 20s
