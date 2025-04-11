@@ -187,7 +187,6 @@ class AdminBarrierUsersListView(BasePaginatedListView):
 
 @permission_classes([IsAdminUser])
 class AdminRemoveUserFromBarrierView(DestroyAPIView):
-
     def get_object(self):
         barrier_id = self.kwargs["barrier_id"]
         user_id = self.kwargs["user_id"]

@@ -7,16 +7,16 @@
   },
   "servers": [
     {
-      "url": "https://gsm-barrier.ru/api",
-      "description": "Production API"
+      "url": "http://localhost/api",
+      "description": "Local docker prod server"
     },
     {
       "url": "http://localhost:8000/api",
       "description": "Local development server"
     },
     {
-      "url": "http://localhost/api",
-      "description": "Local docker prod server"
+      "url": "https://gsm-barrier.ru/api",
+      "description": "Production API"
     }
   ],
   "externalDocs": {
@@ -2598,6 +2598,19 @@
               "example": 42
             },
             "description": "`ID` шлагбаума."
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "full_name",
+                "-full_name",
+                "phone",
+                "-phone"
+              ]
+            }
           },
           {
             "name": "page",
