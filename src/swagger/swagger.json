@@ -7,16 +7,16 @@
   },
   "servers": [
     {
-      "url": "https://gsm-barrier.ru/api",
-      "description": "Production API"
+      "url": "http://localhost/api",
+      "description": "Local docker prod server"
     },
     {
       "url": "http://localhost:8000/api",
       "description": "Local development server"
     },
     {
-      "url": "http://localhost/api",
-      "description": "Local docker prod server"
+      "url": "https://gsm-barrier.ru/api",
+      "description": "Production API"
     }
   ],
   "externalDocs": {
@@ -734,70 +734,6 @@
         }
       }
     },
-    "/admin/users/": {
-      "get": {
-        "tags": [
-          "Admin. Users."
-        ],
-        "summary": "Получение списка пользователей по `id` (только для администраторов).",
-        "description": "Позволяет администраторам получить информацию о нескольких пользователях по их `id`. \n\n**Фильтрация по `id` обязательна** – нельзя запросить всех пользователей сразу.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "integer"
-              },
-              "example": [
-                42,
-                1
-              ]
-            },
-            "description": "Фильтр по `id` пользователей. **Обязательный параметр**."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Список пользователей получен.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "users": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/User"
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
-          "401": {
-            "description": "Пользователь не авторизован."
-          },
-          "403": {
-            "description": "Доступ запрещен. Только для администраторов."
-          },
-          "500": {
-            "description": "Ошибка сервера. Попробуйте позже."
-          }
-        }
-      }
-    },
     "/admin/users/{user_id}/": {
       "get": {
         "tags": [
@@ -1359,7 +1295,7 @@
                     "description": "Адрес шлагбаума.",
                     "example": "Манежная площадь, 1, Москва"
                   },
-                  "device_phone_number": {
+                  "device_phone": {
                     "type": "string",
                     "description": "Номер телефона устройства управления шлагбаумом.",
                     "example": "+79991234567"
@@ -1367,12 +1303,13 @@
                   "device_model": {
                     "type": "string",
                     "enum": [
-                      "rtu5024",
-                      "rtu5025",
-                      "telemetrica"
+                      "RTU5025",
+                      "RTU5035",
+                      "Telemetrica",
+                      "Elfoc"
                     ],
                     "description": "Модель GSM модуля.",
-                    "example": "rtu5025"
+                    "example": "RTU5025"
                   },
                   "device_phones_amount": {
                     "type": "integer",
@@ -2020,7 +1957,7 @@
         }
       }
     },
-    "/access_requests/my": {
+    "/access_requests/my/": {
       "get": {
         "tags": [
           "Access Requests"
@@ -2335,7 +2272,7 @@
         }
       }
     },
-    "/admin/access_requests/my": {
+    "/admin/access_requests/my/": {
       "get": {
         "tags": [
           "Access Requests"
@@ -2663,6 +2600,19 @@
             "description": "`ID` шлагбаума."
           },
           {
+            "name": "ordering",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "full_name",
+                "-full_name",
+                "phone",
+                "-phone"
+              ]
+            }
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -2716,97 +2666,6 @@
           },
           "400": {
             "description": "Некорректный параметр запроса - `barrier_id`."
-          },
-          "401": {
-            "description": "Пользователь не авторизован."
-          },
-          "403": {
-            "description": "Доступ запрещен. Только для администраторов."
-          },
-          "404": {
-            "description": "Шлагбаум не найден."
-          },
-          "500": {
-            "description": "Ошибка сервера. Попробуйте позже."
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Barriers. Users."
-        ],
-        "summary": "Удаление списка пользователей из шлагбаума (только для администраторов).",
-        "description": "Позволяет администратору удалить несколько пользователей из группы доступа к шлагбауму.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "barrier_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "example": 42
-            },
-            "description": "`ID` шлагбаума."
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "user_ids": {
-                    "type": "array",
-                    "items": {
-                      "type": "integer"
-                    },
-                    "description": "Список `ID` пользователей для удаления.",
-                    "example": [
-                      42,
-                      27,
-                      1
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Пользователи успешно удалены из шлагбаума.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "removed_users": {
-                      "type": "array",
-                      "items": {
-                        "type": "integer"
-                      },
-                      "description": "Список `ID` удаленных пользователей."
-                    },
-                    "not_found": {
-                      "type": "array",
-                      "items": {
-                        "type": "integer"
-                      },
-                      "description": "Список `ID` пользователей, которых не удалось найти."
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Некорректные параметры запроса."
           },
           "401": {
             "description": "Пользователь не авторизован."
@@ -3540,11 +3399,12 @@
           "device_model": {
             "type": "string",
             "enum": [
-              "RTU5024",
               "RTU5025",
-              "Telemetrica"
+              "RTU5035",
+              "Telemetrica",
+              "Elfoc"
             ],
-            "example": "RTU5024"
+            "example": "RTU5025"
           },
           "device_phones_amount": {
             "type": "integer",

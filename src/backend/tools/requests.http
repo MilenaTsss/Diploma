@@ -1,8 +1,8 @@
 @host = http://127.0.0.1:8000/api
 @admin_id =
-@admin_token =
+@admin_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ2OTExMzMyLCJpYXQiOjE3NDQzMTkzMzIsImp0aSI6IjU3OTZiNzhlYjJmMzQyN2I4YTU0ZjY3MmMzMmQxOTUyIiwidXNlcl9pZCI6MX0.n3fCYMUMZApL-O-f60vZeCuqxmy0E-CWTD_3mZobACg
 @user_id =
-@user_token =
+@user_token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzQ2OTExMjE1LCJpYXQiOjE3NDQzMTkyMTUsImp0aSI6IjlhNDNiOGYyMTkxNjQ1MzJiZDQ0MDBmZmQ4NWM3N2MyIiwidXNlcl9pZCI6Mn0.wmCBWBBEQ1XA9VK6_3rKZm_ergkM-HjORckWVvToa28
 @user_refresh_token =
 @admin_refresh_token =
 
@@ -353,7 +353,7 @@ GET {{host}}/barriers/16/limits/
 Authorization: Bearer {{user_token}}
 
 ### Get limits - ADMIN
-GET {{host}}/barriers/16/limits/
+GET {{host}}/barriers/1/limits/
 Authorization: Bearer {{admin_token}}
 
 ### Set limits - USER - access denied
@@ -384,3 +384,15 @@ Content-Type: application/json
   "user_temp_phone_limit": 100,
   "global_temp_phone_limit": null
 }
+
+### Leave barrier - USER
+DELETE {{host}}/barriers/1/leave/
+Authorization: Bearer {{user_token}}
+
+### GET barrier users - ADMIN
+GET {{host}}/admin/barriers/1/users/
+Authorization: Bearer {{admin_token}}
+
+### Delete user from barrier - ADMIN
+DELETE {{host}}/admin/barriers/1/users/1/
+Authorization: Bearer {{admin_token}}

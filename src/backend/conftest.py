@@ -48,6 +48,11 @@ def user():
 
 
 @pytest.fixture
+def another_user():
+    return User.objects.create_admin(phone=OTHER_PHONE, full_name=USER_NAME)
+
+
+@pytest.fixture
 def admin_user():
     return User.objects.create_admin(phone=ADMIN_PHONE, password=ADMIN_PASSWORD)
 
@@ -139,15 +144,30 @@ def private_barrier(admin_user):
 
 
 @pytest.fixture
-def access_request(user, barrier):
+def create_access_request():
+    """Factory fixture to create an access request entry"""
+
+    def _create_access_request(
+        user,
+        barrier,
+        request_type=AccessRequest.RequestType.FROM_USER,
+        status=AccessRequest.Status.PENDING,
+    ):
+        return AccessRequest.objects.create(
+            user=user,
+            barrier=barrier,
+            request_type=request_type,
+            status=status,
+        )
+
+    return _create_access_request
+
+
+@pytest.fixture
+def access_request(user, barrier, create_access_request):
     """Access request from user to barrier which was accepted"""
 
-    return AccessRequest.objects.create(
-        user=user,
-        barrier=barrier,
-        request_type=AccessRequest.RequestType.FROM_USER,
-        status=AccessRequest.Status.ACCEPTED,
-    )
+    return create_access_request(user, barrier, status=AccessRequest.Status.ACCEPTED)
 
 
 @pytest.fixture
