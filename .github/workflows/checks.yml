@@ -1,3 +1,4 @@
+
 name: Checks
 
 on:
@@ -30,7 +31,7 @@ jobs:
         working-directory: ./src/backend
         run: ruff check . --output-format=github
 
-  tests:
+  backend-tests:
     name: Pytest
     runs-on: ubuntu-latest
 
@@ -61,6 +62,7 @@ jobs:
         run: |
           python manage.py makemigrations --check --dry-run
 
+
   apply-migrations:
     name: Check Django migrate (SQLite)
     runs-on: ubuntu-latest
@@ -75,3 +77,33 @@ jobs:
       - name: Apply migrations using SQLite
         working-directory: ./src/backend
         run: python manage.py migrate --noinput
+
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Run frontend tests
+        working-directory: ./src/frontend
+        run: npm test -- --ci --watchAll=false
+
+  frontend-format:
+    name: Frontend Code Format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Check Prettier formatting
+        working-directory: ./src/frontend
+        run: npx prettier --check .
