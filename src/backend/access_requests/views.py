@@ -162,6 +162,15 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
 
         if self.as_admin and access_request.barrier.owner != user or not self.as_admin and access_request.user != user:
             raise PermissionDenied("You don't have access to this access request.")
+
+        if access_request.status == AccessRequest.Status.CANCELLED and (
+            self.as_admin
+            and access_request.request_type == AccessRequest.RequestType.FROM_USER
+            or not self.as_admin
+            and access_request.request_type == AccessRequest.RequestType.FROM_BARRIER
+        ):
+            raise PermissionDenied("You don't have access to this access request.")
+
         return access_request
 
     def patch(self, request, *args, **kwargs):
