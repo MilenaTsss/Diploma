@@ -21,7 +21,7 @@ jobs:
           script: |
             set -e
             
-            cd /home/${{ secrets.SSH_USER }}
+            cd ${{ secrets.DEPLOY_DIRECTORY }}
             
             if [ -d Diploma/.git ]; then
               echo "Repo already exists. Pulling latest changes..."
