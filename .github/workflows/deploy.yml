@@ -3,6 +3,10 @@ name: Docker Compose CI/CD
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    types:
+      - opened
+      - synchronize
 
 jobs:
   build-and-run-docker-compose:
@@ -21,7 +25,7 @@ jobs:
           script: |
             set -e
             
-            cd /home/${{ secrets.SSH_USER }}
+            cd ${{ secrets.DEPLOY_DIRECTORY }}
             
             if [ -d Diploma/.git ]; then
               echo "Repo already exists. Pulling latest changes..."
