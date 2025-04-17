@@ -7,18 +7,18 @@ import UserBarriers from "./pages/UserBarriers";
 import Barrier from "./pages/Barrier";
 
 const App: React.FC = () => {
-    return (
-        <Router>
-            <Routes>
-                <Route path="/login" element={<LoginUserPage />} />
-                <Route path="/verifyuser" element={<VerificationPage />} />
-                <Route path="/user" element={<UserProfile />} />
-                <Route path="/requests" element={<UserRequests />} />
-                <Route path="/barriers" element={<UserBarriers />} />
-                <Route path="/barrier-details" element={<Barrier />} />
-            </Routes>
-        </Router>
-    );
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<LoginUserPage />} />
+        <Route path="/verifyuser" element={<VerificationPage />} />
+        <Route path="/user" element={<UserProfile />} />
+        <Route path="/requests" element={<UserRequests />} />
+        <Route path="/barriers" element={<UserBarriers />} />
+        <Route path="/barrier-details" element={<Barrier />} />
+      </Routes>
+    </Router>
+  );
 };
 
 export default App;
