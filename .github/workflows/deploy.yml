@@ -21,12 +21,13 @@ jobs:
           script: |
             set -e
             
-            cd /home/${{ secrets.SSH_USER }}
+            cd ${{ secrets.DEPLOY_DIRECTORY }}
             
             if [ -d Diploma/.git ]; then
               echo "Repo already exists. Pulling latest changes..."
               cd Diploma/
-              git pull origin main
+              git fetch origin
+              git reset --hard origin/main
             else
               echo "Cloning fresh repo..."
               git clone git@github.com:${{ github.repository }}.git Diploma

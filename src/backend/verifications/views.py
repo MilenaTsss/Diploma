@@ -1,3 +1,5 @@
+import logging
+
 from django.utils.timezone import now
 from rest_framework import status
 from rest_framework.decorators import authentication_classes, permission_classes
@@ -10,6 +12,8 @@ from verifications.constants import VERIFICATION_CODE_RESEND_DELAY
 from verifications.models import Verification, VerificationService
 from verifications.serializers import SendVerificationCodeSerializer, VerifyCodeSerializer
 from verifications.utils import apply_checks
+
+logger = logging.getLogger(__name__)
 
 
 @authentication_classes([])
@@ -78,7 +82,7 @@ class VerifyCodeView(APIView):
         if it := apply_checks(
             lambda: User.objects.check_phone_blocked(phone),
             lambda: VerificationService.check_fail_limits(phone),
-            lambda: VerificationService.validate_verification_is_usable(verification_token, phone),
+            lambda: VerificationService.validate_verification_is_usable(phone, verification_token),
         ):
             return it
 

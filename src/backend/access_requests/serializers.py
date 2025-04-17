@@ -43,26 +43,26 @@ class CreateAccessRequestSerializer(serializers.ModelSerializer):
         barrier = attrs["barrier"]
 
         if not barrier.is_active:
-            raise serializers.ValidationError("Cannot create access request for an inactive barrier.")
+            raise serializers.ValidationError({"error": "Cannot create access request for an inactive barrier."})
 
         if request_type == AccessRequest.RequestType.FROM_USER:
             if user != current_user:
-                raise serializers.ValidationError("Users can only create requests for themselves.")
+                raise serializers.ValidationError({"error": "Users can only create requests for themselves."})
             if not barrier.is_public:
-                raise serializers.ValidationError("Cannot request access to a private barrier.")
+                raise serializers.ValidationError({"error": "Cannot request access to a private barrier."})
         else:
             if barrier.owner != current_user:
-                raise serializers.ValidationError("You are not the owner of this barrier.")
+                raise serializers.ValidationError({"error": "You are not the owner of this barrier."})
             if not user.is_active:
-                raise serializers.ValidationError("Cannot create access request for an inactive user.")
+                raise serializers.ValidationError({"error": "Cannot create access request for an inactive user."})
 
         # Check for existing pending request
         if AccessRequest.objects.filter(user=user, barrier=barrier, status=AccessRequest.Status.PENDING).exists():
-            raise serializers.ValidationError("An active request already exists for this user and barrier.")
+            raise serializers.ValidationError({"error": "An active request already exists for this user and barrier."})
 
         # Check if user already has access
         if UserBarrier.objects.filter(user=user, barrier=barrier, is_active=True).exists():
-            raise serializers.ValidationError("This user already has access to the barrier.")
+            raise serializers.ValidationError({"error": "This user already has access to the barrier."})
 
         return attrs
 
@@ -84,25 +84,23 @@ class UpdateAccessRequestSerializer(serializers.ModelSerializer):
 
         allowed_transitions = AccessRequest.ALLOWED_STATUS_TRANSITIONS.get(current_status, set())
         if new_status != current_status and new_status not in allowed_transitions:
-            raise serializers.ValidationError(
-                {"status": f"Invalid status transition: {current_status} -> {new_status}"}
-            )
+            raise serializers.ValidationError({"error": f"Invalid status transition: {current_status} -> {new_status}"})
 
         if new_status == AccessRequest.Status.CANCELLED:
             if (not as_admin and request_type == AccessRequest.RequestType.FROM_BARRIER) or (
                 as_admin and request_type == AccessRequest.RequestType.FROM_USER
             ):
-                raise serializers.ValidationError({"status": "You can only cancel your own requests."})
+                raise serializers.ValidationError({"error": "You can only cancel your own requests."})
 
         if new_status in {AccessRequest.Status.ACCEPTED, AccessRequest.Status.REJECTED}:
             if (not as_admin and request_type == AccessRequest.RequestType.FROM_USER) or (
                 as_admin and request_type == AccessRequest.RequestType.FROM_BARRIER
             ):
-                raise serializers.ValidationError({"status": "You are not allowed to accept or reject this request."})
+                raise serializers.ValidationError({"error": "You are not allowed to accept or reject this request."})
 
         if "hidden_for_admin" in attrs and not as_admin:
-            raise serializers.ValidationError({"hidden_for_admin": "Only admins can modify this field."})
+            raise serializers.ValidationError({"error": "Only admins can modify field 'hidden_for_admin'."})
         if "hidden_for_user" in attrs and as_admin:
-            raise serializers.ValidationError({"hidden_for_user": "Only users can modify this field."})
+            raise serializers.ValidationError({"error": "Only users can modify field 'hidden_for_user'."})
 
         return attrs

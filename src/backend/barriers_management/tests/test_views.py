@@ -2,8 +2,9 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
-from barriers.models import Barrier, BarrierLimit
-from conftest import BARRIER_ADDRESS, BARRIER_DEVICE_PASSWORD, BARRIER_DEVICE_PHONE
+from barriers.models import Barrier, BarrierLimit, UserBarrier
+from conftest import BARRIER_ADDRESS, BARRIER_DEVICE_PASSWORD, BARRIER_DEVICE_PHONE, OTHER_PHONE, USER_PHONE
+from users.models import User
 
 
 @pytest.mark.django_db
@@ -27,6 +28,10 @@ class TestCreateBarrierView:
         assert response.data["device_phone"] == BARRIER_DEVICE_PHONE
         assert response.data["owner"] == admin_user.id
         assert "device_password" not in response.data
+
+        # Ensure BarrierLimit is created
+        barrier_id = response.data["id"]
+        assert BarrierLimit.objects.filter(barrier_id=barrier_id).exists()
 
 
 @pytest.mark.django_db
@@ -117,7 +122,6 @@ class TestAdminBarrierView:
 
         response = authenticated_admin_client.patch(url, data)
 
-        print(response.data)
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert "Enter a valid device password. Must be exactly 4 digits." in response.data["non_field_errors"]
 
@@ -142,7 +146,7 @@ class TestAdminBarrierView:
 @pytest.mark.django_db
 class TestBarrierLimitUpdateView:
     def test_update_limit_successfully(self, authenticated_admin_client, admin_user, barrier):
-        url = reverse("update_barrier_limit", kwargs={"id": barrier.id})
+        url = reverse("update_barrier_limit", args=[barrier.id])
         data = {"sms_weekly_limit": 5}
 
         response = authenticated_admin_client.patch(url, data)
@@ -152,7 +156,7 @@ class TestBarrierLimitUpdateView:
         assert barrier.limits.sms_weekly_limit == 5
 
     def test_update_limit_creates_if_missing(self, authenticated_admin_client, admin_user, barrier):
-        url = reverse("update_barrier_limit", kwargs={"id": barrier.id})
+        url = reverse("update_barrier_limit", args=[barrier.id])
         data = {"user_phone_limit": 2}
 
         response = authenticated_admin_client.patch(url, data)
@@ -163,7 +167,7 @@ class TestBarrierLimitUpdateView:
 
     def test_update_limit_forbidden_for_non_owner(self, api_client, another_admin, barrier):
         api_client.force_authenticate(user=another_admin)
-        url = reverse("update_barrier_limit", kwargs={"id": barrier.id})
+        url = reverse("update_barrier_limit", args=[barrier.id])
         data = {"user_temp_phone_limit": 3}
 
         response = api_client.patch(url, data)
@@ -172,7 +176,7 @@ class TestBarrierLimitUpdateView:
         assert response.data["detail"] == "You are not the owner of this barrier."
 
     def test_update_limit_invalid_negative_value(self, authenticated_admin_client, admin_user, barrier):
-        url = reverse("update_barrier_limit", kwargs={"id": barrier.id})
+        url = reverse("update_barrier_limit", args=[barrier.id])
         data = {"global_temp_phone_limit": -1}
 
         response = authenticated_admin_client.patch(url, data)
@@ -181,9 +185,128 @@ class TestBarrierLimitUpdateView:
         assert "global_temp_phone_limit" in response.data
 
     def test_put_method_not_allowed(self, authenticated_admin_client, admin_user, barrier):
-        url = reverse("update_barrier_limit", kwargs={"id": barrier.id})
+        url = reverse("update_barrier_limit", args=[barrier.id])
         data = {"sms_weekly_limit": 7}
 
         response = authenticated_admin_client.put(url, data)
 
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+
+@pytest.mark.django_db
+class TestAdminBarrierUsersListView:
+    def test_admin_can_list_users_in_barrier(self, authenticated_admin_client, barrier, user):
+        UserBarrier.objects.create(user=user, barrier=barrier, is_active=True)
+        response = authenticated_admin_client.get(reverse("barrier_users_list", args=[barrier.id]))
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["total_count"] == 1
+        assert response.data["users"][0]["id"] == user.id
+
+    def test_users_are_sorted_by_full_name(self, authenticated_admin_client, barrier):
+        user1 = User.objects.create(full_name="Z User", phone=USER_PHONE)
+        user2 = User.objects.create(full_name="A User", phone=OTHER_PHONE)
+        UserBarrier.objects.create(user=user1, barrier=barrier)
+        UserBarrier.objects.create(user=user2, barrier=barrier)
+
+        url = reverse("barrier_users_list", args=[barrier.id])
+        response = authenticated_admin_client.get(f"{url}?ordering=full_name")
+
+        assert response.status_code == status.HTTP_200_OK
+        names = [user["full_name"] for user in response.data["users"]]
+        assert names == sorted(names)
+
+    def test_users_are_sorted_by_desc_phone(self, authenticated_admin_client, admin_user, barrier, django_user_model):
+        user1 = django_user_model.objects.create(full_name="User A", phone="+79991230001")
+        user2 = django_user_model.objects.create(full_name="User B", phone="+79991230002")
+        UserBarrier.objects.create(user=user1, barrier=barrier)
+        UserBarrier.objects.create(user=user2, barrier=barrier)
+
+        url = reverse("barrier_users_list", args=[barrier.id])
+        response = authenticated_admin_client.get(f"{url}?ordering=-phone")
+
+        assert response.status_code == status.HTTP_200_OK
+        phones = [user["phone"] for user in response.data["users"]]
+        assert phones == sorted(phones, reverse=True)
+
+    def test_only_owner_can_list_users(self, authenticated_admin_client, another_admin, barrier):
+        barrier.owner = another_admin
+        barrier.save()
+        url = reverse("barrier_users_list", args=[barrier.id])
+        response = authenticated_admin_client.get(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You are not the owner of this barrier."
+
+    def test_inactive_users_not_listed(self, authenticated_admin_client, private_barrier_with_access, user):
+        user.is_active = False
+        user.save()
+        url = reverse("barrier_users_list", args=[private_barrier_with_access.id])
+        response = authenticated_admin_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["total_count"] == 0
+
+    def test_user_with_inactive_barrier_access_not_listed(self, authenticated_admin_client, barrier, user):
+        UserBarrier.objects.create(user=user, barrier=barrier, is_active=False)
+        url = reverse("barrier_users_list", args=[barrier.id])
+        response = authenticated_admin_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["total_count"] == 0
+
+    def test_users_not_listed_if_barrier_inactive(self, authenticated_admin_client, barrier, user):
+        barrier.is_active = False
+        barrier.save()
+        UserBarrier.objects.create(user=user, barrier=barrier, is_active=True)
+        url = reverse("barrier_users_list", args=[barrier.id])
+        response = authenticated_admin_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Not found."
+
+
+@pytest.mark.django_db
+class TestAdminRemoveUserFromBarrierView:
+    def test_admin_can_remove_user_from_barrier(self, authenticated_admin_client, barrier, user):
+        user_barrier = UserBarrier.objects.create(user=user, barrier=barrier, is_active=True)
+        url = reverse("barrier_remove_user", kwargs={"barrier_id": barrier.id, "user_id": user.id})
+        response = authenticated_admin_client.delete(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        user_barrier.refresh_from_db()
+        assert not user_barrier.is_active
+
+    def test_user_inactive_returns_404(self, authenticated_admin_client, admin_user, barrier, user):
+        user.is_active = False
+        user.save()
+        url = reverse("barrier_remove_user", kwargs={"barrier_id": barrier.id, "user_id": user.id})
+        response = authenticated_admin_client.delete(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Not found."
+
+    def test_barrier_not_found_returns_404(self, authenticated_admin_client, admin_user, user):
+        url = reverse("barrier_remove_user", kwargs={"barrier_id": 99999, "user_id": user.id})
+        response = authenticated_admin_client.delete(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Not found."
+
+    def test_admin_cannot_remove_user_from_foreign_barrier(
+        self, authenticated_admin_client, another_admin, user, barrier
+    ):
+        barrier.owner = another_admin
+        barrier.save()
+        url = reverse("barrier_remove_user", kwargs={"barrier_id": barrier.id, "user_id": user.id})
+        response = authenticated_admin_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You are not the owner of this barrier."
+
+    def test_remove_user_not_found(self, authenticated_admin_client, admin_user, barrier, user):
+        url = reverse("barrier_remove_user", kwargs={"barrier_id": barrier.id, "user_id": user.id})
+        response = authenticated_admin_client.delete(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "User not found in this barrier."
