@@ -97,7 +97,7 @@ class BaseAccessRequestListView(BasePaginatedListView):
             queryset = queryset.filter(status=status_value)
 
         # Filter by barrier
-        barrier_id = request.query_params.get("barrier_id")
+        barrier_id = request.query_params.get("barrier")
         if barrier_id and barrier_id.isdigit():
             queryset = queryset.filter(barrier_id=int(barrier_id))
 

@@ -5,14 +5,9 @@ from django.utils.timezone import now
 from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 
-from core.constants import (
-    CHOICE_MAX_LENGTH,
-    PHONE_MAX_LENGTH,
-)
+from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH, STRING_MAX_LENGTH
 from core.utils import error_response
 from core.validators import PhoneNumberValidator
-
-MAX_LENGTH = 255
 
 
 class UserManager(BaseUserManager):
@@ -112,8 +107,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         validators=[PhoneNumberValidator()],
         error_messages={"unique": _("A user with this phone number already exists.")},
     )
-    full_name = models.CharField(max_length=MAX_LENGTH, blank=True, default="")
-    password = models.CharField(max_length=MAX_LENGTH, blank=True, default="")
+    full_name = models.CharField(max_length=STRING_MAX_LENGTH, blank=True, default="")
+    password = models.CharField(max_length=STRING_MAX_LENGTH, blank=True, default="")
 
     role = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Role.choices, default=Role.USER)
 
@@ -134,7 +129,7 @@ class User(AbstractBaseUser, PermissionsMixin):
             "Designates whether this user should be treated as active. " "Unselect this instead of deleting accounts."
         ),
     )
-    block_reason = models.CharField(max_length=MAX_LENGTH, blank=True, default="")
+    block_reason = models.CharField(max_length=STRING_MAX_LENGTH, blank=True, default="")
     date_joined = models.DateTimeField(default=now)
     last_login = models.DateTimeField(blank=True, null=True)
 
