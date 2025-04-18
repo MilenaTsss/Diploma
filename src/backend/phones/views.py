@@ -7,7 +7,7 @@ from rest_framework.permissions import IsAdminUser
 from barriers.models import Barrier, UserBarrier
 from core.pagination import BasePaginatedListView
 from core.utils import created_response
-from phones.models import BarrierPhone, TimeInterval
+from phones.models import BarrierPhone
 from phones.serializers import BarrierPhoneSerializer, CreateBarrierPhoneSerializer
 
 
