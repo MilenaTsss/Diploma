@@ -6,9 +6,11 @@ const VerificationPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [phone, setPhone] = useState(() => location.state?.phone || '+79888363930');
+  const [verificationToken, setVerificationToken] = useState(() => location.state?.verification_token || '');
   const [code, setCode] = useState('');
-  const [timer, setTimer] = useState(30);
+  const [timer, setTimer] = useState(60);
   const [isResendDisabled, setIsResendDisabled] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     if (timer > 0) {
@@ -21,16 +23,102 @@ const VerificationPage: React.FC = () => {
     }
   }, [timer]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Код подтверждения:', code);
-    navigate('/user');
+    setErrorMessage('');
+
+    const codeRegex = /^\d{6}$/;
+    if (!codeRegex.test(code)) {
+      setErrorMessage('Код должен содержать 6 цифр.');
+      return;
+    }
+
+    try {
+      const verifyResponse = await fetch('/api/auth/codes/verify/', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          phone,
+          code,
+          verification_token: verificationToken,
+        }),
+      });
+
+      const verifyJson = await verifyResponse.json();
+
+
+      if (verifyJson === 'Code verified successfully.') {
+        const loginResponse = await fetch('/api/auth/login/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+          body: JSON.stringify({
+            phone,
+            verification_token: verificationToken,
+          }),
+        });
+
+        const loginData = await loginResponse.json();
+
+        if (loginResponse.ok && loginData.access_token && loginData.refresh_token) {
+          localStorage.setItem("access_token", loginData.access_token);
+          localStorage.setItem("refresh_token", loginData.refresh_token);
+          localStorage.setItem("phone", phone);
+
+          navigate('/user', {
+            state: {
+              phone,
+              access_token: loginData.access_token,
+              refresh_token: loginData.refresh_token,
+            },
+          });
+        } else {
+          setErrorMessage(loginData.detail || 'Ошибка при входе');
+        }
+      } else {
+        setErrorMessage(verifyJson.detail || 'Ошибка верификации');
+      }
+    } catch (error) {
+      console.error('Ошибка сети:', error);
+      setErrorMessage('Не удалось связаться с сервером');
+    }
   };
 
-  const handleResendCode = () => {
-    setTimer(30);
+  const handleResendCode = async () => {
+    setTimer(60);
     setIsResendDisabled(true);
+    setErrorMessage('');
     console.log('Повторная отправка кода для:', phone);
+
+    try {
+      const response = await fetch('/api/auth/codes/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          phone,
+          mode: 'login'
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.verification_token) {
+        setVerificationToken(data.verification_token);
+      } else {
+        setErrorMessage(data.detail || 'Ошибка при повторной отправке');
+      }
+    } catch (error) {
+      console.error('Ошибка при повторной отправке:', error);
+      setErrorMessage('Не удалось повторно связаться с сервером');
+    }
   };
 
   return (
@@ -57,6 +145,7 @@ const VerificationPage: React.FC = () => {
               style={styles.input}
               required
           />
+          {errorMessage && <p style={styles.errorText}>{errorMessage}</p>}
           <p style={styles.helperText}>На телефон выслан код подтверждения</p>
           <button type="submit" style={styles.confirmButton}>
             Подтвердить
@@ -151,6 +240,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '12px',
     color: '#666',
     marginTop: '5px',
+  },
+  errorText: {
+    color: 'red',
+    fontSize: '13px',
+    marginBottom: '10px',
   },
   confirmButton: {
     backgroundColor: '#5a4478',

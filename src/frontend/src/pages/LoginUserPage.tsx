@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import {useState} from "react";
+import {useNavigate} from "react-router-dom";
 
 const LoginUserPage: React.FC = () => {
     const [phone, setPhone] = useState("+7");
@@ -24,28 +24,35 @@ const LoginUserPage: React.FC = () => {
 
             const data = await response.json();
 
-            const codeResult = await sendLoginCode(phone);
-
-            if (codeResult) {
-                setVerificationToken(codeResult.verification_token);
-                setCode(codeResult.code);
-                console.log("Код и токен получены:", codeResult.code, codeResult.verification_token);
-            }
-
             if (data.is_admin) {
-                navigate("/verifyadmin");
-            } else {
-                navigate("/verifyuser", {
+                // Переход к verifyadmin без вызова /api/auth/codes/
+                navigate("/verifyadmin", {
                     state: {
                         phone,
-                        verification_token: data.verification_token,
                     },
                 });
+            } else {
+                // Только для обычных пользователей отправляется код
+                const codeResult = await sendLoginCode(phone);
+
+                if (codeResult) {
+                    setVerificationToken(codeResult.verification_token);
+                    setCode(codeResult.code);
+                    console.log("Код и токен получены:", codeResult.code, codeResult.verification_token);
+
+                    navigate("/verifyuser", {
+                        state: {
+                            phone,
+                            verification_token: codeResult.verification_token,
+                        },
+                    });
+                }
             }
         } catch (error) {
             console.error("Ошибка при проверке администратора или отправке кода:", error);
         }
     };
+
 
     const sendLoginCode = async (phone: string): Promise<{ verification_token: string, code: string } | null> => {
         try {
@@ -67,6 +74,7 @@ const LoginUserPage: React.FC = () => {
             }
 
             const data = await response.json();
+            localStorage.setItem("verification_token", data.verification_token);
 
             return {
                 verification_token: data.verification_token,
@@ -180,7 +188,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         width: "100%",
     },
 };
-
 
 
 export default LoginUserPage;
