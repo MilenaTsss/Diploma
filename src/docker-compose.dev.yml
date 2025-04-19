@@ -26,9 +26,10 @@ services:
       - ./backend/logs:/backend_app/logs
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1" ]
-      interval: 5s
-      timeout: 2s
+      interval: 20s
+      timeout: 30s
       retries: 5
+      start_period: 10s
 
   db:
     image: postgres:15.12
@@ -49,9 +50,10 @@ services:
       - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:
       test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
-      interval: 5s
-      timeout: 2s
+      interval: 20s
+      timeout: 30s
       retries: 5
+      start_period: 10s
 
   frontend:
     build:
@@ -74,9 +76,10 @@ services:
       - /frontend_app/node_modules
     healthcheck:
       test: [ "CMD-SHELL", "curl -f http://localhost:5173/ || exit 1" ]
-      interval: 5s
-      timeout: 2s
+      interval: 20s
+      timeout: 30s
       retries: 5
+      start_period: 10s
 
   nginx:
     image: nginx:1.27.4
@@ -129,9 +132,10 @@ services:
       - kafka_data_dev:/bitnami/kafka
     healthcheck:
       test: [ "CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list" ]
-      interval: 5s
-      timeout: 2s
+      interval: 20s
+      timeout: 30s
       retries: 5
+      start_period: 10s
 
   kafka-init:
     image: bitnami/kafka:3.9.0
@@ -166,9 +170,10 @@ services:
         condition: service_healthy
     healthcheck:
       test: [ "CMD-SHELL", "wget --spider -q http://localhost:8080/kafka_ui/ || exit 1" ]
-      interval: 5s
-      timeout: 2s
+      interval: 20s
+      timeout: 30s
       retries: 5
+      start_period: 10s
 
 volumes:
   postgres_data_dev:
