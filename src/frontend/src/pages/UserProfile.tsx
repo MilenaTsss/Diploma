@@ -1,78 +1,163 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const UserProfile: React.FC = () => {
   const navigate = useNavigate();
-  const [name, setName] = useState("Иванов Иван");
-  const [phone, setPhone] = useState("+79888363930");
+  const location = useLocation();
+
+  const [name, setName] = useState("Загрузка...");
+  const [phone, setPhone] = useState(() => location.state?.phone || "");
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
 
-  const handleSave = () => {
-    setRequestSent(true);
-    setTimeout(() => setRequestSent(false), 3000);
+  const [accessToken, setAccessToken] = useState(
+      () => location.state?.access_token || localStorage.getItem("access_token")
+  );
+  const [refreshToken, setRefreshToken] = useState(
+      () => location.state?.refresh_token || localStorage.getItem("refresh_token")
+  );
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const meResponse = await fetch("/api/users/me/", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            Accept: "application/json",
+          },
+        });
+
+        if (meResponse.ok) {
+          const userData = await meResponse.json();
+          setName(userData.full_name || "Без имени");
+          setPhone(userData.phone || "-");
+        } else {
+          const refreshResponse = await fetch("/auth/token/refresh/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ refresh: refreshToken }),
+          });
+
+          const refreshData = await refreshResponse.json();
+
+          if (refreshResponse.ok && refreshData.access) {
+            const newAccessToken = refreshData.access;
+            setAccessToken(newAccessToken);
+            localStorage.setItem("access_token", newAccessToken);
+
+            const retryResponse = await fetch("/api/users/me/", {
+              headers: {
+                Authorization: `Bearer ${newAccessToken}`,
+                Accept: "application/json",
+              },
+            });
+
+            if (retryResponse.ok) {
+              const userData = await retryResponse.json();
+              setName(userData.full_name || "Без имени");
+              setPhone(userData.phone || "-");
+            } else {
+              throw new Error("Не удалось загрузить профиль");
+            }
+          } else {
+            navigate("/login");
+          }
+        }
+      } catch (err) {
+        console.error("Ошибка при получении профиля:", err);
+        navigate("/login");
+      }
+    };
+
+    fetchUserProfile();
+  }, [accessToken, refreshToken, navigate]);
+
+  const handleSave = async () => {
+    try {
+      const patchResponse = await fetch("/api/users/me/", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          full_name: name,
+          phone_privacy: "public",
+        }),
+      });
+
+      if (patchResponse.ok) {
+        const updatedData = await patchResponse.json();
+        setName(updatedData.full_name || "Без имени");
+        setRequestSent(true);
+        setTimeout(() => {
+          setRequestSent(false);
+          setIsEditingName(false);
+        }, 2000);
+      } else {
+        console.error("Ошибка обновления профиля");
+      }
+    } catch (error) {
+      console.error("Ошибка сети при сохранении:", error);
+    }
+  };
+
+  const navigateWithState = (path: string) => {
+    navigate(path, {
+      state: {
+        phone,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      },
+    });
   };
 
   return (
-    <div style={styles.container}>
-      <h2 style={styles.title}>User Профиль</h2>
-      <div style={styles.card}>
-        {isEditingName ? (
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            style={styles.input}
-          />
-        ) : (
-          <p style={styles.text}>{name}</p>
-        )}
-        <button
-          style={styles.button}
-          onClick={() => {
-            isEditingName ? handleSave() : setIsEditingName(true);
-          }}
-        >
-          {isEditingName ? "Запрос отправлен" : "Изменить имя в профиле"}
-        </button>
+      <div style={styles.container}>
+        <h2 style={styles.title}>Профиль</h2>
+
+        <div style={styles.card}>
+          {isEditingName ? (
+              <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  style={styles.input}
+              />
+          ) : (
+              <p style={styles.text}>{name || "—"}</p>
+          )}
+          <button
+              style={styles.button}
+              onClick={() => {
+                isEditingName ? handleSave() : setIsEditingName(true);
+              }}
+          >
+            {isEditingName ? (requestSent ? "Сохранено" : "Сохранить") : "Изменить имя в профиле"}
+          </button>
+        </div>
+
+        <div style={styles.card}>
+          <p style={styles.text}>{phone || "—"}</p>
+          <button
+              style={styles.button}
+              onClick={() => navigateWithState("/change-phone")}
+          >
+            Изменить номер телефона
+          </button>
+        </div>
+
+        <div style={styles.navbar}>
+          <button style={styles.navButton} onClick={() => navigateWithState("/barriers")}>
+            Шлагбаумы
+          </button>
+          <button style={styles.navButton} onClick={() => navigateWithState("/requests")}>
+            Запросы
+          </button>
+          <button style={{ ...styles.navButton, ...styles.navButtonActive }}>Профиль</button>
+        </div>
       </div>
-      <div style={styles.card}>
-        {isEditingPhone ? (
-          <input
-            type="text"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            style={styles.input}
-          />
-        ) : (
-          <p style={styles.text}>{phone}</p>
-        )}
-        <button
-          style={styles.button}
-          onClick={() => {
-            isEditingPhone ? handleSave() : setIsEditingPhone(true);
-          }}
-        >
-          {isEditingPhone ? "Запрос отправлен" : "Изменить номер телефона"}
-        </button>
-      </div>
-      <div style={styles.navbar}>
-        <button style={styles.navButton} onClick={() => navigate("/barriers")}>
-          Шлагбаумы
-        </button>
-        <button style={styles.navButton} onClick={() => navigate("/requests")}>
-          Запросы
-        </button>
-        <button
-          style={styles.navButton}
-          onClick={() => navigate("/profile")}
-          disabled
-        >
-          Профиль
-        </button>
-      </div>
-    </div>
   );
 };
 
@@ -85,6 +170,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     height: "100vh",
     width: "100vw",
     backgroundColor: "#fef7fb",
+    color: "#333333",
     padding: "20px",
   },
   title: {
@@ -97,7 +183,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: "#ffffff",
     padding: "15px",
     borderRadius: "10px",
-    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
+    boxShadow: "0 4px 10px rgba(90, 68, 120, 0.2)",
     textAlign: "center",
     width: "90%",
     maxWidth: "400px",
@@ -115,10 +201,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: "1px solid #ccc",
     outline: "none",
     marginBottom: "10px",
+    backgroundColor: "#ffffff",
+    color: "#333333",
   },
   button: {
     backgroundColor: "#5a4478",
-    color: "#fff",
+    color: "#ffffff",
     border: "none",
     padding: "10px 15px",
     borderRadius: "20px",
@@ -141,6 +229,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: "14px",
     color: "#5a4478",
     cursor: "pointer",
+  },
+  navButtonActive: {
+    borderBottom: "2px solid #5a4478",
+    paddingBottom: "4px",
   },
 };
 

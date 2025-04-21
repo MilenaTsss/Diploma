@@ -22,7 +22,7 @@ from verifications.validators import VerificationCodeValidator, VerificationToke
 
 logger = logging.getLogger(__name__)
 
-MAX_FAIL_COUNT = 5
+MAX_FAIL_COUNT = 100
 
 
 class VerificationService:

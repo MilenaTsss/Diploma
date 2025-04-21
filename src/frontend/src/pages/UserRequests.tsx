@@ -72,7 +72,7 @@ const UserRequests: React.FC = () => {
         <button style={{ ...styles.navButton, fontWeight: "bold" }} disabled>
           Запросы
         </button>
-        <button style={styles.navButton} onClick={() => navigate("/profile")}>
+        <button style={styles.navButton} onClick={() => navigate("/user")}>
           Профиль
         </button>
       </div>

@@ -17,6 +17,10 @@ const VerificationPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    if (location.state?.error) {
+      setErrorMessage(location.state.error);
+    }
+
     if (timer > 0) {
       const interval = setInterval(() => {
         setTimer((prev) => prev - 1);
@@ -25,7 +29,7 @@ const VerificationPage: React.FC = () => {
     } else {
       setIsResendDisabled(false);
     }
-  }, [timer]);
+  }, [timer, location.state]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +92,7 @@ const VerificationPage: React.FC = () => {
           setErrorMessage(loginData.detail || "Ошибка при входе");
         }
       } else {
-        setErrorMessage(verifyJson.detail || "Ошибка верификации");
+        setErrorMessage(verifyJson || "Ошибка верификации");
       }
     } catch (error) {
       console.error("Ошибка сети:", error);
@@ -120,7 +124,11 @@ const VerificationPage: React.FC = () => {
       if (response.ok && data.verification_token) {
         setVerificationToken(data.verification_token);
       } else {
-        setErrorMessage(data.detail || "Ошибка при повторной отправке");
+        let message = data.detail || data || "Ошибка при повторной отправке";
+        if (data.retry_after) {
+          message += ` (Подождите ${data.retry_after} сек)`;
+        }
+        setErrorMessage(message);
       }
     } catch (error) {
       console.error("Ошибка при повторной отправке:", error);
