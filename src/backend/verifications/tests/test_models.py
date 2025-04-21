@@ -271,3 +271,14 @@ class TestVerificationModel:
 
         result = Verification.get_recent_verification(USER_PHONE)
         assert result is None
+
+    def test_get_recent_verification_returns_none_if_other_status(self, create_verification):
+        """Returns None if no verifications are within resend delay."""
+
+        create_verification(created_at=now() - timedelta(seconds=VERIFICATION_CODE_RESEND_DELAY + 10))
+        create_verification(
+            created_at=now() - timedelta(seconds=VERIFICATION_CODE_RESEND_DELAY - 10), status=Verification.Status.USED
+        )
+
+        result = Verification.get_recent_verification(USER_PHONE)
+        assert result is None

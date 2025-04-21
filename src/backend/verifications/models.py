@@ -5,7 +5,6 @@ from datetime import timedelta
 
 from django.db import models
 from django.utils.timezone import now
-from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 
 from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH
@@ -149,21 +148,21 @@ class Verification(models.Model):
     class Status(models.TextChoices):
         SENT = "sent", "Sent"
         VERIFIED = "verified", "Verified"
-        USED = "used", _("Used")
+        USED = "used", "Used"
         EXPIRED = "expired", "Expired"
 
     phone = models.CharField(
         max_length=PHONE_MAX_LENGTH,
         db_index=True,
         validators=[PhoneNumberValidator()],
-        help_text=_("Enter a phone number in the format +7XXXXXXXXXX."),
+        help_text="Enter a phone number in the format +7XXXXXXXXXX.",
     )
     code = models.CharField(max_length=VERIFICATION_CODE_MAX_LENGTH, validators=[VerificationCodeValidator()])
     verification_token = models.CharField(
         max_length=VERIFICATION_TOKEN_MAX_LENGTH,
         unique=True,
         validators=[VerificationTokenValidator()],
-        help_text=_("Unique token for verifying the code."),
+        help_text="Unique token for verifying the code.",
     )
     mode = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Mode.choices)
     status = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Status.choices, default=Status.SENT)
@@ -184,7 +183,11 @@ class Verification(models.Model):
         """Returns the most recent verification code within the resend delay window."""
 
         return (
-            cls.objects.filter(phone=phone, created_at__gte=now() - timedelta(seconds=VERIFICATION_CODE_RESEND_DELAY))
+            cls.objects.filter(
+                phone=phone,
+                created_at__gte=now() - timedelta(seconds=VERIFICATION_CODE_RESEND_DELAY),
+                status=cls.Status.SENT,
+            )
             .order_by("-created_at")
             .first()
         )

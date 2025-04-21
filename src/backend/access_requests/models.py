@@ -50,7 +50,6 @@ class AccessRequest(models.Model):
     request_type = models.CharField(
         max_length=CHOICE_MAX_LENGTH,
         choices=RequestType.choices,
-        null=False,
         help_text="Direction of the access request",
     )
 
