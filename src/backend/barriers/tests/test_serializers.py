@@ -25,11 +25,11 @@ class TestBarrierSerializer:
 
         assert serializer.data["owner"]["phone"] == barrier.owner.phone
 
-    def test_owner_phone_visible_for_protected_with_access(self, user, barrier):
+    def test_owner_phone_visible_for_protected_with_access(self, user, barrier, access_request):
         barrier.owner.phone_privacy = User.PhonePrivacy.PROTECTED
         barrier.owner.save()
 
-        UserBarrier.objects.create(user=user, barrier=barrier)
+        UserBarrier.create(user, barrier, access_request)
 
         request = type("Request", (), {"user": user})()
         serializer = BarrierSerializer(barrier, context={"request": request})
@@ -42,8 +42,8 @@ class TestBarrierSerializer:
 
         assert serializer.data["device_phone"] is None
 
-    def test_device_phone_visible_with_access(self, user, barrier):
-        UserBarrier.objects.create(user=user, barrier=barrier)
+    def test_device_phone_visible_with_access(self, user, barrier, access_request):
+        UserBarrier.create(user, barrier, access_request)
 
         request = type("Request", (), {"user": user})()
         serializer = BarrierSerializer(barrier, context={"request": request})

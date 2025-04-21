@@ -2,17 +2,15 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
 from django.utils.timezone import now
-from django.utils.translation import gettext_lazy as _
 from rest_framework import status
 
 from core.constants import (
     CHOICE_MAX_LENGTH,
     PHONE_MAX_LENGTH,
+    STRING_MAX_LENGTH,
 )
 from core.utils import error_response
 from core.validators import PhoneNumberValidator
-
-MAX_LENGTH = 255
 
 
 class UserManager(BaseUserManager):
@@ -26,7 +24,7 @@ class UserManager(BaseUserManager):
         try:
             self.phone_validator(phone)
         except ValidationError as e:
-            raise ValidationError(_("Invalid phone number: ") + str(e))
+            raise ValidationError("Invalid phone number: " + str(e))
         return phone
 
     def create_user(self, phone, password=None, **extra_fields):
@@ -96,24 +94,24 @@ class User(AbstractBaseUser, PermissionsMixin):
         db_table = "user"
 
     class Role(models.TextChoices):
-        ADMIN = "admin", _("Admin")
-        USER = "user", _("User")
-        SUPERUSER = "superuser", _("Superuser")
+        ADMIN = "admin", "Admin"
+        USER = "user", "User"
+        SUPERUSER = "superuser", "Superuser"
 
     class PhonePrivacy(models.TextChoices):
-        PUBLIC = "public", _("Public")
-        PRIVATE = "private", _("Private")
-        PROTECTED = "protected", _("Protected")
+        PUBLIC = "public", "Public"
+        PRIVATE = "private", "Private"
+        PROTECTED = "protected", "Protected"
 
     phone = models.CharField(
         max_length=PHONE_MAX_LENGTH,
         unique=True,
-        help_text=_("Enter a phone number in the format +7XXXXXXXXXX."),
+        help_text="Enter a phone number in the format +7XXXXXXXXXX.",
         validators=[PhoneNumberValidator()],
-        error_messages={"unique": _("A user with this phone number already exists.")},
+        error_messages={"unique": "A user with this phone number already exists."},
     )
-    full_name = models.CharField(max_length=MAX_LENGTH, blank=True, default="")
-    password = models.CharField(max_length=MAX_LENGTH, blank=True, default="")
+    full_name = models.CharField(max_length=STRING_MAX_LENGTH, blank=True, default="")
+    password = models.CharField(max_length=STRING_MAX_LENGTH, blank=True, default="")
 
     role = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Role.choices, default=Role.USER)
 
@@ -123,18 +121,17 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     is_staff = models.BooleanField(
         default=False,
-        help_text=_("Designates whether the user can log into this admin site."),
+        help_text="Designates whether the user can log into this admin site.",
     )
     is_superuser = models.BooleanField(
-        default=False, help_text=_("Designates whether the user can manage all aspects of the system.")
+        default=False, help_text="Designates whether the user can manage all aspects of the system."
     )
     is_active = models.BooleanField(
         default=True,
-        help_text=_(
-            "Designates whether this user should be treated as active. " "Unselect this instead of deleting accounts."
-        ),
+        help_text="Designates whether this user should be treated as active. "
+        "Unselect this instead of deleting accounts.",
     )
-    block_reason = models.CharField(max_length=MAX_LENGTH, blank=True, default="")
+    block_reason = models.CharField(max_length=STRING_MAX_LENGTH, blank=True, default="")
     date_joined = models.DateTimeField(default=now)
     last_login = models.DateTimeField(blank=True, null=True)
 

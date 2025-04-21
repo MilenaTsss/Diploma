@@ -34,6 +34,7 @@ class TestUserManager:
 
     def test_get_by_phone(self, user):
         """Test retrieving a user by phone using UserManager."""
+
         found_user = User.objects.get_by_phone(user.phone)
         assert found_user == user
 

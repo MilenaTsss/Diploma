@@ -2,6 +2,7 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
+from access_requests.models import AccessRequest
 from barriers.models import Barrier, BarrierLimit, UserBarrier
 from conftest import BARRIER_ADDRESS, BARRIER_DEVICE_PASSWORD, BARRIER_DEVICE_PHONE, OTHER_PHONE, USER_PHONE
 from users.models import User
@@ -195,19 +196,21 @@ class TestBarrierLimitUpdateView:
 
 @pytest.mark.django_db
 class TestAdminBarrierUsersListView:
-    def test_admin_can_list_users_in_barrier(self, authenticated_admin_client, barrier, user):
-        UserBarrier.objects.create(user=user, barrier=barrier, is_active=True)
+    def test_admin_can_list_users_in_barrier(self, authenticated_admin_client, barrier, user, access_request):
+        UserBarrier.create(user, barrier, access_request)
         response = authenticated_admin_client.get(reverse("barrier_users_list", args=[barrier.id]))
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_count"] == 1
         assert response.data["users"][0]["id"] == user.id
 
-    def test_users_are_sorted_by_full_name(self, authenticated_admin_client, barrier):
+    def test_users_are_sorted_by_full_name(self, authenticated_admin_client, barrier, create_access_request):
         user1 = User.objects.create(full_name="Z User", phone=USER_PHONE)
         user2 = User.objects.create(full_name="A User", phone=OTHER_PHONE)
-        UserBarrier.objects.create(user=user1, barrier=barrier)
-        UserBarrier.objects.create(user=user2, barrier=barrier)
+        access_request1 = create_access_request(user1, barrier, status=AccessRequest.Status.ACCEPTED)
+        access_request2 = create_access_request(user1, barrier, status=AccessRequest.Status.ACCEPTED)
+        UserBarrier.objects.create(user=user1, barrier=barrier, access_request=access_request1, is_active=False)
+        UserBarrier.objects.create(user=user2, barrier=barrier, access_request=access_request2)
 
         url = reverse("barrier_users_list", args=[barrier.id])
         response = authenticated_admin_client.get(f"{url}?ordering=full_name")
@@ -216,11 +219,15 @@ class TestAdminBarrierUsersListView:
         names = [user["full_name"] for user in response.data["users"]]
         assert names == sorted(names)
 
-    def test_users_are_sorted_by_desc_phone(self, authenticated_admin_client, admin_user, barrier, django_user_model):
-        user1 = django_user_model.objects.create(full_name="User A", phone="+79991230001")
-        user2 = django_user_model.objects.create(full_name="User B", phone="+79991230002")
-        UserBarrier.objects.create(user=user1, barrier=barrier)
-        UserBarrier.objects.create(user=user2, barrier=barrier)
+    def test_users_are_sorted_by_desc_phone(
+        self, authenticated_admin_client, admin_user, barrier, create_access_request
+    ):
+        user1 = User.objects.create(full_name="User A", phone="+79991230001")
+        user2 = User.objects.create(full_name="User B", phone="+79991230002")
+        access_request1 = create_access_request(user1, barrier, status=AccessRequest.Status.ACCEPTED)
+        access_request2 = create_access_request(user2, barrier, status=AccessRequest.Status.ACCEPTED)
+        UserBarrier.create(user1, barrier, access_request1)
+        UserBarrier.create(user2, barrier, access_request2)
 
         url = reverse("barrier_users_list", args=[barrier.id])
         response = authenticated_admin_client.get(f"{url}?ordering=-phone")
@@ -247,18 +254,20 @@ class TestAdminBarrierUsersListView:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_count"] == 0
 
-    def test_user_with_inactive_barrier_access_not_listed(self, authenticated_admin_client, barrier, user):
-        UserBarrier.objects.create(user=user, barrier=barrier, is_active=False)
+    def test_user_with_inactive_barrier_access_not_listed(
+        self, authenticated_admin_client, barrier, user, access_request
+    ):
+        UserBarrier.objects.create(user=user, barrier=barrier, access_request=access_request, is_active=False)
         url = reverse("barrier_users_list", args=[barrier.id])
         response = authenticated_admin_client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
         assert response.data["total_count"] == 0
 
-    def test_users_not_listed_if_barrier_inactive(self, authenticated_admin_client, barrier, user):
+    def test_users_not_listed_if_barrier_inactive(self, authenticated_admin_client, barrier, user, access_request):
         barrier.is_active = False
         barrier.save()
-        UserBarrier.objects.create(user=user, barrier=barrier, is_active=True)
+        UserBarrier.create(user, barrier, access_request)
         url = reverse("barrier_users_list", args=[barrier.id])
         response = authenticated_admin_client.get(url)
 
@@ -268,8 +277,8 @@ class TestAdminBarrierUsersListView:
 
 @pytest.mark.django_db
 class TestAdminRemoveUserFromBarrierView:
-    def test_admin_can_remove_user_from_barrier(self, authenticated_admin_client, barrier, user):
-        user_barrier = UserBarrier.objects.create(user=user, barrier=barrier, is_active=True)
+    def test_admin_can_remove_user_from_barrier(self, authenticated_admin_client, barrier, user, access_request):
+        user_barrier = UserBarrier.create(user, barrier, access_request)
         url = reverse("barrier_remove_user", kwargs={"barrier_id": barrier.id, "user_id": user.id})
         response = authenticated_admin_client.delete(url)
 

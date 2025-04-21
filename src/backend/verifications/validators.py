@@ -1,6 +1,5 @@
 from django.core import validators
 from django.utils.deconstruct import deconstructible
-from django.utils.translation import gettext_lazy as _
 
 
 @deconstructible
@@ -10,7 +9,7 @@ class VerificationCodeValidator(validators.RegexValidator):
     """
 
     regex = r"^\d{6}$"
-    message = _("Enter a valid 6-digit verification code.")
+    message = "Enter a valid 6-digit verification code."
     flags = 0
 
 
@@ -21,5 +20,5 @@ class VerificationTokenValidator(validators.RegexValidator):
     """
 
     regex = r"^[a-zA-Z0-9]{32}$"
-    message = _("Enter a valid 32-character verification token (letters and digits only).")
+    message = "Enter a valid 32-character verification token (letters and digits only)."
     flags = 0
