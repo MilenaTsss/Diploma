@@ -1,10 +1,11 @@
 from datetime import date, datetime, timedelta
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from phones.constants import MINIMUM_TIME_INTERVAL_MINUTES
 from phones.models import BarrierPhone, TimeInterval
-from phones.validators import validate_limits, validate_schedule_phone, validate_temporary_phone
 from users.models import User
 
 
@@ -24,7 +25,7 @@ class TimeIntervalSerializer(serializers.ModelSerializer):
         end = attrs["end_time"]
 
         if start >= end:
-            raise serializers.ValidationError("start_time must be earlier than end_time.")
+            raise serializers.ValidationError({"error": "start_time must be earlier than end_time."})
 
         duration = datetime.combine(date.today(), end) - datetime.combine(date.today(), start)
         if duration < timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES):
@@ -59,6 +60,16 @@ class ScheduleSerializer(serializers.Serializer):
                 )
                 raise serializers.ValidationError({"error": message})
 
+            prev_end = datetime.combine(date.today(), prev["end_time"])
+            curr_start = datetime.combine(date.today(), curr["start_time"])
+            gap = curr_start - prev_end
+            if gap < timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES):
+                message = (
+                    f"Intervals on {day} must have at least {MINIMUM_TIME_INTERVAL_MINUTES} minutes between them: "
+                    f"'{prev['start_time']}–{prev['end_time']} and {curr['start_time']}–{curr['end_time']}'"
+                )
+                raise serializers.ValidationError({"error": message})
+
     def validate(self, attrs):
         for day, intervals in attrs.items():
             self.validate_intervals(day, intervals)
@@ -85,7 +96,7 @@ class CreateBarrierPhoneSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = BarrierPhone
-        fields = ["phone", "type", "name", "start_time", "end_time", "user"]
+        fields = ["phone", "type", "name", "start_time", "end_time", "user", "schedule"]
 
     def validate(self, attrs):
         request = self.context["request"]
@@ -105,26 +116,42 @@ class CreateBarrierPhoneSerializer(serializers.ModelSerializer):
         attrs["user"] = user
         attrs["barrier"] = barrier
 
-        if (serial := BarrierPhone.get_available_serial_number(barrier)) is None:
-            raise serializers.ValidationError({"error": "Cannot add phone: all slots are occupied."})
-        attrs["device_serial_number"] = serial
-
-        phone_type = attrs.get("type")
-        schedule = attrs.get("schedule")  # TODO self.initial_data.get("schedule")
-        validate_temporary_phone(phone_type, attrs.get("start_time"), attrs.get("end_time"))
-        validate_schedule_phone(phone_type, schedule, barrier)
-        validate_limits(phone_type, barrier, user)
+        # if (serial := BarrierPhone.get_available_serial_number(barrier)) is None:
+        #     raise serializers.ValidationError({"error": "Cannot add phone: all slots are occupied."})
+        # attrs["device_serial_number"] = serial
+        #
+        # phone_type = attrs.get("type")
+        # schedule = attrs.get("schedule")  # TODO self.initial_data.get("schedule")
+        # validate_temporary_phone(phone_type, attrs.get("start_time"), attrs.get("end_time"))
+        # validate_schedule_phone(phone_type, schedule, barrier)
+        # validate_limits(phone_type, barrier, user)
 
         return attrs
 
+    # def create(self, validated_data):
+    #     schedule_data = validated_data.pop("schedule", None)
+    #     phone = super().create(validated_data)
+    #
+    #     if schedule_data:
+    #         TimeInterval.create_schedule(phone, schedule_data)
+    #
+    #     return phone
+
     def create(self, validated_data):
         schedule_data = validated_data.pop("schedule", None)
-        phone = super().create(validated_data)
-
-        if schedule_data:
-            TimeInterval.create_schedule(phone, schedule_data)
-
-        return phone
+        try:
+            return BarrierPhone.create(
+                user=validated_data["user"],
+                barrier=validated_data["barrier"],
+                phone=validated_data["phone"],
+                type=validated_data["type"],
+                name=validated_data.get("name", ""),
+                start_time=validated_data.get("start_time"),
+                end_time=validated_data.get("end_time"),
+                schedule=schedule_data,
+            )
+        except DjangoValidationError as e:
+            raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
 
 
 class UpdatePhoneScheduleSerializer(ScheduleSerializer):

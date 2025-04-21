@@ -1,8 +1,10 @@
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from barriers.models import Barrier
 from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH, STRING_MAX_LENGTH
 from core.validators import PhoneNumberValidator
+from phones.validators import validate_limits, validate_schedule_phone, validate_temporary_phone
 from users.models import User
 
 
@@ -11,7 +13,6 @@ class BarrierPhone(models.Model):
 
     class Meta:
         db_table = "barrier_phone"
-        unique_together = ("user", "barrier", "phone")
 
     class PhoneType(models.TextChoices):
         PRIMARY = "primary", "Primary"
@@ -54,6 +55,8 @@ class BarrierPhone(models.Model):
     end_time = models.DateTimeField(null=True, blank=True)
 
     is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
 
     # TODO - add a field to track the status and the last action performed with this phone
     # class Status(models.TextChoices):
@@ -98,6 +101,36 @@ class BarrierPhone(models.Model):
                 return num
 
         return None
+
+    @classmethod
+    def create(cls, *, user, barrier, phone, type, name="", start_time=None, end_time=None, schedule=None):
+        """Creates a new BarrierPhone instance with validation and optional schedule."""
+
+        if cls.objects.filter(user=user, barrier=barrier, phone=phone, is_active=True).exists():
+            raise ValidationError("This phone number already exists for this user in the barrier.")
+
+        validate_limits(type, barrier, user)
+        validate_temporary_phone(type, start_time, end_time)
+        validate_schedule_phone(type, schedule, barrier)
+
+        if (serial_number := cls.get_available_serial_number(barrier)) is None:
+            raise ValidationError("Cannot add phone: all slots are occupied.")
+
+        phone_instance = cls.objects.create(
+            user=user,
+            barrier=barrier,
+            phone=phone,
+            type=type,
+            name=name,
+            start_time=start_time,
+            end_time=end_time,
+            device_serial_number=serial_number,
+        )
+
+        if type == cls.PhoneType.SCHEDULE and schedule:
+            TimeInterval.create_schedule(phone_instance, schedule)
+
+        return phone_instance
 
 
 class TimeInterval(models.Model):

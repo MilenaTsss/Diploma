@@ -1,8 +1,10 @@
 import logging
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import generics
 from rest_framework.decorators import permission_classes
 from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser
 
@@ -15,6 +17,7 @@ from access_requests.serializers import (
 from barriers.models import UserBarrier
 from core.pagination import BasePaginatedListView
 from core.utils import created_response, success_response
+from phones.models import BarrierPhone
 
 logger = logging.getLogger(__name__)
 
@@ -183,6 +186,16 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
 
         if access_request.status == AccessRequest.Status.ACCEPTED:
             UserBarrier.create(user=access_request.user, barrier=access_request.barrier, access_request=access_request)
+            try:
+                BarrierPhone.create(
+                    user=access_request.user,
+                    barrier=access_request.barrier,
+                    phone=access_request.user.phone,
+                    type=BarrierPhone.PhoneType.PRIMARY,
+                    name=access_request.user.full_name,
+                )
+            except DjangoValidationError as e:
+                raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
 
         return success_response(AccessRequestSerializer(access_request, context=self.get_serializer_context()).data)
 
