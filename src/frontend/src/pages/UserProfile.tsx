@@ -149,10 +149,20 @@ const UserProfile: React.FC = () => {
         </div>
 
         <div style={styles.navbar}>
-          <button style={styles.navButton} onClick={() => navigateWithState("/barriers")}>
+          <button
+              style={styles.navButton}
+              onClick={() =>
+                  navigate("/barriers", { state: { phone, access_token: accessToken, refresh_token: refreshToken } })
+              }
+          >
             Шлагбаумы
           </button>
-          <button style={styles.navButton} onClick={() => navigateWithState("/requests")}>
+          <button
+              style={styles.navButton}
+              onClick={() =>
+                  navigate("/requests", { state: { phone, access_token: accessToken, refresh_token: refreshToken } })
+              }
+          >
             Запросы
           </button>
           <button style={{ ...styles.navButton, ...styles.navButtonActive }}>Профиль</button>

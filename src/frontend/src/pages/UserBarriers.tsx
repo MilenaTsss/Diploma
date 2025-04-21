@@ -9,25 +9,30 @@ const UserBarriers: React.FC = () => {
   const [barriers, setBarriers] = useState<any[]>([]);
   const [ordering, setOrdering] = useState("");
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [accessToken, setAccessToken] = useState(() =>
       location.state?.access_token || localStorage.getItem("access_token")
   );
-  const [refreshToken, setRefreshToken] = useState(() =>
+  const [refreshToken] = useState(() =>
       location.state?.refresh_token || localStorage.getItem("refresh_token")
   );
   const phone = location.state?.phone || localStorage.getItem("phone");
 
   const fetchBarriers = async (token = accessToken) => {
-    try {
-      const params = new URLSearchParams({
-        page: "1",
-        page_size: "10",
-      });
-      if (ordering) params.append("ordering", ordering);
-      if (search) params.append("search", search);
+    const isSearch = search.trim() !== "";
+    const endpoint = isSearch ? "/api/barriers/" : "/api/barriers/my/";
+    const params = new URLSearchParams({
+      page: String(page),
+      page_size: "5",
+    });
 
-      const res = await fetch(`/api/barriers/my/?${params.toString()}`, {
+    if (ordering) params.append("ordering", ordering);
+    if (isSearch) params.append("address", search);
+
+    try {
+      const res = await fetch(`${endpoint}?${params.toString()}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           Accept: "application/json",
@@ -45,7 +50,7 @@ const UserBarriers: React.FC = () => {
         if (refreshRes.ok && refreshData.access) {
           setAccessToken(refreshData.access);
           localStorage.setItem("access_token", refreshData.access);
-          fetchBarriers(refreshData.access); // повторный вызов
+          fetchBarriers(refreshData.access);
         } else {
           navigate("/login");
         }
@@ -55,6 +60,7 @@ const UserBarriers: React.FC = () => {
       const data = await res.json();
       if (res.ok) {
         setBarriers(data.barriers || []);
+        setTotalPages(Math.ceil(data.total_count / 5));
       } else {
         setError("Ошибка загрузки данных");
       }
@@ -65,13 +71,15 @@ const UserBarriers: React.FC = () => {
 
   useEffect(() => {
     fetchBarriers();
-  }, [search, ordering]);
+  }, [search, ordering, page]);
 
   const handleOrdering = () => {
     if (ordering === "") setOrdering("address");
     else if (ordering === "address") setOrdering("-address");
     else setOrdering("");
   };
+
+  const isSearching = search.trim() !== "";
 
   return (
       <div style={styles.page}>
@@ -82,9 +90,12 @@ const UserBarriers: React.FC = () => {
             <input
                 type="text"
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setPage(1); // сброс страницы при новом поиске
+                  setSearch(e.target.value);
+                }}
                 style={styles.searchInput}
-                placeholder="Введите название улицы..."
+                placeholder="Введите адрес..."
             />
             {search && (
                 <button style={styles.clearButton} onClick={() => setSearch("")}>
@@ -97,28 +108,57 @@ const UserBarriers: React.FC = () => {
             Сортировка {ordering === "address" ? "↑" : ordering === "-address" ? "↓" : ""}
           </button>
 
+          <h3 style={styles.sectionHeader}>
+            {isSearching ? "Результаты поиска" : "Ваши шлагбаумы"}
+          </h3>
+
           {barriers.length > 0 ? (
               <ul style={styles.list}>
                 {barriers.map((barrier, index) => (
-                    <li
-                        key={index}
-                        style={styles.listItem}
-                        onClick={() =>
-                            navigate("/barrier-details", {
-                              state: { barrier, phone, access_token: accessToken, refresh_token: refreshToken },
-                            })
-                        }
-                    >
-                      <strong>{barrier.address}</strong>
-                      <p>📱 {barrier.device_phone}</p>
-                      <p>ℹ️ {barrier.additional_info}</p>
-                      <p>👤 {barrier.owner?.full_name || "Без владельца"}</p>
+                    <li key={index} style={styles.card}>
+                      <h3 style={styles.cardTitle}>{barrier.address}</h3>
+                      <button
+                          style={styles.detailButton}
+                          onClick={() =>
+                              navigate("/barrier-details", {
+                                state: {
+                                  barrier_id: barrier.id,
+                                  barrier,
+                                  phone,
+                                  access_token: accessToken,
+                                  refresh_token: refreshToken,
+                                },
+                              })
+                          }
+                      >
+                        Подробнее →
+                      </button>
                     </li>
                 ))}
               </ul>
           ) : (
               <p style={styles.noResults}>Нет результатов</p>
           )}
+
+          <div style={styles.pagination}>
+            <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={page === 1}
+                style={styles.pageButton}
+            >
+              ← Назад
+            </button>
+            <span style={{ padding: "0 10px" }}>
+            {page} / {totalPages}
+          </span>
+            <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                style={styles.pageButton}
+            >
+              Вперёд →
+            </button>
+          </div>
 
           {error && <p style={styles.errorText}>{error}</p>}
         </div>
@@ -127,13 +167,21 @@ const UserBarriers: React.FC = () => {
           <button style={{ ...styles.navButton, ...styles.navButtonActive }}>Шлагбаумы</button>
           <button
               style={styles.navButton}
-              onClick={() => navigate("/requests", { state: { phone, access_token: accessToken, refresh_token: refreshToken } })}
+              onClick={() =>
+                  navigate("/requests", {
+                    state: { phone, access_token: accessToken, refresh_token: refreshToken },
+                  })
+              }
           >
             Запросы
           </button>
           <button
               style={styles.navButton}
-              onClick={() => navigate("/user", { state: { phone, access_token: accessToken, refresh_token: refreshToken } })}
+              onClick={() =>
+                  navigate("/user", {
+                    state: { phone, access_token: accessToken, refresh_token: refreshToken },
+                  })
+              }
           >
             Профиль
           </button>
@@ -212,21 +260,54 @@ const styles: { [key: string]: React.CSSProperties } = {
     margin: 0,
     width: "100%",
   },
-  listItem: {
+  card: {
     padding: "15px 20px",
     margin: "8px 0",
     backgroundColor: "#ffffff",
     borderRadius: "10px",
-    cursor: "pointer",
     border: "1px solid #ddd",
     boxShadow: "0 2px 6px rgba(90, 68, 120, 0.1)",
     fontSize: "14px",
     color: "#333",
   },
+  cardTitle: {
+    color: "#5a4478",
+    fontSize: "16px",
+    fontWeight: "bold",
+    marginBottom: "6px",
+  },
+  detailButton: {
+    marginTop: "10px",
+    backgroundColor: "#5a4478",
+    color: "#ffffff",
+    border: "none",
+    borderRadius: "20px",
+    padding: "10px 15px",
+    fontSize: "14px",
+    cursor: "pointer",
+  },
+  pagination: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: "20px",
+    fontSize: "14px",
+    color: "#5a4478",
+  },
+  pageButton: {
+    padding: "8px 12px",
+    backgroundColor: "#eae0f5",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    margin: "0 5px",
+    color: "#5a4478",
+  },
   noResults: {
     marginTop: "10px",
     color: "#888",
     fontSize: "14px",
+    textAlign: "center",
   },
   errorText: {
     color: "red",
@@ -238,13 +319,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: "100%",
     position: "fixed",
     bottom: "0",
-    left: "50%",
-    transform: "translateX(-50%)",
     backgroundColor: "#f8f3fb",
-    padding: "12px 0",
-    boxShadow: "0 -2px 10px rgba(0,0,0,0.05)",
-    borderTop: "1px solid #ddd",
-    maxWidth: "500px",
+    padding: "10px 0",
   },
   navButton: {
     background: "none",
@@ -258,6 +334,14 @@ const styles: { [key: string]: React.CSSProperties } = {
   navButtonActive: {
     borderBottom: "2px solid #5a4478",
     paddingBottom: "4px",
+  },
+  sectionHeader: {
+    fontSize: "18px",
+    fontWeight: "bold",
+    color: "#5a4478",
+    marginBottom: "10px",
+    marginTop: "15px",
+    textAlign: "left",
   },
 };
 
