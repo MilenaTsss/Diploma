@@ -37,7 +37,6 @@ class AccessRequest(models.Model):
         "users.User",
         on_delete=models.PROTECT,
         related_name="access_requests",
-        null=False,
         help_text="User who requests access.",
     )
 

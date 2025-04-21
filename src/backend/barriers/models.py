@@ -21,8 +21,6 @@ class Barrier(models.Model):
     address = models.CharField(
         max_length=STRING_MAX_LENGTH * 2,
         db_index=True,
-        null=False,
-        blank=False,
         help_text="Full address of the barrier, validated based on frontend suggestions.",
     )
 
@@ -30,7 +28,6 @@ class Barrier(models.Model):
         "users.User",
         on_delete=models.PROTECT,
         related_name="owned_barriers",  # for searching barriers for user - user.managed_barriers.all()
-        null=False,
         help_text="User who owns the barrier. Must be an admin.",
     )
 
@@ -38,22 +35,20 @@ class Barrier(models.Model):
         max_length=PHONE_MAX_LENGTH,
         db_index=True,
         validators=[PhoneNumberValidator()],
-        null=False,
-        blank=False,
         help_text="Enter a phone number in the format +7XXXXXXXXXX.",
     )
 
     device_model = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Model.choices)
 
     device_phones_amount = models.PositiveIntegerField(
-        default=1, null=False, help_text="Number of registered device phones. Must be at least 1."
+        default=1, help_text="Number of registered device phones. Must be at least 1."
     )
 
     device_password = models.CharField(max_length=20, null=True, blank=True, help_text="Device password for managing.")
 
-    additional_info = models.TextField(blank=True, null=False, help_text="Additional details about the barrier.")
+    additional_info = models.TextField(blank=True, help_text="Additional details about the barrier.")
 
-    is_public = models.BooleanField(default=True, null=False, help_text="Whether the barrier is visible to all users.")
+    is_public = models.BooleanField(default=True, help_text="Whether the barrier is visible to all users.")
 
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
