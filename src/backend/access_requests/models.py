@@ -45,14 +45,12 @@ class AccessRequest(models.Model):
         "barriers.Barrier",
         on_delete=models.PROTECT,
         related_name="access_requests",
-        null=False,
         help_text="Barrier to which access is requested.",
     )
 
     request_type = models.CharField(
         max_length=CHOICE_MAX_LENGTH,
         choices=RequestType.choices,
-        null=False,
         help_text="Direction of the access request",
     )
 
