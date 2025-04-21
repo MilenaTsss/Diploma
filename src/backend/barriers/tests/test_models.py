@@ -1,6 +1,7 @@
 import pytest
 from django.core.exceptions import PermissionDenied, ValidationError
 
+from access_requests.models import AccessRequest
 from barriers.models import BarrierLimit, UserBarrier
 
 
@@ -33,15 +34,20 @@ class TestUserBarrier:
             with pytest.raises(ValidationError, match="Access request does not match given user and barrier."):
                 UserBarrier.create(admin_user, barrier, access_request)
 
-        def test_reactivates_existing_inactive_link(self, user, barrier, access_request):
-            user_barrier = UserBarrier.objects.create(user=user, barrier=barrier, is_active=False)
+        def test_reactivates_existing_inactive_link(self, user, barrier, create_access_request):
+            old_access_request = create_access_request(user, barrier, status=AccessRequest.Status.ACCEPTED)
+            new_access_request = create_access_request(user, barrier, status=AccessRequest.Status.ACCEPTED)
 
-            result = UserBarrier.create(user, barrier, access_request)
+            user_barrier = UserBarrier.objects.create(
+                user=user, barrier=barrier, access_request=old_access_request, is_active=False
+            )
+
+            result = UserBarrier.create(user, barrier, new_access_request)
 
             user_barrier.refresh_from_db()
             assert result == user_barrier
             assert user_barrier.is_active is True
-            assert user_barrier.access_request == access_request
+            assert user_barrier.access_request == new_access_request
 
         def test_raises_error_if_active_link_exists(self, user, barrier, access_request):
             UserBarrier.create(user, barrier, access_request)
@@ -50,8 +56,8 @@ class TestUserBarrier:
                 UserBarrier.create(user, barrier, access_request)
 
     class TestUserHasAccessToBarrier:
-        def test_returns_true(self, user, barrier):
-            UserBarrier.objects.create(user=user, barrier=barrier)
+        def test_returns_true(self, user, barrier, access_request):
+            UserBarrier.create(user, barrier, access_request)
 
             result = UserBarrier.user_has_access_to_barrier(user, barrier)
 
@@ -62,8 +68,8 @@ class TestUserBarrier:
 
             assert result is False
 
-        def test_returns_false_if_inactive(self, user, barrier):
-            UserBarrier.objects.create(user=user, barrier=barrier, is_active=False)
+        def test_returns_false_if_inactive(self, user, barrier, access_request):
+            UserBarrier.objects.create(user=user, barrier=barrier, access_request=access_request, is_active=False)
 
             result = UserBarrier.user_has_access_to_barrier(user, barrier)
 
