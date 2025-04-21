@@ -184,7 +184,11 @@ class Verification(models.Model):
         """Returns the most recent verification code within the resend delay window."""
 
         return (
-            cls.objects.filter(phone=phone, created_at__gte=now() - timedelta(seconds=VERIFICATION_CODE_RESEND_DELAY))
+            cls.objects.filter(
+                phone=phone,
+                created_at__gte=now() - timedelta(seconds=VERIFICATION_CODE_RESEND_DELAY),
+                status=cls.Status.SENT,
+            )
             .order_by("-created_at")
             .first()
         )
