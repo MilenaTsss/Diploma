@@ -1645,7 +1645,7 @@
       }
     },
     "/admin/barriers/{barrier_id}/limits/": {
-      "put": {
+      "patch": {
         "tags": [
           "Limits"
         ],
@@ -2798,13 +2798,13 @@
                     "type": "string",
                     "format": "date-time",
                     "description": "Дата и время начала действия (только для временных номеров).",
-                    "example": "2024-06-01T10:00:00Z"
+                    "example": "2025-08-01T10:00:00+03:00"
                   },
                   "end_time": {
                     "type": "string",
                     "format": "date-time",
                     "description": "Дата и время окончания действия (только для временных номеров).",
-                    "example": "2024-06-01T18:00:00Z"
+                    "example": "2025-08-01T18:00:00+03:00"
                   },
                   "schedule": {
                     "$ref": "#/components/schemas/Schedule"
@@ -2880,6 +2880,36 @@
                 "-type"
               ]
             }
+          },
+          {
+            "name": "phone",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Фильтр по номеру телефона (частичное совпадение)."
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Фильтр по имени номера (частичное совпадение)."
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "primary",
+                "permanent",
+                "temporary",
+                "schedule"
+              ]
+            },
+            "description": "Фильтр по типу номера."
           },
           {
             "name": "page",
@@ -3012,13 +3042,13 @@
                     "type": "string",
                     "format": "date-time",
                     "description": "Дата и время начала действия (только для временных номеров).",
-                    "example": "2024-06-01T10:00:00Z"
+                    "example": "2025-08-01T10:00:00+03:00"
                   },
                   "end_time": {
                     "type": "string",
                     "format": "date-time",
                     "description": "Дата и время окончания действия (только для временных номеров).",
-                    "example": "2024-06-01T18:00:00Z"
+                    "example": "2025-08-01T18:00:00+03:00"
                   },
                   "schedule": {
                     "$ref": "#/components/schemas/Schedule"
@@ -3103,6 +3133,36 @@
                 "-type"
               ]
             }
+          },
+          {
+            "name": "phone",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Фильтр по номеру телефона (частичное совпадение)."
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Фильтр по имени номера (частичное совпадение)."
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "primary",
+                "permanent",
+                "temporary",
+                "schedule"
+              ]
+            },
+            "description": "Фильтр по типу номера."
           },
           {
             "name": "page",
@@ -3221,12 +3281,12 @@
                   "start_time": {
                     "type": "string",
                     "format": "date-time",
-                    "example": "2024-06-01T09:00:00Z"
+                    "example": "2025-08-01T10:00:00+03:00"
                   },
                   "end_time": {
                     "type": "string",
                     "format": "date-time",
-                    "example": "2024-06-01T20:00:00Z"
+                    "example": "2025-08-01T18:00:00+03:00"
                   }
                 }
               }
@@ -3353,12 +3413,12 @@
                   "start_time": {
                     "type": "string",
                     "format": "date-time",
-                    "example": "2024-06-01T09:00:00Z"
+                    "example": "2025-08-01T10:00:00+03:00"
                   },
                   "end_time": {
                     "type": "string",
                     "format": "date-time",
-                    "example": "2024-06-01T20:00:00Z"
+                    "example": "2025-08-01T18:00:00+03:00"
                   }
                 }
               }
@@ -3841,6 +3901,24 @@
             "description": "Общее количество временных номеров.",
             "example": 20
           },
+          "user_schedule_phone_limit": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Общее количество временных номеров.",
+            "example": 20
+          },
+          "global_schedule_phone_limit": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Общее количество временных номеров.",
+            "example": 20
+          },
+          "schedule_interval_limit": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Общее количество временных номеров.",
+            "example": 20
+          },
           "sms_weekly_limit": {
             "type": "integer",
             "nullable": true,
@@ -3869,6 +3947,24 @@
             "example": 5
           },
           "global_temp_phone_limit": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Общее количество временных номеров.",
+            "example": 20
+          },
+          "user_schedule_phone_limit": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Общее количество временных номеров.",
+            "example": 20
+          },
+          "global_schedule_phone_limit": {
+            "type": "integer",
+            "nullable": true,
+            "description": "Общее количество временных номеров.",
+            "example": 20
+          },
+          "schedule_interval_limit": {
             "type": "integer",
             "nullable": true,
             "description": "Общее количество временных номеров.",
@@ -3937,12 +4033,12 @@
           "created_at": {
             "type": "string",
             "format": "date-time",
-            "example": "2024-12-01T10:00:00Z"
+            "example": "2024-12-01T10:00:00+03:00"
           },
           "finished_at": {
             "type": "string",
             "format": "date-time",
-            "example": "2024-12-01T10:00:00Z"
+            "example": "2024-12-01T10:00:00+03:00"
           }
         }
       },
@@ -3983,13 +4079,13 @@
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "example": "2024-12-01T10:00:00Z"
+            "example": "2025-08-01T10:00:00+03:00"
           },
           "end_time": {
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "example": "2024-12-02T10:00:00Z"
+            "example": "2025-08-01T18:00:00+03:00"
           }
         }
       },
@@ -4136,7 +4232,7 @@
           "created_at": {
             "type": "string",
             "format": "date-time",
-            "example": "2024-12-01T10:00:00Z"
+            "example": "2024-12-01T10:00:00+03:00"
           }
         }
       }

@@ -1,4 +1,4 @@
-from django.core.exceptions import ValidationError
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
 
 from barriers.models import Barrier
@@ -96,11 +96,10 @@ class BarrierPhone(models.Model):
             ).values_list("device_serial_number", flat=True)
         )
 
-        for num in range(1, barrier.device_phones_amount + 1):
-            if num not in existing_numbers:
-                return num
+        all_numbers = set(range(1, barrier.device_phones_amount + 1))
+        free_numbers = all_numbers - existing_numbers
 
-        return None
+        return min(free_numbers) if free_numbers else None
 
     @classmethod
     def create(cls, *, user, barrier, phone, type, name="", start_time=None, end_time=None, schedule=None):
@@ -108,13 +107,16 @@ class BarrierPhone(models.Model):
 
         if cls.objects.filter(user=user, barrier=barrier, phone=phone, is_active=True).exists():
             raise ValidationError("This phone number already exists for this user in the barrier.")
+        if type == cls.PhoneType.PRIMARY:
+            if cls.objects.filter(user=user, barrier=barrier, type=cls.PhoneType.PRIMARY, is_active=True).exists():
+                raise ValidationError("User already has a primary phone number in this barrier.")
 
         validate_limits(type, barrier, user)
         validate_temporary_phone(type, start_time, end_time)
         validate_schedule_phone(type, schedule, barrier)
 
         if (serial_number := cls.get_available_serial_number(barrier)) is None:
-            raise ValidationError("Cannot add phone: all slots are occupied.")
+            raise ValidationError("Barrier has reached the maximum number of phone numbers.")
 
         phone_instance = cls.objects.create(
             user=user,
@@ -128,16 +130,19 @@ class BarrierPhone(models.Model):
         )
 
         if type == cls.PhoneType.SCHEDULE and schedule:
-            TimeInterval.create_schedule(phone_instance, schedule)
+            ScheduleTimeInterval.create_schedule(phone_instance, schedule)
 
         return phone_instance
 
+    def delete(self, *args, **kwargs):
+        raise PermissionDenied("Deletion of this object is not allowed.")
 
-class TimeInterval(models.Model):
+
+class ScheduleTimeInterval(models.Model):
     """Model to store schedule intervals for barrier phones"""
 
     class Meta:
-        db_table = "phone_schedule_interval"
+        db_table = "phone_schedule_time_interval"
         ordering = ["day", "start_time"]
         unique_together = ("phone", "day", "start_time", "end_time")
 

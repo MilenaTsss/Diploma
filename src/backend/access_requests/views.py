@@ -3,7 +3,8 @@ import logging
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import generics
 from rest_framework.decorators import permission_classes
-from rest_framework.exceptions import MethodNotAllowed, PermissionDenied, ValidationError as DRFValidationError
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser
 

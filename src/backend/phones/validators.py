@@ -1,3 +1,4 @@
+import logging
 from datetime import timedelta
 
 from django.core.exceptions import ValidationError
@@ -5,6 +6,8 @@ from django.utils.timezone import now
 
 from barriers.models import BarrierLimit
 from phones.constants import MINIMUM_TIME_INTERVAL_MINUTES
+
+logger = logging.getLogger(__name__)
 
 
 def validate_temporary_phone(phone_type, start_time, end_time):
@@ -56,6 +59,7 @@ def validate_limits(phone_type, barrier, user):
 
     def validate_limit(limit, current_count, error_message):
         if limit is not None and current_count >= limit:
+            logger.warning(f"Limit exceeded: {error_message}")
             raise ValidationError({"error": error_message})
 
     limits = BarrierLimit.objects.filter(barrier=barrier).first()

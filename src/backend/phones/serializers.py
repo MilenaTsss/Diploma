@@ -5,7 +5,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from phones.constants import MINIMUM_TIME_INTERVAL_MINUTES
-from phones.models import BarrierPhone, TimeInterval
+from phones.models import BarrierPhone, ScheduleTimeInterval
 from users.models import User
 
 
@@ -15,9 +15,9 @@ class BarrierPhoneSerializer(serializers.ModelSerializer):
         exclude = ["device_serial_number", "is_active"]
 
 
-class TimeIntervalSerializer(serializers.ModelSerializer):
+class ScheduleTimeIntervalSerializer(serializers.ModelSerializer):
     class Meta:
-        model = TimeInterval
+        model = ScheduleTimeInterval
         fields = ["start_time", "end_time"]
 
     def validate(self, attrs):
@@ -36,13 +36,13 @@ class TimeIntervalSerializer(serializers.ModelSerializer):
 
 
 class ScheduleSerializer(serializers.Serializer):
-    monday = TimeIntervalSerializer(many=True, required=False)
-    tuesday = TimeIntervalSerializer(many=True, required=False)
-    wednesday = TimeIntervalSerializer(many=True, required=False)
-    thursday = TimeIntervalSerializer(many=True, required=False)
-    friday = TimeIntervalSerializer(many=True, required=False)
-    saturday = TimeIntervalSerializer(many=True, required=False)
-    sunday = TimeIntervalSerializer(many=True, required=False)
+    monday = ScheduleTimeIntervalSerializer(many=True, required=False)
+    tuesday = ScheduleTimeIntervalSerializer(many=True, required=False)
+    wednesday = ScheduleTimeIntervalSerializer(many=True, required=False)
+    thursday = ScheduleTimeIntervalSerializer(many=True, required=False)
+    friday = ScheduleTimeIntervalSerializer(many=True, required=False)
+    saturday = ScheduleTimeIntervalSerializer(many=True, required=False)
+    sunday = ScheduleTimeIntervalSerializer(many=True, required=False)
 
     @staticmethod
     def validate_intervals(day, intervals):
@@ -78,7 +78,7 @@ class ScheduleSerializer(serializers.Serializer):
     def to_representation(self, instance):
         result = super().to_representation(instance)
 
-        for day in TimeInterval.DayOfWeek.values:
+        for day in ScheduleTimeInterval.DayOfWeek.values:
             result.setdefault(day, [])
 
         return result
@@ -105,37 +105,18 @@ class CreateBarrierPhoneSerializer(serializers.ModelSerializer):
 
         if not barrier:
             raise serializers.ValidationError("Barrier context is required.")
-
-        if as_admin:
-            user = attrs.get("user")
-            if not user:
-                raise serializers.ValidationError({"user": "This field is required for admins."})
-        else:
-            user = request.user
-
-        attrs["user"] = user
         attrs["barrier"] = barrier
 
-        # if (serial := BarrierPhone.get_available_serial_number(barrier)) is None:
-        #     raise serializers.ValidationError({"error": "Cannot add phone: all slots are occupied."})
-        # attrs["device_serial_number"] = serial
-        #
-        # phone_type = attrs.get("type")
-        # schedule = attrs.get("schedule")  # TODO self.initial_data.get("schedule")
-        # validate_temporary_phone(phone_type, attrs.get("start_time"), attrs.get("end_time"))
-        # validate_schedule_phone(phone_type, schedule, barrier)
-        # validate_limits(phone_type, barrier, user)
+        if as_admin:
+            if not attrs.get("user"):
+                raise serializers.ValidationError({"user": "This field is required for admins."})
+        else:
+            attrs["user"] = request.user
+
+        if attrs.get("type") == BarrierPhone.PhoneType.PRIMARY:
+            raise serializers.ValidationError({"error": "Primary phone numbers cannot be created manually."})
 
         return attrs
-
-    # def create(self, validated_data):
-    #     schedule_data = validated_data.pop("schedule", None)
-    #     phone = super().create(validated_data)
-    #
-    #     if schedule_data:
-    #         TimeInterval.create_schedule(phone, schedule_data)
-    #
-    #     return phone
 
     def create(self, validated_data):
         schedule_data = validated_data.pop("schedule", None)
@@ -154,10 +135,39 @@ class CreateBarrierPhoneSerializer(serializers.ModelSerializer):
             raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
 
 
+# class UpdateBarrierPhoneSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = BarrierPhone
+#         fields = ["name", "start_time", "end_time"]
+#
+#     def validate(self, attrs):
+#         phone = self.instance
+#         start_time = attrs.get("start_time", phone.start_time)
+#         end_time = attrs.get("end_time", phone.end_time)
+#
+#         if (
+#             phone.type == BarrierPhone.PhoneType.TEMPORARY
+#             and phone.start_time
+#             and phone.start_time < now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES)
+#         ):
+#             message = (
+#                 f"Temporary phone number cannot be updated less than "
+#                 f"{MINIMUM_TIME_INTERVAL_MINUTES} minutes before start."
+#             )
+#             raise DRFValidationError({"error": message})
+#
+#         try:
+#             validate_temporary_phone(phone.type, start_time, end_time)
+#         except DjangoValidationError as e:
+#             raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
+#
+#         return attrs
+
+
 class UpdatePhoneScheduleSerializer(ScheduleSerializer):
     """Partial update of schedule: only update the days that were explicitly passed."""
 
     # TODO - check everything
     def update(self, phone: BarrierPhone, validated_data):
-        TimeInterval.replace_schedule(phone, validated_data)
+        ScheduleTimeInterval.replace_schedule(phone, validated_data)
         return phone
