@@ -1271,6 +1271,63 @@
         }
       }
     },
+    "/barriers/{id}/check_access/": {
+      "get": {
+        "tags": [
+          "Barriers"
+        ],
+        "summary": "Проверка доступа пользователя к шлагбауму",
+        "description": "Позволяет проверить, имеет ли текущий пользователь доступ к указанному шлагбауму.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "barrier_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` шлагбаума."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о наличии доступа.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "has_access": {
+                      "type": "boolean",
+                      "description": "Флаг, указывающий, есть ли у пользователя доступ к шлагбауму.",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+           "400": {
+            "description": "Некорректный параметр запроса - `barrier_id`."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "404": {
+            "description": "Шлагбаум с указанным `id` не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
     "/admin/barriers/": {
       "post": {
         "tags": [

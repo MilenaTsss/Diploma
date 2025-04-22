@@ -143,3 +143,37 @@ class TestLeaveBarrierView:
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data["error"] == "You do not have access to this barrier."
+
+
+@pytest.mark.django_db
+class TestBarrierAccessCheckView:
+    def test_has_access_to_private_barrier(self, authenticated_client, private_barrier_with_access):
+        url = reverse("barrier_has_access", args=[private_barrier_with_access.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["has_access"] is True
+
+    def test_no_access_to_private_barrier(self, authenticated_client, private_barrier):
+        url = reverse("barrier_has_access", args=[private_barrier.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["has_access"] is False
+
+    def test_no_access_to_public_barrier(self, authenticated_client, barrier):
+        url = reverse("barrier_has_access", args=[barrier.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["has_access"] is False
+
+    def test_inactive_barrier_returns_404(self, authenticated_client, private_barrier_with_access):
+        private_barrier_with_access.is_active = False
+        private_barrier_with_access.save()
+
+        url = reverse("barrier_has_access", args=[private_barrier_with_access.id])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Barrier not found."
