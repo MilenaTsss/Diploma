@@ -1,11 +1,8 @@
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
-from django.utils.translation import gettext_lazy as _
 
-from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH
+from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH, STRING_MAX_LENGTH
 from core.validators import PhoneNumberValidator
-
-MAX_LENGTH = 255
 
 
 class Barrier(models.Model):
@@ -16,51 +13,42 @@ class Barrier(models.Model):
 
     # TODO - move into config file
     class Model(models.TextChoices):
-        RTU5025 = "RTU5025", _("RTU5025")
-        RTU5035 = "RTU5035", _("RTU5035")
-        TELEMETRICA = "Telemetrica", _("Telemetrica")
-        ELFOC = "Elfoc", _("Elfoc")
+        RTU5025 = "RTU5025", "RTU5025"
+        RTU5035 = "RTU5035", "RTU5035"
+        TELEMETRICA = "Telemetrica", "Telemetrica"
+        ELFOC = "Elfoc", "Elfoc"
 
     address = models.CharField(
-        max_length=MAX_LENGTH * 2,
+        max_length=STRING_MAX_LENGTH * 2,
         db_index=True,
-        null=False,
-        blank=False,
-        help_text=_("Full address of the barrier, validated based on frontend suggestions."),
+        help_text="Full address of the barrier, validated based on frontend suggestions.",
     )
 
     owner = models.ForeignKey(
         "users.User",
         on_delete=models.PROTECT,
         related_name="owned_barriers",  # for searching barriers for user - user.managed_barriers.all()
-        null=False,
-        help_text=_("User who owns the barrier. Must be an admin."),
+        help_text="User who owns the barrier. Must be an admin.",
     )
 
     device_phone = models.CharField(
         max_length=PHONE_MAX_LENGTH,
         db_index=True,
         validators=[PhoneNumberValidator()],
-        null=False,
-        blank=False,
-        help_text=_("Enter a phone number in the format +7XXXXXXXXXX."),
+        help_text="Enter a phone number in the format +7XXXXXXXXXX.",
     )
 
     device_model = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Model.choices)
 
     device_phones_amount = models.PositiveIntegerField(
-        default=1, null=False, help_text=_("Number of registered device phones. Must be at least 1.")
+        default=1, help_text="Number of registered device phones. Must be at least 1."
     )
 
-    device_password = models.CharField(
-        max_length=20, null=True, blank=True, help_text=_("Device password for managing.")
-    )
+    device_password = models.CharField(max_length=20, null=True, blank=True, help_text="Device password for managing.")
 
-    additional_info = models.TextField(blank=True, null=False, help_text=_("Additional details about the barrier."))
+    additional_info = models.TextField(blank=True, help_text="Additional details about the barrier.")
 
-    is_public = models.BooleanField(
-        default=True, null=False, help_text=_("Whether the barrier is visible to all users.")
-    )
+    is_public = models.BooleanField(default=True, help_text="Whether the barrier is visible to all users.")
 
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -84,22 +72,20 @@ class UserBarrier(models.Model):
         "users.User",
         on_delete=models.PROTECT,
         related_name="barriers_access",
-        help_text=_("User who has access to the barrier."),
+        help_text="User who has access to the barrier.",
     )
 
     barrier = models.ForeignKey(
         "barriers.Barrier",
         on_delete=models.PROTECT,
         related_name="users_access",
-        help_text=_("Barrier to which the user has access."),
+        help_text="Barrier to which the user has access.",
     )
 
     access_request = models.ForeignKey(
         "access_requests.AccessRequest",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text=_("The request from which this access was created."),
+        on_delete=models.PROTECT,
+        help_text="The request from which this access was created.",
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
@@ -132,9 +118,7 @@ class UserBarrier(models.Model):
 
     @classmethod
     def user_has_access_to_barrier(cls, user, barrier):
-        """
-        Returns True if the given user has access to the specified barrier.
-        """
+        """Returns True if the given user has access to the specified barrier."""
 
         return cls.objects.filter(user=user, barrier=barrier, is_active=True).exists()
 
@@ -165,6 +149,18 @@ class BarrierLimit(models.Model):
 
     global_temp_phone_limit = models.PositiveIntegerField(
         null=True, blank=True, help_text="Maximum number of temporary phone numbers allowed in total"
+    )
+
+    user_schedule_phone_limit = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Maximum number of schedule phone numbers allowed per user"
+    )
+
+    global_schedule_phone_limit = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Maximum number of schedule phone numbers allowed in total"
+    )
+
+    schedule_interval_limit = models.PositiveIntegerField(
+        null=True, blank=True, help_text="Maximum number of schedule phone numbers allowed in total"
     )
 
     sms_weekly_limit = models.PositiveIntegerField(

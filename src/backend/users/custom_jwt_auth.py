@@ -1,4 +1,3 @@
-from django.utils.translation import gettext_lazy as _
 from rest_framework.exceptions import PermissionDenied
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import AuthenticationFailed, InvalidToken
@@ -19,9 +18,9 @@ class CustomJWTAuthentication(JWTAuthentication):
         except InvalidToken as e:
             raise e
         except AuthenticationFailed as e:
-            if e.detail == _("User not found"):
+            if e.detail == "User not found":
                 raise e
             else:
-                raise PermissionDenied(_("User is blocked"))
+                raise PermissionDenied("User is blocked")
 
         return user

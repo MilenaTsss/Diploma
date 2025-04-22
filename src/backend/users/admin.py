@@ -3,7 +3,6 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import Group
-from django.utils.translation import gettext_lazy as _
 
 from core.validators import PhoneNumberValidator
 from users.models import User
@@ -13,15 +12,15 @@ class AdminCreationForm(forms.ModelForm):
     """Custom form for creating an admin via Django Admin"""
 
     phone = forms.CharField(
-        label=_("Phone"),
+        label="Phone",
         validators=[PhoneNumberValidator()],
-        help_text=_("Enter a valid phone number in the format +7XXXXXXXXXX."),
+        help_text="Enter a valid phone number in the format +7XXXXXXXXXX.",
     )
 
     password = forms.CharField(
-        label=_("Password"),
+        label="Password",
         widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
-        help_text=_("Set a password for the new admin."),
+        help_text="Set a password for the new admin.",
     )
 
     class Meta:
@@ -47,7 +46,7 @@ class UserAdmin(BaseUserAdmin):
         """Change the page title from 'Add user' to 'Add admin'"""
 
         extra_context = extra_context or {}
-        extra_context["title"] = _("Add admin")
+        extra_context["title"] = "Add admin"
         return super().add_view(request, form_url, extra_context)
 
     def has_view_permission(self, request, obj=None):
@@ -74,7 +73,7 @@ class UserAdmin(BaseUserAdmin):
         """Prevents superusers from deactivating themselves"""
 
         if change and obj == request.user and not obj.is_active:
-            self.message_user(request, _("You cannot deactivate your own account."), level="error")
+            self.message_user(request, "You cannot deactivate your own account.", level="error")
             return
 
         super().save_model(request, obj, form, change)
@@ -92,7 +91,7 @@ class UserAdmin(BaseUserAdmin):
         "last_login",
     )
 
-    fieldsets = ((_("User Info"), {"fields": (*readonly_fields, "is_active")}),)
+    fieldsets = (("User Info", {"fields": (*readonly_fields, "is_active")}),)
 
     add_form = AdminCreationForm  # Use custom form
     add_fieldsets = (
