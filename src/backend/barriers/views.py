@@ -2,8 +2,9 @@ import logging
 
 from django.db.models import Q
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.generics import DestroyAPIView, RetrieveAPIView
+from rest_framework.views import APIView
 
 from barriers.models import Barrier, BarrierLimit, UserBarrier
 from barriers.serializers import BarrierLimitSerializer, BarrierSerializer
@@ -118,3 +119,16 @@ class LeaveBarrierView(DestroyAPIView):
         user_barrier.is_active = False
         user_barrier.save(update_fields=["is_active"])
         return success_response({"message": "Left the barrier successfully."})
+
+
+class BarrierAccessCheckView(APIView):
+    """Check if current user has access to a specific barrier"""
+
+    def get(self, request, id):
+        barrier = Barrier.objects.filter(id=id, is_active=True).first()
+        if not barrier:
+            raise NotFound("Barrier not found.")
+
+        has_access = UserBarrier.user_has_access_to_barrier(request.user, barrier)
+
+        return success_response({"has_access": has_access})
