@@ -24,7 +24,7 @@ services:
       - ./backend/staticfiles:/backend_app/staticfiles
       - ./backend/logs:/backend_app/logs
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1" ]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -52,7 +52,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -79,7 +79,7 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:4173/ || exit 1"]
+      test: [ "CMD-SHELL", "curl -f http://localhost:4173/ || exit 1" ]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -151,14 +151,7 @@ services:
     volumes:
       - kafka_data:/bitnami/kafka
     healthcheck:
-      test:
-        [
-          "CMD",
-          "kafka-topics.sh",
-          "--bootstrap-server",
-          "localhost:9092",
-          "--list",
-        ]
+      test: [ "CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list" ]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -176,7 +169,7 @@ services:
       - kafka/kafka.env
     environment:
       - TZ=Europe/Moscow
-    entrypoint: ["/bin/bash", "-c", "/init_topics.sh"]
+    entrypoint: [ "/bin/bash", "-c", "/init_topics.sh" ]
     depends_on:
       kafka:
         condition: service_healthy
@@ -205,11 +198,7 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --spider -q http://localhost:8080/kafka_ui/ || exit 1",
-        ]
+      test: [ "CMD-SHELL", "wget --spider -q http://localhost:8080/kafka_ui/ || exit 1" ]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -231,8 +220,7 @@ services:
       - ./monitoring/loki/loki-config.yml:/etc/loki/loki-config.yml
       - loki_data:/loki
     healthcheck:
-      test:
-        ["CMD-SHELL", "wget --spider -q http://localhost:3100/ready || exit 1"]
+      test: [ "CMD-SHELL", "wget --spider -q http://localhost:3100/ready || exit 1" ]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -261,11 +249,7 @@ services:
       - ./monitoring/promtail/tmp:/tmp
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "bash -c 'printf \"GET / HTTP/1.1\n\n\" > /dev/tcp/127.0.0.1/9080; exit $?;'",
-        ]
+      test: [ "CMD-SHELL", "bash -c 'printf \"GET / HTTP/1.1\n\n\" > /dev/tcp/127.0.0.1/9080; exit $?;'" ]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -295,11 +279,7 @@ services:
       - ./monitoring/grafana/dashboards:/etc/grafana/dashboards
       - grafana_data:/var/lib/grafana
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "wget --spider -q http://localhost:3000/api/health || exit 1",
-        ]
+      test: [ "CMD-SHELL", "wget --spider -q http://localhost:3000/api/health || exit 1" ]
       interval: 20s
       timeout: 30s
       retries: 5

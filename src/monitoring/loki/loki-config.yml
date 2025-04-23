@@ -25,7 +25,7 @@ storage_config:
     directory: /loki/chunks
 
 limits_config:
-  retention_period: 336h # 2 weeks
+  retention_period: 336h  # 2 weeks
 
 pattern_ingester:
   enabled: true
