@@ -1,4 +1,3 @@
-
 name: Checks
 
 on:
@@ -61,7 +60,6 @@ jobs:
         working-directory: ./src/backend
         run: |
           python manage.py makemigrations --check --dry-run
-
 
   apply-migrations:
     name: Check Django migrate (SQLite)

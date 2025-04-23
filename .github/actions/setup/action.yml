@@ -1,16 +1,15 @@
-
 name: Setup Python & Install Requirements
 description: Checkout, set up Python, install pip dependencies
 
 inputs:
   python-version:
-    description: 'Python version'
+    description: "Python version"
     required: false
-    default: '3.13'
+    default: "3.13"
   node-version:
-    description: 'Node.js version'
+    description: "Node.js version"
     required: false
-    default: '21.7'
+    default: "21.7"
 
 runs:
   using: composite

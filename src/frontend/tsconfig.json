@@ -12,10 +12,5 @@
     "resolveJsonModule": true,
     "allowSyntheticDefaultImports": true
   },
-  "include": [
-    "src",
-    "tests",
-    "jest.setup.js",
-    "tests/setupTests.d.ts"
-  ]
+  "include": ["src", "tests", "jest.setup.js", "tests/setupTests.d.ts"]
 }

@@ -26,9 +26,7 @@
   "paths": {
     "/auth/codes/": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Отправка кода подтверждения в SMS.",
         "description": "Отправляет одноразовый код подтверждения на указанный номер телефона.\n\nКод будет действовать в течение 5 минут.",
         "requestBody": {
@@ -97,9 +95,7 @@
     },
     "/auth/codes/verify/": {
       "patch": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Подтверждение кода из SMS.",
         "description": "Проверяет код подтверждения, отправленный на номер телефона.\n\nЕсли код верный, обновляет его статус на `verified`.",
         "requestBody": {
@@ -171,9 +167,7 @@
     },
     "/auth/login/": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Авторизация по SMS-коду.",
         "description": "Авторизации пользователя после отправки кода подтверждения.\n\nПараметры включают номер телефона и код, полученный на телефон. \n\nВ ответ возвращается токен авторизации, который будет сохранен на стороне клиента.",
         "requestBody": {
@@ -239,9 +233,7 @@
     },
     "/auth/token/refresh/": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Обновление `access`-токена.",
         "description": "Принимает `refresh`-токен и возвращает новый `access`-токен. Используется для продления сессии без повторной авторизации.",
         "requestBody": {
@@ -293,9 +285,7 @@
     },
     "/auth/admin/password_verification/": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Проверка пароля перед авторизацией администратора.",
         "description": "Проверяет введенный пароль администратора перед входом по коду.\n\n Если пароль верен, сервер разрешает отправку SMS-кода для входа.\n\n",
         "requestBody": {
@@ -339,9 +329,7 @@
     },
     "/users/check_admin/": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Проверить является ли пользователь администратором. ",
         "description": "Принимает номер телефона и проверяет, является ли пользователь с этим номером администратором. \n\nВ случае, если пользователя с таким номером телефона не существует также отправляет ответ, что это не администратор.",
         "requestBody": {
@@ -391,9 +379,7 @@
     },
     "/users/me/": {
       "get": {
-        "tags": [
-          "User"
-        ],
+        "tags": ["User"],
         "summary": "Получить информацию о текущем пользователе.",
         "description": "Возвращает данные текущего авторизованного пользователя. \n\nДоступно только после успешной авторизации с использованием `Bearer` токена в заголовке запроса.",
         "security": [
@@ -424,9 +410,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "User"
-        ],
+        "tags": ["User"],
         "summary": "Редактирование профиля пользователя.",
         "description": "Позволяет пользователям изменить свое имя (`full_name`).\n\nАдминистраторы также могут изменять настройки приватности номера (`phone_privacy`).",
         "security": [
@@ -448,11 +432,7 @@
                   },
                   "phone_privacy": {
                     "type": "string",
-                    "enum": [
-                      "public",
-                      "private",
-                      "protected"
-                    ],
+                    "enum": ["public", "private", "protected"],
                     "description": "Настройки приватности номера (только для администраторов).",
                     "example": "public",
                     "default": "private"
@@ -491,9 +471,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "User"
-        ],
+        "tags": ["User"],
         "summary": "Удаление аккаунта текущего пользователя.",
         "description": "Позволяет пользователю самостоятельно удалить свой аккаунт. Требует авторизации (`Bearer Token`). Также требует подтверждение по SMS.",
         "security": [
@@ -539,9 +517,7 @@
     },
     "/users/me/phone/": {
       "patch": {
-        "tags": [
-          "User"
-        ],
+        "tags": ["User"],
         "summary": "Cмена номера телефона.",
         "description": "Сервер проверяет, что коды на старый и новый номер были подтверждены перед обновлением номера телефона.",
         "security": [
@@ -608,9 +584,7 @@
     },
     "/users/me/password/": {
       "patch": {
-        "tags": [
-          "User"
-        ],
+        "tags": ["User"],
         "summary": "Смена пароля (только для администраторов).",
         "description": "Позволяет администратору сменить пароль.\n\nПеред этим необходимо отправить код и подтвердить его через `/auth/codes/`.",
         "security": [
@@ -678,9 +652,7 @@
     },
     "/users/me/password/reset/": {
       "patch": {
-        "tags": [
-          "User"
-        ],
+        "tags": ["User"],
         "summary": "Восстановление пароля (по SMS-коду).",
         "description": "Позволяет пользователю восстановить пароль после подтверждения номера через SMS. Перед этим запросом необходимо подтверить смену по SMS.",
         "requestBody": {
@@ -736,9 +708,7 @@
     },
     "/admin/users/{user_id}/": {
       "get": {
-        "tags": [
-          "Admin. Users."
-        ],
+        "tags": ["Admin. Users."],
         "summary": "Получение информации о пользователе (только для администраторов).",
         "description": "Позволяет администраторам просматривать данные любого пользователя по его `id`.\n\n Требуется `Bearer` токен в заголовке запроса.\n\nДоступ разрешен только администраторам.",
         "security": [
@@ -789,9 +759,7 @@
     },
     "/admin/users/{user_id}/block/": {
       "patch": {
-        "tags": [
-          "Admin. Users."
-        ],
+        "tags": ["Admin. Users."],
         "summary": "Блокировка пользователя (только для администраторов).",
         "description": "Позволяет администратору заблокировать пользователя, запретив ему вход в систему.",
         "security": [
@@ -859,9 +827,7 @@
     },
     "/admin/users/{user_id}/unblock/": {
       "patch": {
-        "tags": [
-          "Admin. Users."
-        ],
+        "tags": ["Admin. Users."],
         "summary": "Отмена блокировки пользователя (только для администраторов).",
         "description": "Позволяет администратору разблокировать пользователя, разрешив ему вход в систему.",
         "security": [
@@ -912,9 +878,7 @@
     },
     "/admin/users/search/": {
       "post": {
-        "tags": [
-          "Admin. Users."
-        ],
+        "tags": ["Admin. Users."],
         "summary": "Поиск пользователя по номеру телефона (только для администраторов).",
         "description": "Позволяет администратору искать пользователя по номеру телефона.",
         "security": [
@@ -971,9 +935,7 @@
     },
     "/barriers/": {
       "get": {
-        "tags": [
-          "Barriers"
-        ],
+        "tags": ["Barriers"],
         "summary": "Получение списка всех шлагбаумов (поиск, фильтрация, пагинация).",
         "description": "Позволяет получить список всех зарегистрированных шлагбаумов.\n\nМожно использовать фильтрацию по адресу, поддерживает пагинацию. Также поддерживает сортировку по адресу.",
         "security": [
@@ -987,10 +949,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "address",
-                "-address"
-              ]
+              "enum": ["address", "-address"]
             }
           },
           {
@@ -1074,9 +1033,7 @@
     },
     "/barriers/my/": {
       "get": {
-        "tags": [
-          "Barriers"
-        ],
+        "tags": ["Barriers"],
         "summary": "Получение списка шлагбаумов, доступных пользователю.",
         "description": "Список шлагбаумов, к которым у пользователя есть доступ.\n\nЕсли администратор делает этот запрос, он видит только те шлагбаумы, в которых он добавлен, как обычный пользователь.\n\nПоддерживает сортировку по адресу.",
         "security": [
@@ -1090,10 +1047,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "address",
-                "-address"
-              ]
+              "enum": ["address", "-address"]
             }
           },
           {
@@ -1167,9 +1121,7 @@
     },
     "/barriers/{barrier_id}/": {
       "get": {
-        "tags": [
-          "Barriers"
-        ],
+        "tags": ["Barriers"],
         "summary": "Получение информации о шлагбауме.",
         "description": "Возвращает полную информацию о шлагбауме по его `ID`.",
         "security": [
@@ -1220,9 +1172,7 @@
     },
     "/barriers/{barrier_id}/limits/": {
       "get": {
-        "tags": [
-          "Limits"
-        ],
+        "tags": ["Limits"],
         "summary": "Получение всех лимитов шлагбаума.",
         "description": "Возвращает объект с установленными лимитами. Если лимит не установлен, значение равно null.",
         "security": [
@@ -1273,9 +1223,7 @@
     },
     "/barriers/{id}/check_access/": {
       "get": {
-        "tags": [
-          "Barriers"
-        ],
+        "tags": ["Barriers"],
         "summary": "Проверка доступа пользователя к шлагбауму",
         "description": "Позволяет проверить, имеет ли текущий пользователь доступ к указанному шлагбауму.",
         "security": [
@@ -1313,7 +1261,7 @@
               }
             }
           },
-           "400": {
+          "400": {
             "description": "Некорректный параметр запроса - `barrier_id`."
           },
           "401": {
@@ -1330,9 +1278,7 @@
     },
     "/admin/barriers/": {
       "post": {
-        "tags": [
-          "Admin. Barriers."
-        ],
+        "tags": ["Admin. Barriers."],
         "summary": "Создание нового шлагбаума (только для администраторов).",
         "description": "Позволяет администратору создать новый шлагбаум, указав все необходимые параметры.",
         "security": [
@@ -1359,12 +1305,7 @@
                   },
                   "device_model": {
                     "type": "string",
-                    "enum": [
-                      "RTU5025",
-                      "RTU5035",
-                      "Telemetrica",
-                      "Elfoc"
-                    ],
+                    "enum": ["RTU5025", "RTU5035", "Telemetrica", "Elfoc"],
                     "description": "Модель GSM модуля.",
                     "example": "RTU5025"
                   },
@@ -1424,9 +1365,7 @@
     },
     "/admin/barriers/my/": {
       "get": {
-        "tags": [
-          "Admin. Barriers."
-        ],
+        "tags": ["Admin. Barriers."],
         "summary": "Получение списка шлагбаумов, которыми управляет администратор.",
         "description": "Возвращает список всех шлагбаумов, которыми управляет текущий администратор.\n\nПоддерживает сортировку по адресу, времени создания и времени изменения.",
         "security": [
@@ -1520,9 +1459,7 @@
     },
     "/admin/barriers/{barrier_id}/": {
       "get": {
-        "tags": [
-          "Admin. Barriers."
-        ],
+        "tags": ["Admin. Barriers."],
         "summary": "Получение данных шлагбаума - для администраторов.",
         "description": "Получение расширенного списка данных для шлагбаума. Только для администратора.",
         "security": [
@@ -1574,9 +1511,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Admin. Barriers."
-        ],
+        "tags": ["Admin. Barriers."],
         "summary": "Удаление шлагбаума (только для администраторов).",
         "description": "Удаление шлагбаума полностью из системы. Только для администратора.",
         "security": [
@@ -1621,9 +1556,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Admin. Barriers."
-        ],
+        "tags": ["Admin. Barriers."],
         "summary": "Редактирование шлагбаума (только для администраторов).",
         "description": "Позволяет администратору обновить информацию о шлагбауме, включая адрес, телефон устройства, настройки приватности.",
         "security": [
@@ -1699,9 +1632,7 @@
     },
     "/admin/barriers/{barrier_id}/limits/": {
       "put": {
-        "tags": [
-          "Limits"
-        ],
+        "tags": ["Limits"],
         "summary": "Обновление или установка лимитов шлагбаума (только для администраторов).",
         "description": "Позволяет установить новые лимиты или обновить существующие.\n\nМожно передавать один или несколько лимитов, остальные останутся без изменений.\n\nЕсли передать `null`, лимит будет удален.",
         "security": [
@@ -1765,9 +1696,7 @@
     },
     "/admin/barriers/{barrier_id}/settings/": {
       "get": {
-        "tags": [
-          "Admin. Barriers."
-        ],
+        "tags": ["Admin. Barriers."],
         "summary": "Получение списка доступных настроек для шлагбаума (только для администраторов).",
         "description": "Возвращает список возможных настроек для данного шлагбаума в зависимости от его модели.",
         "security": [
@@ -1870,9 +1799,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Admin. Barriers."
-        ],
+        "tags": ["Admin. Barriers."],
         "summary": "Изменение настроек шлагбаума (только для администраторов).",
         "description": "Позволяет администратору изменить одну или несколько настроек шлагбаума. Сервер проверяет валидность переданных параметров перед отправкой команды.",
         "security": [
@@ -1959,9 +1886,7 @@
     },
     "/access_requests/": {
       "post": {
-        "tags": [
-          "Access Requests"
-        ],
+        "tags": ["Access Requests"],
         "summary": "Отправка запроса на доступ.",
         "description": "Позволяет пользователю отправить запрос на доступ к публичному шлагбауму.\n\nЗапрещено отправлять запрос, если шлагбаум приватный, удалённый, если уже существует активная заявка или активный доступ.",
         "security": [
@@ -2016,9 +1941,7 @@
     },
     "/access_requests/my/": {
       "get": {
-        "tags": [
-          "Access Requests"
-        ],
+        "tags": ["Access Requests"],
         "summary": "Просмотр своих заявок.",
         "description": "Позволяет фильтровать заявки по входящим/исходящим, статусу, шлагбауму, скрытию и поддерживает пагинацию.\n\nТакже есть сортировка по времени создания, времени закрытия заявки и по статусу.",
         "security": [
@@ -2047,10 +1970,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "incoming",
-                "outgoing"
-              ]
+              "enum": ["incoming", "outgoing"]
             },
             "description": "Фильтр по типу заявок: `incoming` - входящие (те, которые можно принять/отклонить), `outgoing` - исходящие (те, которые отправил текущий пользователь)."
           },
@@ -2059,12 +1979,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "pending",
-                "accepted",
-                "rejected",
-                "cancelled"
-              ]
+              "enum": ["pending", "accepted", "rejected", "cancelled"]
             },
             "description": "Фильтр по статусу заявки."
           },
@@ -2150,9 +2065,7 @@
     },
     "/access_requests/{request_id}/": {
       "get": {
-        "tags": [
-          "Access Requests"
-        ],
+        "tags": ["Access Requests"],
         "summary": "Просмотр заявки на доступ.",
         "description": "Позволяет получить информацию о конкретной заявке на доступ по её `ID`.",
         "security": [
@@ -2198,9 +2111,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Access Requests"
-        ],
+        "tags": ["Access Requests"],
         "summary": "Обновление заявки пользователем.",
         "description": "Позволяет принять, отклонить или отменить запрос. \n\nЕсли `status` = `cancelled`, запрос отменяет отправитель. Если `status` = `accepted` или `rejected`, это делает получатель запроса.\n\nТакже позволяет скрыть запрос у пользователя или отменить скрытие.",
         "security": [
@@ -2229,12 +2140,7 @@
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "pending",
-                      "accepted",
-                      "rejected",
-                      "cancelled"
-                    ],
+                    "enum": ["pending", "accepted", "rejected", "cancelled"],
                     "description": "Новый статус заявки."
                   },
                   "hidden_for_user": {
@@ -2274,9 +2180,7 @@
     },
     "/admin/access_requests/": {
       "post": {
-        "tags": [
-          "Access Requests"
-        ],
+        "tags": ["Access Requests"],
         "summary": "Приглашение пользователя к шлагбауму администратором.",
         "description": "Позволяет администратору отправить приглашение пользователю на доступ к своему шлагбауму.\n\nАдминистратор не может пригласить неактивного пользователя. Также запрещено приглашать, если уже есть активная заявка или у пользователя уже есть доступ.",
         "security": [
@@ -2331,9 +2235,7 @@
     },
     "/admin/access_requests/my/": {
       "get": {
-        "tags": [
-          "Access Requests"
-        ],
+        "tags": ["Access Requests"],
         "summary": "Просмотр заявок на доступ к шлагбаумам администратора.",
         "description": "Позволяет фильтровать заявки по входящим/исходящим, статусу, шлагбауму, скрытию и поддерживает пагинацию.\n\nТакже есть сортировка по времени создания, времени закрытия заявки и по статусу.",
         "security": [
@@ -2362,10 +2264,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "incoming",
-                "outgoing"
-              ]
+              "enum": ["incoming", "outgoing"]
             },
             "description": "Фильтр по типу заявок: `incoming` - входящие (те, которые можно принять/отклонить), `outgoing` - исходящие (те, которые отправил текущий пользователь)."
           },
@@ -2374,12 +2273,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "pending",
-                "accepted",
-                "rejected",
-                "cancelled"
-              ]
+              "enum": ["pending", "accepted", "rejected", "cancelled"]
             },
             "description": "Фильтр по статусу заявки."
           },
@@ -2465,9 +2359,7 @@
     },
     "/admin/access_requests/{request_id}/": {
       "get": {
-        "tags": [
-          "Access Requests"
-        ],
+        "tags": ["Access Requests"],
         "summary": "Просмотр заявки на доступ.",
         "description": "Позволяет получить информацию о конкретной заявке на доступ по её `ID`.",
         "security": [
@@ -2513,9 +2405,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Access Requests"
-        ],
+        "tags": ["Access Requests"],
         "summary": "Обновление заявки администратором.",
         "description": "Позволяет принять, отклонить или отменить запрос. \n\nЕсли `status` = `cancelled`, запрос отменяет отправитель. Если `status` = `accepted` или `rejected`, это делает получатель запроса.\n\nТакже позволяет скрыть запрос у администратора или отменить скрытие.",
         "security": [
@@ -2544,12 +2434,7 @@
                 "properties": {
                   "status": {
                     "type": "string",
-                    "enum": [
-                      "pending",
-                      "accepted",
-                      "rejected",
-                      "cancelled"
-                    ],
+                    "enum": ["pending", "accepted", "rejected", "cancelled"],
                     "description": "Новый статус заявки."
                   },
                   "hidden_for_admin": {
@@ -2589,9 +2474,7 @@
     },
     "/barriers/{barrier_id}/leave/": {
       "delete": {
-        "tags": [
-          "Barriers. Users."
-        ],
+        "tags": ["Barriers. Users."],
         "summary": "Пользователь выходит из шлагбаума.",
         "description": "Позволяет текущему пользователю покинуть группу доступа к шлагбауму.",
         "security": [
@@ -2635,9 +2518,7 @@
     },
     "/admin/barriers/{barrier_id}/users/": {
       "get": {
-        "tags": [
-          "Barriers. Users."
-        ],
+        "tags": ["Barriers. Users."],
         "summary": "Получение списка пользователей шлагбаума (только для администраторов).",
         "description": "Позволяет администратору получить список пользователей, имеющих доступ к шлагбауму.",
         "security": [
@@ -2661,12 +2542,7 @@
             "in": "query",
             "schema": {
               "type": "string",
-              "enum": [
-                "full_name",
-                "-full_name",
-                "phone",
-                "-phone"
-              ]
+              "enum": ["full_name", "-full_name", "phone", "-phone"]
             }
           },
           {
@@ -2741,9 +2617,7 @@
     },
     "/admin/barriers/{barrier_id}/users/{user_id}/": {
       "delete": {
-        "tags": [
-          "Barriers. Users."
-        ],
+        "tags": ["Barriers. Users."],
         "summary": "Удаление пользователя из шлагбаума (админ).",
         "description": "Позволяет администратору удалить пользователя из группы доступа к шлагбауму.",
         "security": [
@@ -2797,9 +2671,7 @@
     },
     "/barriers/{barrier_id}/users/{user_id}/phones/": {
       "get": {
-        "tags": [
-          "Phones"
-        ],
+        "tags": ["Phones"],
         "summary": "Получение списка номеров пользователя в шлагбауме.",
         "description": "Позволяет пользователю получить свои номера в шлагбауме, а администратору – номера любого пользователя.",
         "security": [
@@ -2898,9 +2770,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Phones"
-        ],
+        "tags": ["Phones"],
         "summary": "Добавление номера пользователю в шлагбауме.",
         "description": "Пользователь добавляет свой номер, администратор добавляет номер другому пользователю.",
         "security": [
@@ -2950,11 +2820,7 @@
                   },
                   "type": {
                     "type": "string",
-                    "enum": [
-                      "permanent",
-                      "temporary",
-                      "schedule"
-                    ],
+                    "enum": ["permanent", "temporary", "schedule"],
                     "description": "Тип номера (постоянный, временный, по расписанию).",
                     "example": "temporary"
                   },
@@ -3009,9 +2875,7 @@
     },
     "/barriers/{barrier_id}/users/{user_id}/phones/{phone_id}/": {
       "patch": {
-        "tags": [
-          "Phones"
-        ],
+        "tags": ["Phones"],
         "summary": "Изменение номера пользователя в шлагбауме.",
         "description": "Изменение имени, типа или времени действия номера (для временных номеров).\n\nИзменения в расписании выполняются с помощью запроса `/barriers/{barrier_id}/users/{user_id}/phones/{phone_id}/schedule/`",
         "security": [
@@ -3064,11 +2928,7 @@
                   },
                   "type": {
                     "type": "string",
-                    "enum": [
-                      "static",
-                      "temporary",
-                      "schedule"
-                    ],
+                    "enum": ["static", "temporary", "schedule"],
                     "example": "schedule"
                   },
                   "start_time": {
@@ -3115,9 +2975,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Phones"
-        ],
+        "tags": ["Phones"],
         "summary": "Удаление номера у пользователя в шлагбауме.",
         "description": "Пользователь удаляет свой номер, администратор удаляет номер у другого пользователя.",
         "security": [
@@ -3181,9 +3039,7 @@
     },
     "/barriers/{barrier_id}/users/{user_id}/phones/{phone_id}/schedule/": {
       "get": {
-        "tags": [
-          "Phones"
-        ],
+        "tags": ["Phones"],
         "summary": "Получение расписания номера.",
         "description": "Позволяет получить текущее расписание номера телефона.",
         "security": [
@@ -3252,9 +3108,7 @@
         }
       },
       "put": {
-        "tags": [
-          "Phones"
-        ],
+        "tags": ["Phones"],
         "summary": "Изменение расписания номера.",
         "description": "Позволяет изменить расписание номера телефона, только для телефонов которые работают по расписанию.\n\nМеняются только те значения, которые будут переданы в запросе. \n\nЕсли передать `null`, то расписание на этот день будет удалено.",
         "security": [
@@ -3362,10 +3216,7 @@
           },
           "role": {
             "type": "string",
-            "enum": [
-              "user",
-              "admin"
-            ],
+            "enum": ["user", "admin"],
             "description": "Роль пользователя в системе.",
             "example": "admin",
             "default": "user"
@@ -3377,11 +3228,7 @@
           },
           "phone_privacy": {
             "type": "string",
-            "enum": [
-              "public",
-              "private",
-              "protected"
-            ],
+            "enum": ["public", "private", "protected"],
             "description": "Privacy-настройки номера: `public` — виден всем, `protected` — только для пользователей своих шлагбаумов, `private` — скрыт для всех.",
             "example": "public",
             "default": "private"
@@ -3455,12 +3302,7 @@
           },
           "device_model": {
             "type": "string",
-            "enum": [
-              "RTU5025",
-              "RTU5035",
-              "Telemetrica",
-              "Elfoc"
-            ],
+            "enum": ["RTU5025", "RTU5035", "Telemetrica", "Elfoc"],
             "example": "RTU5025"
           },
           "device_phones_amount": {
@@ -3561,28 +3403,17 @@
           },
           "request_type": {
             "type": "string",
-            "enum": [
-              "from_user",
-              "from_barrier"
-            ],
+            "enum": ["from_user", "from_barrier"],
             "example": "from_user"
           },
           "type": {
             "type": "string",
-            "enum": [
-              "incoming",
-              "outgoing"
-            ],
+            "enum": ["incoming", "outgoing"],
             "example": "incoming"
           },
           "status": {
             "type": "string",
-            "enum": [
-              "pending",
-              "accepted",
-              "rejected",
-              "cancelled"
-            ],
+            "enum": ["pending", "accepted", "rejected", "cancelled"],
             "example": "pending",
             "default": "pending"
           },
@@ -3634,11 +3465,7 @@
           },
           "type": {
             "type": "string",
-            "enum": [
-              "permanent",
-              "temporary",
-              "schedule"
-            ],
+            "enum": ["permanent", "temporary", "schedule"],
             "example": "temporary"
           },
           "start_time": {
@@ -3755,10 +3582,7 @@
           },
           "author": {
             "type": "string",
-            "enum": [
-              "admin",
-              "user"
-            ],
+            "enum": ["admin", "user"],
             "example": "admin"
           },
           "action_type": {
@@ -3779,11 +3603,7 @@
           },
           "status": {
             "type": "string",
-            "enum": [
-              "success",
-              "failure",
-              "in_progress"
-            ],
+            "enum": ["success", "failure", "in_progress"],
             "example": "success"
           },
           "message": {

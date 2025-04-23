@@ -25,7 +25,7 @@ services:
       - ./backend:/backend_app
       - ./backend/logs:/backend_app/logs
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1" ]
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -49,7 +49,7 @@ services:
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -75,7 +75,7 @@ services:
       - ./frontend:/frontend_app
       - /frontend_app/node_modules
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:5173/ || exit 1" ]
+      test: ["CMD-SHELL", "curl -f http://localhost:5173/ || exit 1"]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -131,7 +131,14 @@ services:
     volumes:
       - kafka_data_dev:/bitnami/kafka
     healthcheck:
-      test: [ "CMD", "kafka-topics.sh", "--bootstrap-server", "localhost:9092", "--list" ]
+      test:
+        [
+          "CMD",
+          "kafka-topics.sh",
+          "--bootstrap-server",
+          "localhost:9092",
+          "--list",
+        ]
       interval: 20s
       timeout: 30s
       retries: 5
@@ -144,7 +151,7 @@ services:
       - kafka/kafka.env
     environment:
       - TZ=Europe/Moscow
-    entrypoint: [ "/bin/bash", "-c", "/init_topics.sh" ]
+    entrypoint: ["/bin/bash", "-c", "/init_topics.sh"]
     depends_on:
       kafka:
         condition: service_healthy
@@ -169,7 +176,11 @@ services:
       kafka:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL", "wget --spider -q http://localhost:8080/kafka_ui/ || exit 1" ]
+      test:
+        [
+          "CMD-SHELL",
+          "wget --spider -q http://localhost:8080/kafka_ui/ || exit 1",
+        ]
       interval: 20s
       timeout: 30s
       retries: 5

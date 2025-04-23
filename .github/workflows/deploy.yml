@@ -2,7 +2,7 @@ name: Docker Compose CI/CD
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
   build-and-run-docker-compose:
@@ -20,9 +20,9 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
-            
+
             cd ${{ secrets.DEPLOY_DIRECTORY }}
-            
+
             if [ -d Diploma/.git ]; then
               echo "Repo already exists. Pulling latest changes..."
               cd Diploma/
@@ -34,19 +34,19 @@ jobs:
               cd Diploma/
             fi
             cd src/
-            
+
             echo "Writing environment files..."
             echo "${{ secrets.ENV_FILE_PROD_BACK }}" > backend/prod.env
             echo "${{ secrets.ENV_FILE_PROD_FRONT }}" > frontend/prod.env
             echo "${{ secrets.ENV_FILE_KAFKA }}" > kafka/kafka.env
             echo "${{ secrets.ENV_FILE_KAFKA_UI }}" > kafka/kafka-ui.env
             echo "${{ secrets.ENV_FILE_GRAFANA }}" > monitoring/grafana.env
-            
+
             echo "Setting up certs..."
             mkdir -p certs
             echo "${{ secrets.SSL_CERT }}" > certs/server.crt
             echo "${{ secrets.SSL_KEY }}" > certs/server.key
-            
+
             echo "Pulling dependencies & rebuilding containers..."
             docker-compose -f docker-compose.prod.yml down
             docker-compose -f docker-compose.prod.yml up -d --build
