@@ -25,19 +25,21 @@ beforeEach(() => {
 describe("LoginUserPage", () => {
   test("рендерится корректно", () => {
     render(
-        <MemoryRouter>
-          <LoginUserPage />
-        </MemoryRouter>
+      <MemoryRouter>
+        <LoginUserPage />
+      </MemoryRouter>,
     );
-    expect(screen.getByLabelText(/Введите номер телефона/i)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(/Введите номер телефона/i),
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Далее/i })).toBeInTheDocument();
   });
 
   test("не отправляет запрос при неправильном номере", () => {
     render(
-        <MemoryRouter>
-          <LoginUserPage />
-        </MemoryRouter>
+      <MemoryRouter>
+        <LoginUserPage />
+      </MemoryRouter>,
     );
 
     fireEvent.change(screen.getByLabelText(/Введите номер телефона/i), {
@@ -52,9 +54,9 @@ describe("LoginUserPage", () => {
     fetchMock.mockResponseOnce(JSON.stringify({ is_admin: true }));
 
     render(
-        <MemoryRouter>
-          <LoginUserPage />
-        </MemoryRouter>
+      <MemoryRouter>
+        <LoginUserPage />
+      </MemoryRouter>,
     );
 
     fireEvent.change(screen.getByLabelText(/Введите номер телефона/i), {
@@ -63,22 +65,25 @@ describe("LoginUserPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Далее/i }));
 
     await waitFor(() =>
-        expect(mockNavigate).toHaveBeenCalledWith("/verifyadmin", {
-          state: { phone: "+79991234567" },
-        })
+      expect(mockNavigate).toHaveBeenCalledWith("/verifyadmin", {
+        state: { phone: "+79991234567" },
+      }),
     );
   });
 
   test("отправка кода и переход к verifyuser для обычного пользователя", async () => {
     fetchMock.mockResponses(
-        [JSON.stringify({ is_admin: false }), { status: 200 }],
-        [JSON.stringify({ verification_token: "abc123", code: "1234" }), { status: 200 }]
+      [JSON.stringify({ is_admin: false }), { status: 200 }],
+      [
+        JSON.stringify({ verification_token: "abc123", code: "1234" }),
+        { status: 200 },
+      ],
     );
 
     render(
-        <MemoryRouter>
-          <LoginUserPage />
-        </MemoryRouter>
+      <MemoryRouter>
+        <LoginUserPage />
+      </MemoryRouter>,
     );
 
     fireEvent.change(screen.getByLabelText(/Введите номер телефона/i), {
@@ -87,22 +92,25 @@ describe("LoginUserPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Далее/i }));
 
     await waitFor(() =>
-        expect(mockNavigate).toHaveBeenCalledWith("/verifyuser", {
-          state: { phone: "+79991234567", verification_token: "abc123" },
-        })
+      expect(mockNavigate).toHaveBeenCalledWith("/verifyuser", {
+        state: { phone: "+79991234567", verification_token: "abc123" },
+      }),
     );
   });
 
   test("ошибка при отправке кода — переход с ошибкой", async () => {
     fetchMock.mockResponses(
-        [JSON.stringify({ is_admin: false }), { status: 200 }],
-        [JSON.stringify({ error: "Too many attempts", retry: 60 }), { status: 429 }]
+      [JSON.stringify({ is_admin: false }), { status: 200 }],
+      [
+        JSON.stringify({ error: "Too many attempts", retry: 60 }),
+        { status: 429 },
+      ],
     );
 
     render(
-        <MemoryRouter>
-          <LoginUserPage />
-        </MemoryRouter>
+      <MemoryRouter>
+        <LoginUserPage />
+      </MemoryRouter>,
     );
 
     fireEvent.change(screen.getByLabelText(/Введите номер телефона/i), {
@@ -111,13 +119,13 @@ describe("LoginUserPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Далее/i }));
 
     await waitFor(() =>
-        expect(mockNavigate).toHaveBeenCalledWith("/verifyuser", {
-          state: {
-            phone: "+79991234567",
-            verification_token: null,
-            error: "Ошибка при отправке кода. Попробуйте позже.",
-          },
-        })
+      expect(mockNavigate).toHaveBeenCalledWith("/verifyuser", {
+        state: {
+          phone: "+79991234567",
+          verification_token: null,
+          error: "Ошибка при отправке кода. Попробуйте позже.",
+        },
+      }),
     );
   });
 
@@ -125,9 +133,9 @@ describe("LoginUserPage", () => {
     fetchMock.mockRejectOnce(new Error("Network error"));
 
     render(
-        <MemoryRouter>
-          <LoginUserPage />
-        </MemoryRouter>
+      <MemoryRouter>
+        <LoginUserPage />
+      </MemoryRouter>,
     );
 
     fireEvent.change(screen.getByLabelText(/Введите номер телефона/i), {
@@ -136,7 +144,9 @@ describe("LoginUserPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Далее/i }));
 
     await waitFor(() =>
-        expect(screen.getByText(/Ошибка сети. Попробуйте ещё раз./i)).toBeInTheDocument()
+      expect(
+        screen.getByText(/Ошибка сети. Попробуйте ещё раз./i),
+      ).toBeInTheDocument(),
     );
   });
 });

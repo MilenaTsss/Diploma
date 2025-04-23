@@ -12,10 +12,11 @@ const UserProfile: React.FC = () => {
   const [requestSent, setRequestSent] = useState(false);
 
   const [accessToken, setAccessToken] = useState(
-      () => location.state?.access_token || localStorage.getItem("access_token")
+    () => location.state?.access_token || localStorage.getItem("access_token"),
   );
   const [refreshToken, setRefreshToken] = useState(
-      () => location.state?.refresh_token || localStorage.getItem("refresh_token")
+    () =>
+      location.state?.refresh_token || localStorage.getItem("refresh_token"),
   );
 
   useEffect(() => {
@@ -114,60 +115,78 @@ const UserProfile: React.FC = () => {
   };
 
   return (
-      <div style={styles.container}>
-        <h2 style={styles.title}>Профиль</h2>
+    <div style={styles.container}>
+      <h2 style={styles.title}>Профиль</h2>
 
-        <div style={styles.card}>
-          {isEditingName ? (
-              <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  style={styles.input}
-              />
-          ) : (
-              <p style={styles.text}>{name || "—"}</p>
-          )}
-          <button
-              style={styles.button}
-              onClick={() => {
-                isEditingName ? handleSave() : setIsEditingName(true);
-              }}
-          >
-            {isEditingName ? (requestSent ? "Сохранено" : "Сохранить") : "Изменить имя в профиле"}
-          </button>
-        </div>
-
-        <div style={styles.card}>
-          <p style={styles.text}>{phone || "—"}</p>
-          <button
-              style={styles.button}
-              onClick={() => navigateWithState("/change-phone")}
-          >
-            Изменить номер телефона
-          </button>
-        </div>
-
-        <div style={styles.navbar}>
-          <button
-              style={styles.navButton}
-              onClick={() =>
-                  navigate("/barriers", { state: { phone, access_token: accessToken, refresh_token: refreshToken } })
-              }
-          >
-            Шлагбаумы
-          </button>
-          <button
-              style={styles.navButton}
-              onClick={() =>
-                  navigate("/requests", { state: { phone, access_token: accessToken, refresh_token: refreshToken } })
-              }
-          >
-            Запросы
-          </button>
-          <button style={{ ...styles.navButton, ...styles.navButtonActive }}>Профиль</button>
-        </div>
+      <div style={styles.card}>
+        {isEditingName ? (
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={styles.input}
+          />
+        ) : (
+          <p style={styles.text}>{name || "—"}</p>
+        )}
+        <button
+          style={styles.button}
+          onClick={() => {
+            isEditingName ? handleSave() : setIsEditingName(true);
+          }}
+        >
+          {isEditingName
+            ? requestSent
+              ? "Сохранено"
+              : "Сохранить"
+            : "Изменить имя в профиле"}
+        </button>
       </div>
+
+      <div style={styles.card}>
+        <p style={styles.text}>{phone || "—"}</p>
+        <button
+          style={styles.button}
+          onClick={() => navigateWithState("/change-phone")}
+        >
+          Изменить номер телефона
+        </button>
+      </div>
+
+      <div style={styles.navbar}>
+        <button
+          style={styles.navButton}
+          onClick={() =>
+            navigate("/barriers", {
+              state: {
+                phone,
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              },
+            })
+          }
+        >
+          Шлагбаумы
+        </button>
+        <button
+          style={styles.navButton}
+          onClick={() =>
+            navigate("/requests", {
+              state: {
+                phone,
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              },
+            })
+          }
+        >
+          Запросы
+        </button>
+        <button style={{ ...styles.navButton, ...styles.navButtonActive }}>
+          Профиль
+        </button>
+      </div>
+    </div>
   );
 };
 

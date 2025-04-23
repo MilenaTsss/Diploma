@@ -12,11 +12,12 @@ const UserBarriers: React.FC = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const [accessToken, setAccessToken] = useState(() =>
-      location.state?.access_token || localStorage.getItem("access_token")
+  const [accessToken, setAccessToken] = useState(
+    () => location.state?.access_token || localStorage.getItem("access_token"),
   );
-  const [refreshToken] = useState(() =>
-      location.state?.refresh_token || localStorage.getItem("refresh_token")
+  const [refreshToken] = useState(
+    () =>
+      location.state?.refresh_token || localStorage.getItem("refresh_token"),
   );
   const phone = location.state?.phone || localStorage.getItem("phone");
 
@@ -82,111 +83,122 @@ const UserBarriers: React.FC = () => {
   const isSearching = search.trim() !== "";
 
   return (
-      <div style={styles.page}>
-        <div style={styles.container}>
-          <h1 style={styles.title}>🔍 Поиск шлагбаумов</h1>
+    <div style={styles.page}>
+      <div style={styles.container}>
+        <h1 style={styles.title}>🔍 Поиск шлагбаумов</h1>
 
-          <div style={styles.searchContainer}>
-            <input
-                type="text"
-                value={search}
-                onChange={(e) => {
-                  setPage(1); // сброс страницы при новом поиске
-                  setSearch(e.target.value);
-                }}
-                style={styles.searchInput}
-                placeholder="Введите адрес..."
-            />
-            {search && (
-                <button style={styles.clearButton} onClick={() => setSearch("")}>
-                  ✕
-                </button>
-            )}
-          </div>
-
-          <button style={styles.filterButton} onClick={handleOrdering}>
-            Сортировка {ordering === "address" ? "↑" : ordering === "-address" ? "↓" : ""}
-          </button>
-
-          <h3 style={styles.sectionHeader}>
-            {isSearching ? "Результаты поиска" : "Ваши шлагбаумы"}
-          </h3>
-
-          {barriers.length > 0 ? (
-              <ul style={styles.list}>
-                {barriers.map((barrier, index) => (
-                    <li key={index} style={styles.card}>
-                      <h3 style={styles.cardTitle}>{barrier.address}</h3>
-                      <button
-                          style={styles.detailButton}
-                          onClick={() =>
-                              navigate("/barrier-details", {
-                                state: {
-                                  barrier_id: barrier.id,
-                                  barrier,
-                                  phone,
-                                  access_token: accessToken,
-                                  refresh_token: refreshToken,
-                                },
-                              })
-                          }
-                      >
-                        Подробнее →
-                      </button>
-                    </li>
-                ))}
-              </ul>
-          ) : (
-              <p style={styles.noResults}>Нет результатов</p>
-          )}
-
-          <div style={styles.pagination}>
-            <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                style={styles.pageButton}
-            >
-              ← Назад
+        <div style={styles.searchContainer}>
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => {
+              setPage(1); // сброс страницы при новом поиске
+              setSearch(e.target.value);
+            }}
+            style={styles.searchInput}
+            placeholder="Введите адрес..."
+          />
+          {search && (
+            <button style={styles.clearButton} onClick={() => setSearch("")}>
+              ✕
             </button>
-            <span style={{ padding: "0 10px" }}>
+          )}
+        </div>
+
+        <button style={styles.filterButton} onClick={handleOrdering}>
+          Сортировка{" "}
+          {ordering === "address" ? "↑" : ordering === "-address" ? "↓" : ""}
+        </button>
+
+        <h3 style={styles.sectionHeader}>
+          {isSearching ? "Результаты поиска" : "Ваши шлагбаумы"}
+        </h3>
+
+        {barriers.length > 0 ? (
+          <ul style={styles.list}>
+            {barriers.map((barrier, index) => (
+              <li key={index} style={styles.card}>
+                <h3 style={styles.cardTitle}>{barrier.address}</h3>
+                <button
+                  style={styles.detailButton}
+                  onClick={() =>
+                    navigate("/barrier-details", {
+                      state: {
+                        barrier_id: barrier.id,
+                        barrier,
+                        phone,
+                        access_token: accessToken,
+                        refresh_token: refreshToken,
+                      },
+                    })
+                  }
+                >
+                  Подробнее →
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p style={styles.noResults}>Нет результатов</p>
+        )}
+
+        <div style={styles.pagination}>
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            style={styles.pageButton}
+          >
+            ← Назад
+          </button>
+          <span style={{ padding: "0 10px" }}>
             {page} / {totalPages}
           </span>
-            <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                style={styles.pageButton}
-            >
-              Вперёд →
-            </button>
-          </div>
-
-          {error && <p style={styles.errorText}>{error}</p>}
-        </div>
-
-        <div style={styles.navbar}>
-          <button style={{ ...styles.navButton, ...styles.navButtonActive }}>Шлагбаумы</button>
           <button
-              style={styles.navButton}
-              onClick={() =>
-                  navigate("/requests", {
-                    state: { phone, access_token: accessToken, refresh_token: refreshToken },
-                  })
-              }
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            style={styles.pageButton}
           >
-            Запросы
-          </button>
-          <button
-              style={styles.navButton}
-              onClick={() =>
-                  navigate("/user", {
-                    state: { phone, access_token: accessToken, refresh_token: refreshToken },
-                  })
-              }
-          >
-            Профиль
+            Вперёд →
           </button>
         </div>
+
+        {error && <p style={styles.errorText}>{error}</p>}
       </div>
+
+      <div style={styles.navbar}>
+        <button style={{ ...styles.navButton, ...styles.navButtonActive }}>
+          Шлагбаумы
+        </button>
+        <button
+          style={styles.navButton}
+          onClick={() =>
+            navigate("/requests", {
+              state: {
+                phone,
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              },
+            })
+          }
+        >
+          Запросы
+        </button>
+        <button
+          style={styles.navButton}
+          onClick={() =>
+            navigate("/user", {
+              state: {
+                phone,
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              },
+            })
+          }
+        >
+          Профиль
+        </button>
+      </div>
+    </div>
   );
 };
 

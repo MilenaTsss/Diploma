@@ -3,7 +3,9 @@ import { useNavigate } from "react-router-dom";
 
 const LoginUserPage: React.FC = () => {
   const [phone, setPhone] = useState("+7");
-  const [verificationToken, setVerificationToken] = useState<string | null>(null);
+  const [verificationToken, setVerificationToken] = useState<string | null>(
+    null,
+  );
   const [code, setCode] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null); // 👈
   const navigate = useNavigate();
@@ -53,13 +55,16 @@ const LoginUserPage: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error("Ошибка при проверке администратора или отправке кода:", error);
+      console.error(
+        "Ошибка при проверке администратора или отправке кода:",
+        error,
+      );
       setErrorMessage("Ошибка сети. Попробуйте ещё раз.");
     }
   };
 
   const sendLoginCode = async (
-      phone: string,
+    phone: string,
   ): Promise<{ verification_token: string; code: string } | null> => {
     try {
       const response = await fetch("/api/auth/codes/", {
@@ -77,8 +82,11 @@ const LoginUserPage: React.FC = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        console.error("Ошибка при отправке кода:", data?.error ||data.error);
-        setErrorMessage(data?.error + "Retry after" + data?.retry || "Ошибка при отправке кода"); // 👈
+        console.error("Ошибка при отправке кода:", data?.error || data.error);
+        setErrorMessage(
+          data?.error + "Retry after" + data?.retry ||
+            "Ошибка при отправке кода",
+        ); // 👈
         return null;
       }
 
@@ -107,34 +115,30 @@ const LoginUserPage: React.FC = () => {
   };
 
   return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <h2 style={styles.title}>Вход</h2>
-          <form onSubmit={handleSubmit} style={styles.form}>
-            <label htmlFor="phone-input" style={styles.label}>
-              Введите номер телефона
-            </label>
-            <input
-                id="phone-input"
-                type="text"
-                value={phone}
-                onChange={handleChange}
-                maxLength={12}
-                style={styles.input}
-                required
-                autoFocus
-            />
-            {errorMessage && (
-                <div style={styles.error}>
-                  {errorMessage}
-                </div>
-            )}
-            <button type="submit" style={styles.button}>
-              Далее
-            </button>
-          </form>
-        </div>
+    <div style={styles.container}>
+      <div style={styles.card}>
+        <h2 style={styles.title}>Вход</h2>
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <label htmlFor="phone-input" style={styles.label}>
+            Введите номер телефона
+          </label>
+          <input
+            id="phone-input"
+            type="text"
+            value={phone}
+            onChange={handleChange}
+            maxLength={12}
+            style={styles.input}
+            required
+            autoFocus
+          />
+          {errorMessage && <div style={styles.error}>{errorMessage}</div>}
+          <button type="submit" style={styles.button}>
+            Далее
+          </button>
+        </form>
       </div>
+    </div>
   );
 };
 

@@ -7,8 +7,10 @@ const Barrier: React.FC = () => {
   const navigate = useNavigate();
 
   const barrierId = location.state?.barrier_id;
-  const initialAccessToken = location.state?.access_token || localStorage.getItem("access_token");
-  const refreshToken = location.state?.refresh_token || localStorage.getItem("refresh_token");
+  const initialAccessToken =
+    location.state?.access_token || localStorage.getItem("access_token");
+  const refreshToken =
+    location.state?.refresh_token || localStorage.getItem("refresh_token");
 
   const [accessToken, setAccessToken] = useState(initialAccessToken);
   const [userId, setUserId] = useState<number | null>(null);
@@ -16,8 +18,6 @@ const Barrier: React.FC = () => {
   const [error, setError] = useState("");
   const [requestSent, setRequestSent] = useState(false);
   const [message, setMessage] = useState("");
-
-
 
   // универсальное обновление токена
   const refreshAndRetry = async (retryFn: (token: string) => void) => {
@@ -98,14 +98,17 @@ const Barrier: React.FC = () => {
         body: JSON.stringify({ user: userId, barrier: barrierId }),
       });
 
-      if (res.status === 401) return refreshAndRetry(() => handleRequestAccess());
+      if (res.status === 401)
+        return refreshAndRetry(() => handleRequestAccess());
 
       const data = await res.json();
 
       if (res.ok) {
         setRequestSent(true);
         setMessage("Запрос успешно отправлен");
-      } else if (data?.error?.[0] === "This user already has access to the barrier.") {
+      } else if (
+        data?.error?.[0] === "This user already has access to the barrier."
+      ) {
         setMessage("У вас уже есть доступ к шлагбауму.");
       } else {
         setMessage("Ошибка при отправке запроса");
@@ -122,51 +125,61 @@ const Barrier: React.FC = () => {
 
   if (error) {
     return (
-        <div style={styles.container}>
-          <p style={styles.error}>{error}</p>
-        </div>
+      <div style={styles.container}>
+        <p style={styles.error}>{error}</p>
+      </div>
     );
   }
 
   if (!barrier) {
     return (
-        <div style={styles.container}>
-          <p style={{ color: "#5a4478" }}>Загрузка...</p>
-        </div>
+      <div style={styles.container}>
+        <p style={{ color: "#5a4478" }}>Загрузка...</p>
+      </div>
     );
   }
 
   return (
-      <div style={styles.container}>
-        <button onClick={() => navigate(-1)} style={styles.backButton}>
-          <FaArrowLeft /> Назад
-        </button>
+    <div style={styles.container}>
+      <button onClick={() => navigate(-1)} style={styles.backButton}>
+        <FaArrowLeft /> Назад
+      </button>
 
-        <div style={styles.wrapper}>
-          <h2 style={styles.title}>Публичный шлагбаум</h2>
-          <div style={styles.card}>
-            <h3 style={styles.address}>{barrier.address}</h3>
-            <p><strong>Администратор:</strong> {barrier.owner?.full_name || "Неизвестно"}</p>
-            <p><strong>Телефон администратора:</strong> {barrier.owner?.phone || "не указано"}</p>
-            <p><strong>Телефон устройства:</strong> {barrier.device_phone}</p>
-            <p><strong>Доп. информация:</strong> {barrier.additional_info || "—"}</p>
+      <div style={styles.wrapper}>
+        <h2 style={styles.title}>Публичный шлагбаум</h2>
+        <div style={styles.card}>
+          <h3 style={styles.address}>{barrier.address}</h3>
+          <p>
+            <strong>Администратор:</strong>{" "}
+            {barrier.owner?.full_name || "Неизвестно"}
+          </p>
+          <p>
+            <strong>Телефон администратора:</strong>{" "}
+            {barrier.owner?.phone || "не указано"}
+          </p>
+          <p>
+            <strong>Телефон устройства:</strong> {barrier.device_phone}
+          </p>
+          <p>
+            <strong>Доп. информация:</strong> {barrier.additional_info || "—"}
+          </p>
 
-            <button
-                style={{
-                  ...styles.button,
-                  backgroundColor: requestSent ? "#ccc" : "#5a4478",
-                  cursor: requestSent ? "default" : "pointer",
-                }}
-                onClick={handleRequestAccess}
-                disabled={requestSent}
-            >
-              {requestSent ? "Запрос отправлен" : "Отправить запрос"}
-            </button>
+          <button
+            style={{
+              ...styles.button,
+              backgroundColor: requestSent ? "#ccc" : "#5a4478",
+              cursor: requestSent ? "default" : "pointer",
+            }}
+            onClick={handleRequestAccess}
+            disabled={requestSent}
+          >
+            {requestSent ? "Запрос отправлен" : "Отправить запрос"}
+          </button>
 
-            {message && <p style={styles.success}>{message}</p>}
-          </div>
+          {message && <p style={styles.success}>{message}</p>}
         </div>
       </div>
+    </div>
   );
 };
 
