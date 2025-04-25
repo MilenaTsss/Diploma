@@ -88,29 +88,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: "center",
     height: "100vh",
     width: "100vw",
-    backgroundColor: "#fef7fb",
+    backgroundColor: "#fef7fb", // светлый фон
     padding: "20px",
   },
   title: {
     fontSize: "24px",
     fontWeight: "bold",
-    color: "#5a4478",
+    color: "#5a4478", // цвет заголовка
     marginBottom: "20px",
-  },
-  tabs: {
-    display: "flex",
-    width: "90%",
-    maxWidth: "400px",
-    justifyContent: "space-between",
-    marginBottom: "20px",
-  },
-  tab: {
-    flex: 1,
-    textAlign: "center",
-    padding: "10px",
-    backgroundColor: "#f8f3fb",
-    border: "none",
-    cursor: "pointer",
   },
   requestList: {
     width: "90%",
@@ -120,7 +105,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: "#ffffff",
     padding: "15px",
     borderRadius: "10px",
-    border: "2px solid",
+    border: "2px solid", // цвет границы меняется в зависимости от статуса
     textAlign: "center",
     marginBottom: "10px",
   },
@@ -138,11 +123,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: "14px",
   },
   declinedText: {
-    color: "red",
+    color: "red",  // красный цвет для отклоненного запроса
     fontSize: "14px",
   },
   approvedText: {
-    color: "green",
+    color: "green", // зеленый цвет для принятого запроса
     fontSize: "14px",
   },
   clearButton: {
@@ -176,3 +161,4 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default UserRequests;
+
