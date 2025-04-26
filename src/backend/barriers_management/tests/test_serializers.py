@@ -48,7 +48,7 @@ class TestCreateBarrierSerializer:
 
         assert barrier.owner == admin_user
         assert barrier.device_phone == BARRIER_DEVICE_PHONE
-        assert barrier.address == BARRIER_ADDRESS.lower()
+        assert barrier.address == BARRIER_ADDRESS
 
     def test_invalid_phone(self, barrier, admin_context):
         data = copy.deepcopy(self.data)

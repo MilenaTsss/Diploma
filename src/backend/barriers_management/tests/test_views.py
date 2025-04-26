@@ -25,7 +25,7 @@ class TestCreateBarrierView:
         response = authenticated_admin_client.post(url, data)
 
         assert response.status_code == status.HTTP_201_CREATED
-        assert response.data["address"] == BARRIER_ADDRESS.lower()
+        assert response.data["address"] == BARRIER_ADDRESS
         assert response.data["device_phone"] == BARRIER_DEVICE_PHONE
         assert response.data["owner"] == admin_user.id
         assert "device_password" not in response.data
