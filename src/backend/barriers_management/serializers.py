@@ -30,11 +30,6 @@ class CreateBarrierSerializer(serializers.ModelSerializer):
             "is_public",
         ]
 
-    def validate_address(self, value):
-        """Convert the address to lowercase"""
-
-        return value.lower().strip()
-
     def validate_device_phone(self, value):
         """Check if a device with the given phone number already exists"""
 
@@ -96,6 +91,9 @@ class UpdateBarrierLimitSerializer(serializers.ModelSerializer):
     user_phone_limit = serializers.IntegerField(min_value=0, allow_null=True, required=False)
     user_temp_phone_limit = serializers.IntegerField(min_value=0, allow_null=True, required=False)
     global_temp_phone_limit = serializers.IntegerField(min_value=0, allow_null=True, required=False)
+    user_schedule_phone_limit = serializers.IntegerField(min_value=0, allow_null=True, required=False)
+    global_schedule_phone_limit = serializers.IntegerField(min_value=0, allow_null=True, required=False)
+    schedule_interval_limit = serializers.IntegerField(min_value=0, allow_null=True, required=False)
     sms_weekly_limit = serializers.IntegerField(min_value=0, allow_null=True, required=False)
 
     class Meta:
@@ -104,6 +102,9 @@ class UpdateBarrierLimitSerializer(serializers.ModelSerializer):
             "user_phone_limit",
             "user_temp_phone_limit",
             "global_temp_phone_limit",
+            "user_schedule_phone_limit",
+            "global_schedule_phone_limit",
+            "schedule_interval_limit",
             "sms_weekly_limit",
         ]
 
@@ -123,11 +124,15 @@ class UpdateBarrierLimitSerializer(serializers.ModelSerializer):
         user_limit = attrs.get("user_phone_limit") or 0
         temp_limit = attrs.get("user_temp_phone_limit") or 0
         global_temp_limit = attrs.get("global_temp_phone_limit") or 0
+        schedule_limit = attrs.get("user_schedule_phone_limit") or 0
+        global_schedule_limit = attrs.get("global_schedule_phone_limit") or 0
 
         if (
             user_limit > device_phones_amount
             or temp_limit > device_phones_amount
             or global_temp_limit > device_phones_amount
+            or schedule_limit > device_phones_amount
+            or global_schedule_limit > device_phones_amount
         ):
             raise serializers.ValidationError({"error": "Each limit must not exceed the amount of phones in device."})
 

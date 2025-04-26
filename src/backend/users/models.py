@@ -4,11 +4,7 @@ from django.db import models
 from django.utils.timezone import now
 from rest_framework import status
 
-from core.constants import (
-    CHOICE_MAX_LENGTH,
-    PHONE_MAX_LENGTH,
-    STRING_MAX_LENGTH,
-)
+from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH, STRING_MAX_LENGTH
 from core.utils import error_response
 from core.validators import PhoneNumberValidator
 
