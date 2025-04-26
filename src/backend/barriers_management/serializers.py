@@ -30,11 +30,6 @@ class CreateBarrierSerializer(serializers.ModelSerializer):
             "is_public",
         ]
 
-    def validate_address(self, value):
-        """Convert the address to lowercase"""
-
-        return value.lower().strip()
-
     def validate_device_phone(self, value):
         """Check if a device with the given phone number already exists"""
 
