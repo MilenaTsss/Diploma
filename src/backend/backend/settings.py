@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "access_requests",
     "barriers",
     "barriers_management",
+    "phones",
     "users",
     "verifications",
 ]
@@ -190,6 +191,11 @@ LOGGING = {
             "propagate": False,
         },
         "barriers_management": {
+            "handlers": ["console", "file"] if not DEBUG else ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "phones": {
             "handlers": ["console", "file"] if not DEBUG else ["console"],
             "level": "INFO",
             "propagate": False,
