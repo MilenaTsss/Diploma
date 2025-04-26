@@ -1,3 +1,4 @@
+
 name: Setup Python & Install Requirements
 description: Checkout, set up Python, install pip dependencies
 
@@ -6,6 +7,10 @@ inputs:
     description: 'Python version'
     required: false
     default: '3.13'
+  node-version:
+    description: 'Node.js version'
+    required: false
+    default: '21.7'
 
 runs:
   using: composite
@@ -24,3 +29,13 @@ runs:
       working-directory: ./src/backend
       run: |
         pip install -r requirements.txt
+
+    - uses: actions/setup-node@v3
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Install Node dependencies
+      shell: bash
+      working-directory: ./src/frontend
+      run: |
+        npm ci
