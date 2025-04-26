@@ -1,14 +1,21 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.decorators import permission_classes
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import MethodNotAllowed, NotFound, PermissionDenied
+from rest_framework.generics import RetrieveUpdateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAdminUser
 
 from barriers.models import Barrier, UserBarrier
 from core.pagination import BasePaginatedListView
-from core.utils import created_response
-from phones.models import BarrierPhone
-from phones.serializers import BarrierPhoneSerializer, CreateBarrierPhoneSerializer
+from core.utils import created_response, success_response
+from phones.models import BarrierPhone, ScheduleTimeInterval
+from phones.serializers import (
+    BarrierPhoneSerializer,
+    CreateBarrierPhoneSerializer,
+    ScheduleSerializer,
+    UpdateBarrierPhoneSerializer,
+    UpdatePhoneScheduleSerializer,
+)
 
 
 def get_barrier(user, barrier_id, as_admin):
@@ -134,128 +141,104 @@ class AdminBarrierPhoneListView(BaseBarrierPhoneListView):
     as_admin = True
 
 
-# TODO - fix barrier phone detail view
-# class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
-#     """Base view for retrieving, updating, and deactivating a phone"""
-#
-#     queryset = BarrierPhone.objects.filter(is_active=True)
-#     serializer_class = BarrierPhoneSerializer
-#     lookup_field = "id"
-#     as_admin = False
-#
-#     # TODO - remove or not
-#     def get_serializer_context(self):
-#         context = super().get_serializer_context()
-#         context["as_admin"] = self.as_admin
-#         return context
-#
-#     def get_object(self):
-#         phone = super().get_object()
-#         user = self.request.user
-#
-#         if self.as_admin and phone.barrier.owner != user or not self.as_admin and phone.user != user:
-#             raise PermissionDenied("You don't have access to this phone.")
-#
-#         return phone
-#
-#     def patch(self, request, *args, **kwargs):
-#         phone = self.get_object()
-#         data = request.data
-#
-#         name = data.get("name")
-#         start_time = data.get("start_time")
-#         end_time = data.get("end_time")
-#
-#         if name is not None:
-#             phone.name = name
-#
-#         if phone.type == BarrierPhone.PhoneType.TEMPORARY:
-#             if start_time is not None:
-#                 phone.start_time = start_time
-#             if end_time is not None:
-#                 phone.end_time = end_time
-#             try:
-#                 validate_temporary_phone(phone.type, phone.start_time, phone.end_time)
-#             except DjangoValidationError as e:
-#                 raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
-#         elif start_time or end_time:
-#             raise DRFValidationError({"error": "start_time and end_time can only be changed for temporary phones."})
-#
-#         phone.save()
-#         return success_response(BarrierPhoneSerializer(phone).data)
-#
-#     def put(self, request, *args, **kwargs):
-#         raise MethodNotAllowed("PUT")
-#
-#     def delete(self, request, *args, **kwargs):
-#         phone = self.get_object()
-#         phone.is_active = False
-#         phone.save()
-#         return success_response({"status": "Phone deactivated."})
-#
-#
-# class UserBarrierPhoneDetailView(BaseBarrierPhoneDetailView):
-#     """User can view, update or deactivate their own phone"""
-#
-#     as_admin = False
-#
-#
-# @permission_classes([IsAdminUser])
-# class AdminBarrierPhoneDetailView(BaseBarrierPhoneDetailView):
-#     """Admin can view, update or deactivate any phone in their barriers"""
-#
-#     as_admin = True
+class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
+    """Base view for retrieving, updating, and deactivating a phone"""
+
+    queryset = BarrierPhone.objects.filter(is_active=True)
+    serializer_class = BarrierPhoneSerializer
+    lookup_field = "id"
+    as_admin = False
+
+    def get_object(self):
+        phone = super().get_object()
+        user = self.request.user
+
+        if self.as_admin and phone.barrier.owner != user or not self.as_admin and phone.user != user:
+            raise PermissionDenied("You don't have access to this phone.")
+
+        return phone
+
+    def patch(self, request, *args, **kwargs):
+        phone = self.get_object()
+        serializer = UpdateBarrierPhoneSerializer(phone, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return success_response(BarrierPhoneSerializer(phone).data)
+
+    def put(self, request, *args, **kwargs):
+        raise MethodNotAllowed("PUT")
+
+    def delete(self, request, *args, **kwargs):
+        phone = self.get_object()
+
+        if phone.type == BarrierPhone.PhoneType.PRIMARY:
+            raise PermissionDenied("Primary phone number cannot be deleted.")
+
+        phone.is_active = False
+        phone.save()
+        return success_response({"status": "Phone deleted."})
 
 
-# TODO - fix barrier phone schedule view
-# class BasePhoneScheduleView(generics.GenericAPIView):
-#     serializer_class = PhoneScheduleSerializer
-#
-#     def get_phone(self):
-#         barrier_id = self.kwargs["barrier_id"]
-#         user_id = self.kwargs["user_id"]
-#         phone_id = self.kwargs["phone_id"]
-#         user = self.request.user
-#
-#         barrier = get_object_or_404(Barrier, id=barrier_id, is_active=True)
-#         phone = get_object_or_404(BarrierPhone, id=phone_id, user_id=user_id, barrier=barrier)
-#
-#         if user.role == user.Role.ADMIN:
-#             if barrier.owner != user:
-#                 raise PermissionDenied("Not your barrier.")
-#         else:
-#             if user.id != user_id:
-#                 raise PermissionDenied("Cannot access another user's phone.")
-#
-#         return phone
-#
-#     def get_object(self):
-#         phone = self.get_phone()
-#         return getattr(phone, "schedule", None)
-#
-#
-# class PhoneScheduleRetrieveView(BasePhoneScheduleView, generics.RetrieveAPIView):
-#     """GET /barriers/{barrier_id}/users/{user_id}/phones/{phone_id}/schedule/"""
-#
-#     def retrieve(self, request, *args, **kwargs):
-#         schedule = self.get_object()
-#         if not schedule:
-#             raise NotFound("No schedule found for this phone.")
-#         serializer = self.get_serializer(schedule)
-#         return success_response(serializer.data)
-#
-#
-# class PhoneScheduleUpdateView(BasePhoneScheduleView, generics.UpdateAPIView):
-#     """PUT /barriers/{barrier_id}/users/{user_id}/phones/{phone_id}/schedule/"""
-#
-#     def update(self, request, *args, **kwargs):
-#         phone = self.get_phone()
-#         data = request.data.get("schedule")
-#         if not data:
-#             return success_response({"message": "Empty schedule submitted."})
-#
-#         schedule, _ = PhoneSchedule.objects.get_or_create(phone=phone)
-#         serializer = self.get_serializer(schedule, data={"schedule": data}, partial=True)
-#         serializer.is_valid(raise_exception=True)
-#         serializer.save()
-#         return success_response(serializer.data)
+class UserBarrierPhoneDetailView(BaseBarrierPhoneDetailView):
+    """User can view, update or deactivate their own phone"""
+
+    as_admin = False
+
+
+@permission_classes([IsAdminUser])
+class AdminBarrierPhoneDetailView(BaseBarrierPhoneDetailView):
+    """Admin can view, update or deactivate any phone in their barriers"""
+
+    as_admin = True
+
+
+class BaseBarrierPhoneScheduleView(RetrieveUpdateAPIView):
+    """Base view for retrieving and updating a phone schedule"""
+
+    serializer_class = UpdatePhoneScheduleSerializer
+    lookup_field = "id"
+    as_admin = False
+
+    def get_phone(self):
+        phone_id = self.kwargs["id"]
+        phone = BarrierPhone.objects.filter(id=phone_id, is_active=True).first()
+        if not phone:
+            raise NotFound("Phone not found.")
+
+        user = self.request.user
+        if self.as_admin and phone.barrier.owner != user or not self.as_admin and phone.user != user:
+            raise PermissionDenied("You don't have access to this phone.")
+
+        return phone
+
+    def get(self, request, *args, **kwargs):
+        phone = self.get_phone()
+        schedule = ScheduleTimeInterval.get_schedule_grouped_by_day(phone)
+
+        return success_response(ScheduleSerializer(schedule).data)
+
+    def put(self, request, *args, **kwargs):
+        phone = self.get_phone()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.update(phone, serializer.validated_data)
+
+        grouped_schedule = ScheduleTimeInterval.get_schedule_grouped_by_day(phone)
+
+        return success_response(ScheduleSerializer(grouped_schedule).data)
+
+    def patch(self, request, *args, **kwargs):
+        raise MethodNotAllowed("PATCH")
+
+
+class UserBarrierPhoneScheduleView(BaseBarrierPhoneScheduleView):
+    """User can view and update their own phone schedule"""
+
+    as_admin = False
+
+
+@permission_classes([IsAdminUser])
+class AdminBarrierPhoneScheduleView(BaseBarrierPhoneScheduleView):
+    """Admin can view and update phone schedule for phones in their barriers."""
+
+    as_admin = True

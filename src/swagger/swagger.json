@@ -1317,7 +1317,7 @@
               }
             }
           },
-           "400": {
+          "400": {
             "description": "Некорректный параметр запроса - `barrier_id`."
           },
           "401": {
@@ -2691,7 +2691,7 @@
               "default": 10,
               "example": 10
             },
-            "description": "Количество пользователей на странице."
+            "description": "Количество элементов на странице."
           }
         ],
         "responses": {
@@ -2877,7 +2877,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Phones"
+                  "$ref": "#/components/schemas/Phone"
                 }
               }
             }
@@ -2986,7 +2986,7 @@
               "default": 10,
               "example": 10
             },
-            "description": "Количество пользователей на странице."
+            "description": "Количество элементов на странице."
           }
         ],
         "responses": {
@@ -3012,7 +3012,7 @@
                     "phones": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Phones"
+                        "$ref": "#/components/schemas/Phone"
                       }
                     }
                   }
@@ -3031,6 +3031,291 @@
           },
           "404": {
             "description": "Шлагбаум или пользователь не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/phones/{phone_id}/": {
+      "get": {
+        "tags": [
+          "Phones"
+        ],
+        "summary": "Получение информации о номере телефона.",
+        "description": "Позволяет пользователю получить информацию о своём номере телефона в шлагбауме.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "phone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` номера телефона."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Информация о номере телефона.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Phone"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет доступа к номеру."
+          },
+          "404": {
+            "description": "Номер не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Phones"
+        ],
+        "summary": "Изменение номера в шлагбауме.",
+        "description": "Позволяет пользователю измененить имя, тип или время действия номера (для временных номеров).\n\nИзменения в расписании выполняются с помощью запроса `/phones/{phone_id}/schedule/`",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "phone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` номера телефона."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Друг Петр"
+                  },
+                  "start_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2025-08-01T10:00:00+03:00"
+                  },
+                  "end_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2025-08-01T18:00:00+03:00"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Номер добавлен пользователю.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Phone"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет доступа к номеру."
+          },
+          "404": {
+            "description": "Номер не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Phones"
+        ],
+        "summary": "Удаление номера у пользователя в шлагбауме.",
+        "description": "Пользователь удаляет свой номер телефона.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "phone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` номера телефона."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Номер удален."
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Нет доступа к номеру."
+          },
+          "404": {
+            "description": "Номер не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
+    "/phones/{phone_id}/schedule/": {
+      "get": {
+        "tags": [
+          "Phones"
+        ],
+        "summary": "Получение расписания номера.",
+        "description": "Позволяет получить текущее расписание номера телефона.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "phone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` номера телефона."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Текущее расписание номера.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schedule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Доступ запрещен."
+          },
+          "404": {
+            "description": "Номер не найден."
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Phones"
+        ],
+        "summary": "Изменение расписания номера.",
+        "description": "Позволяет изменить расписание номера телефона, только для телефонов которые работают по расписанию.\n\nМеняются только те значения, которые будут переданы в запросе.\n\nЕсли передать `null`, то расписание на этот день будет удалено.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "phone_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` номера телефона."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Schedule"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Расписание изменено.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Schedule"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Некорректные параметры запроса."
+          },
+          "401": {
+            "description": "Пользователь не авторизован."
+          },
+          "403": {
+            "description": "Выбранные изменения невозможно применить."
+          },
+          "404": {
+            "description": "Номер не найден."
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3121,7 +3406,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Phones"
+                  "$ref": "#/components/schemas/Phone"
                 }
               }
             }
@@ -3239,7 +3524,7 @@
               "default": 10,
               "example": 10
             },
-            "description": "Количество пользователей на странице."
+            "description": "Количество элементов на странице."
           }
         ],
         "responses": {
@@ -3265,7 +3550,7 @@
                     "phones": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Phones"
+                        "$ref": "#/components/schemas/Phone"
                       }
                     }
                   }
@@ -3291,99 +3576,13 @@
         }
       }
     },
-    "/phones/{phone_id}/": {
-      "patch": {
+    "/admin/phones/{phone_id}/": {
+      "get": {
         "tags": [
           "Phones"
         ],
-        "summary": "Изменение номера в шлагбауме.",
-        "description": "Позволяет пользователю измененить имя, тип или время действия номера (для временных номеров).\n\nИзменения в расписании выполняются с помощью запроса `/phones/{phone_id}/schedule/`",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "phone_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "example": 42
-            },
-            "description": "`ID` номера телефона."
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "example": "Друг Петр"
-                  },
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "static",
-                      "temporary",
-                      "schedule"
-                    ],
-                    "example": "schedule"
-                  },
-                  "start_time": {
-                    "type": "string",
-                    "format": "date-time",
-                    "example": "2025-08-01T10:00:00+03:00"
-                  },
-                  "end_time": {
-                    "type": "string",
-                    "format": "date-time",
-                    "example": "2025-08-01T18:00:00+03:00"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Номер добавлен пользователю.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Phones"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
-          "401": {
-            "description": "Пользователь не авторизован."
-          },
-          "403": {
-            "description": "Выбранные изменения невозможно применить."
-          },
-          "404": {
-            "description": "Номер не найден."
-          },
-          "500": {
-            "description": "Ошибка сервера. Попробуйте позже."
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Phones"
-        ],
-        "summary": "Удаление номера у пользователя в шлагбауме.",
-        "description": "Пользователь удаляет свой номер телефона.",
+        "summary": "Получение информации о номере телефона.",
+        "description": "Позволяет администратору получить информацию о номере телефона любого пользователя в шлагбауме.",
         "security": [
           {
             "BearerAuth": []
@@ -3403,16 +3602,20 @@
         ],
         "responses": {
           "200": {
-            "description": "Номер удален."
-          },
-          "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Информация о номере телефона.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Phone"
+                }
+              }
+            }
           },
           "401": {
             "description": "Пользователь не авторизован."
           },
           "403": {
-            "description": "Нет доступа."
+            "description": "Нет доступа к номеру."
           },
           "404": {
             "description": "Номер не найден."
@@ -3421,9 +3624,7 @@
             "description": "Ошибка сервера. Попробуйте позже."
           }
         }
-      }
-    },
-    "/admin/phones/{phone_id}/": {
+      },
       "patch": {
         "tags": [
           "Phones"
@@ -3458,15 +3659,6 @@
                     "type": "string",
                     "example": "Друг Петр"
                   },
-                  "type": {
-                    "type": "string",
-                    "enum": [
-                      "static",
-                      "temporary",
-                      "schedule"
-                    ],
-                    "example": "schedule"
-                  },
                   "start_time": {
                     "type": "string",
                     "format": "date-time",
@@ -3488,7 +3680,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Phones"
+                  "$ref": "#/components/schemas/Phone"
                 }
               }
             }
@@ -3500,7 +3692,7 @@
             "description": "Пользователь не авторизован."
           },
           "403": {
-            "description": "Выбранные изменения невозможно применить."
+            "description": "Нет доступа к номеру."
           },
           "404": {
             "description": "Номер не найден."
@@ -3544,126 +3736,7 @@
             "description": "Пользователь не авторизован."
           },
           "403": {
-            "description": "Нет доступа."
-          },
-          "404": {
-            "description": "Номер не найден."
-          },
-          "500": {
-            "description": "Ошибка сервера. Попробуйте позже."
-          }
-        }
-      }
-    },
-    "/phones/{phone_id}/schedule/": {
-      "get": {
-        "tags": [
-          "Phones"
-        ],
-        "summary": "Получение расписания номера.",
-        "description": "Позволяет получить текущее расписание номера телефона.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "phone_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "example": 42
-            },
-            "description": "`ID` номера телефона."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Текущее расписание номера.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScheduleResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
-          "401": {
-            "description": "Пользователь не авторизован."
-          },
-          "403": {
-            "description": "Доступ запрещен."
-          },
-          "404": {
-            "description": "Номер не найден."
-          },
-          "500": {
-            "description": "Ошибка сервера. Попробуйте позже."
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Phones"
-        ],
-        "summary": "Изменение расписания номера.",
-        "description": "Позволяет изменить расписание номера телефона, только для телефонов которые работают по расписанию.\n\nМеняются только те значения, которые будут переданы в запросе.\n\nЕсли передать `null`, то расписание на этот день будет удалено.",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "phone_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "example": 42
-            },
-            "description": "`ID` номера телефона."
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "schedule": {
-                    "$ref": "#/components/schemas/Schedule"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Расписание изменено.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScheduleResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
-          "401": {
-            "description": "Пользователь не авторизован."
-          },
-          "403": {
-            "description": "Выбранные изменения невозможно применить."
+            "description": "Нет доступа к номеру."
           },
           "404": {
             "description": "Номер не найден."
@@ -3704,7 +3777,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ScheduleResponse"
+                  "$ref": "#/components/schemas/Schedule"
                 }
               }
             }
@@ -3754,12 +3827,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "schedule": {
-                    "$ref": "#/components/schemas/Schedule"
-                  }
-                }
+                "$ref": "#/components/schemas/Schedule"
               }
             }
           }
@@ -3770,7 +3838,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ScheduleResponse"
+                  "$ref": "#/components/schemas/Schedule"
                 }
               }
             }
@@ -4099,7 +4167,7 @@
           }
         }
       },
-      "Phones": {
+      "Phone": {
         "type": "object",
         "properties": {
           "id": {
@@ -4143,19 +4211,6 @@
             "format": "date-time",
             "nullable": true,
             "example": "2025-08-01T18:00:00+03:00"
-          }
-        }
-      },
-      "ScheduleResponse": {
-        "type": "object",
-        "properties": {
-          "phone": {
-            "type": "integer",
-            "description": "`ID` номера телефона.",
-            "example": 42
-          },
-          "schedule": {
-            "$ref": "#/components/schemas/Schedule"
           }
         }
       },

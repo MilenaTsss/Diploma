@@ -1,11 +1,13 @@
 from datetime import date, datetime, timedelta
 
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils.timezone import now
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError as DRFValidationError
 
 from phones.constants import MINIMUM_TIME_INTERVAL_MINUTES
 from phones.models import BarrierPhone, ScheduleTimeInterval
+from phones.validators import validate_schedule_phone, validate_temporary_phone
 from users.models import User
 
 
@@ -104,12 +106,12 @@ class CreateBarrierPhoneSerializer(serializers.ModelSerializer):
         barrier = self.context.get("barrier")
 
         if not barrier:
-            raise serializers.ValidationError("Barrier context is required.")
+            raise serializers.ValidationError({"error": "Barrier context is required."})
         attrs["barrier"] = barrier
 
         if as_admin:
             if not attrs.get("user"):
-                raise serializers.ValidationError({"user": "This field is required for admins."})
+                raise serializers.ValidationError({"error": "User field is required for admins."})
         else:
             attrs["user"] = request.user
 
@@ -135,33 +137,36 @@ class CreateBarrierPhoneSerializer(serializers.ModelSerializer):
             raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
 
 
-# class UpdateBarrierPhoneSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = BarrierPhone
-#         fields = ["name", "start_time", "end_time"]
-#
-#     def validate(self, attrs):
-#         phone = self.instance
-#         start_time = attrs.get("start_time", phone.start_time)
-#         end_time = attrs.get("end_time", phone.end_time)
-#
-#         if (
-#             phone.type == BarrierPhone.PhoneType.TEMPORARY
-#             and phone.start_time
-#             and phone.start_time < now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES)
-#         ):
-#             message = (
-#                 f"Temporary phone number cannot be updated less than "
-#                 f"{MINIMUM_TIME_INTERVAL_MINUTES} minutes before start."
-#             )
-#             raise DRFValidationError({"error": message})
-#
-#         try:
-#             validate_temporary_phone(phone.type, start_time, end_time)
-#         except DjangoValidationError as e:
-#             raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
-#
-#         return attrs
+class UpdateBarrierPhoneSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BarrierPhone
+        fields = ["name", "start_time", "end_time"]
+
+    def validate(self, attrs):
+        phone = self.instance
+        start_time = attrs.get("start_time", phone.start_time)
+        end_time = attrs.get("end_time", phone.end_time)
+
+        if phone.type == BarrierPhone.PhoneType.PRIMARY and "name" in attrs:
+            raise serializers.ValidationError({"error": "Cannot update name for primary phone number."})
+
+        if (
+            phone.type == BarrierPhone.PhoneType.TEMPORARY
+            and phone.start_time
+            and phone.start_time < now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES)
+        ):
+            message = (
+                f"Temporary phone number cannot be updated less than "
+                f"{MINIMUM_TIME_INTERVAL_MINUTES} minutes before start."
+            )
+            raise serializers.ValidationError({"error": message})
+
+        try:
+            validate_temporary_phone(phone.type, start_time, end_time)
+        except DjangoValidationError as e:
+            raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
+
+        return attrs
 
 
 class UpdatePhoneScheduleSerializer(ScheduleSerializer):
@@ -169,5 +174,9 @@ class UpdatePhoneScheduleSerializer(ScheduleSerializer):
 
     # TODO - check everything
     def update(self, phone: BarrierPhone, validated_data):
+        try:
+            validate_schedule_phone(phone.type, validated_data, phone.barrier)
+        except DjangoValidationError as e:
+            raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
         ScheduleTimeInterval.replace_schedule(phone, validated_data)
         return phone

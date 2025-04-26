@@ -184,5 +184,20 @@ class ScheduleTimeInterval(models.Model):
 
     @classmethod
     def replace_schedule(cls, phone, schedule_data):
-        cls.objects.filter(phone=phone, day__in=schedule_data.keys()).delete()
+        cls.objects.filter(phone=phone).delete()
         cls.create_schedule(phone, schedule_data)
+
+    @classmethod
+    def get_schedule_grouped_by_day(cls, phone):
+        """Returns a grouped schedule for the given phone."""
+
+        intervals = cls.objects.filter(phone=phone).order_by("day", "start_time")
+        grouped = {day: [] for day in cls.DayOfWeek.values}
+        for interval in intervals:
+            grouped[interval.day].append(
+                {
+                    "start_time": interval.start_time,
+                    "end_time": interval.end_time,
+                }
+            )
+        return grouped
