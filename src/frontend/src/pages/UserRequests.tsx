@@ -123,7 +123,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: "14px",
   },
   declinedText: {
-    color: "red",  // красный цвет для отклоненного запроса
+    color: "red", // красный цвет для отклоненного запроса
     fontSize: "14px",
   },
   approvedText: {
@@ -161,4 +161,3 @@ const styles: { [key: string]: React.CSSProperties } = {
 };
 
 export default UserRequests;
-

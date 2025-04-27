@@ -15,6 +15,7 @@ import AdminSmsPage from "./pages/AdminSmsPage";
 import RestoreCodePage from "./pages/RestoreCodePage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePhonePage from "./pages/ChangePhonePage";
+import AdminPage from "./pages/AdminPage";
 
 const App: React.FC = () => {
   return (
@@ -32,6 +33,7 @@ const App: React.FC = () => {
         <Route path="/requests" element={<UserRequests />} />
         <Route path="/barriers" element={<UserBarriers />} />
         <Route path="/barrier-details" element={<Barrier />} />
+        <Route path="/admin" element={<AdminPage />} />
       </Routes>
     </Router>
   );

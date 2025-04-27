@@ -28,7 +28,6 @@ const UserBarriers: React.FC = () => {
       page: String(page),
       page_size: "5",
     });
-
     if (ordering) params.append("ordering", ordering);
     if (isSearch) params.append("address", search);
 
@@ -41,20 +40,7 @@ const UserBarriers: React.FC = () => {
       });
 
       if (res.status === 401) {
-        const refreshRes = await fetch("/auth/token/refresh/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refresh: refreshToken }),
-        });
-
-        const refreshData = await refreshRes.json();
-        if (refreshRes.ok && refreshData.access) {
-          setAccessToken(refreshData.access);
-          localStorage.setItem("access_token", refreshData.access);
-          fetchBarriers(refreshData.access);
-        } else {
-          navigate("/login");
-        }
+        await refreshTokenAndRetry();
         return;
       }
 
@@ -67,6 +53,71 @@ const UserBarriers: React.FC = () => {
       }
     } catch {
       setError("Ошибка сети");
+    }
+  };
+
+  const refreshTokenAndRetry = async () => {
+    try {
+      const refreshRes = await fetch("/auth/token/refresh/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh: refreshToken }),
+      });
+      const refreshData = await refreshRes.json();
+      if (refreshRes.ok && refreshData.access) {
+        setAccessToken(refreshData.access);
+        localStorage.setItem("access_token", refreshData.access);
+        fetchBarriers(refreshData.access);
+      } else {
+        navigate("/login");
+      }
+    } catch {
+      setError("Ошибка обновления токена");
+    }
+  };
+
+  const handleBarrierClick = async (barrierId: number, barrier: any) => {
+    try {
+      const res = await fetch(`/api/barriers/${barrierId}/check_access/`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      });
+
+      if (res.status === 401) {
+        await refreshTokenAndRetry();
+        return;
+      }
+
+      const data = await res.json();
+      if (res.ok) {
+        if (data.has_access) {
+          navigate("/mybarrier", {
+            state: {
+              barrier_id: barrierId,
+              barrier,
+              phone,
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            },
+          });
+        } else {
+          navigate("/barrier-details", {
+            state: {
+              barrier_id: barrierId,
+              barrier,
+              phone,
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            },
+          });
+        }
+      } else {
+        alert("Ошибка при проверке доступа");
+      }
+    } catch {
+      alert("Ошибка сети при проверке доступа");
     }
   };
 
@@ -92,7 +143,7 @@ const UserBarriers: React.FC = () => {
             type="text"
             value={search}
             onChange={(e) => {
-              setPage(1); // сброс страницы при новом поиске
+              setPage(1);
               setSearch(e.target.value);
             }}
             style={styles.searchInput}
@@ -121,17 +172,7 @@ const UserBarriers: React.FC = () => {
                 <h3 style={styles.cardTitle}>{barrier.address}</h3>
                 <button
                   style={styles.detailButton}
-                  onClick={() =>
-                    navigate("/barrier-details", {
-                      state: {
-                        barrier_id: barrier.id,
-                        barrier,
-                        phone,
-                        access_token: accessToken,
-                        refresh_token: refreshToken,
-                      },
-                    })
-                  }
+                  onClick={() => handleBarrierClick(barrier.id, barrier)}
                 >
                   Подробнее →
                 </button>
@@ -266,12 +307,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: "bold",
     alignSelf: "flex-start",
   },
-  list: {
-    listStyleType: "none",
-    padding: 0,
-    margin: 0,
-    width: "100%",
+  sectionHeader: {
+    fontSize: "18px",
+    fontWeight: "bold",
+    color: "#5a4478",
+    marginBottom: "10px",
+    marginTop: "15px",
+    textAlign: "left",
   },
+  list: { listStyleType: "none", padding: 0, margin: 0, width: "100%" },
   card: {
     padding: "15px 20px",
     margin: "8px 0",
@@ -321,10 +365,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: "14px",
     textAlign: "center",
   },
-  errorText: {
-    color: "red",
-    marginTop: "10px",
-  },
+  errorText: { color: "red", marginTop: "10px" },
   navbar: {
     display: "flex",
     justifyContent: "space-around",
@@ -343,18 +384,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: "bold",
     padding: "6px 12px",
   },
-  navButtonActive: {
-    borderBottom: "2px solid #5a4478",
-    paddingBottom: "4px",
-  },
-  sectionHeader: {
-    fontSize: "18px",
-    fontWeight: "bold",
-    color: "#5a4478",
-    marginBottom: "10px",
-    marginTop: "15px",
-    textAlign: "left",
-  },
+  navButtonActive: { borderBottom: "2px solid #5a4478", paddingBottom: "4px" },
 };
 
 export default UserBarriers;
