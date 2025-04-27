@@ -1,12 +1,12 @@
 from django.db import models
 
-from users.constants import PHONE_MAX_LENGTH
-from users.validators import PhoneNumberValidator
-from django.utils.translation import gettext_lazy as _
+from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH
+from core.validators import PhoneNumberValidator
 
-CHOICE_MAX_LENGTH = 20
 
 class SMSMessage(models.Model):
+    class Meta:
+        db_table = "sms_message"
 
     class MessageType(models.TextChoices):
         VERIFICATION_CODE = "verification", "Verification Code"
@@ -19,21 +19,18 @@ class SMSMessage(models.Model):
         SUCCESS = "success", "Success"
         FAILED = "failed", "Failed"
 
-
     phone = models.CharField(
         max_length=PHONE_MAX_LENGTH,
         db_index=True,
         validators=[PhoneNumberValidator()],
-        help_text=_("Enter a phone number in the format +7XXXXXXXXXX."),
+        help_text="Enter a phone number in the format +7XXXXXXXXXX.",
     )
     message_type = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=MessageType.choices)
+    status = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Status.choices, default=Status.CREATED)
+
     content = models.TextField()
     metadata = models.JSONField(null=True, blank=True)
-    status = models.CharField(
-        max_length=CHOICE_MAX_LENGTH,
-        choices=Status.choices,
-        default=Status.CREATED
-    )
     response_payload = models.JSONField(null=True, blank=True)
+
     sent_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,10 +1,15 @@
 import json
+import logging
+import os
 
-ADD_PHONE_COMMAND = "add_phone"
-REMOVE_PHONE_COMMAND = "remove_phone"
+from message_management.enums import PhoneCommand
 
-PHONE_COMMANDS_PATH = "configs/phone_commands.json"
-SETTINGS_PATH = "configs/barrier_settings.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+PHONE_COMMANDS_PATH = os.path.join(BASE_DIR, "configs", "phone_commands.json")
+SETTINGS_PATH = os.path.join(BASE_DIR, "configs", "barrier_settings.json")
+
+logger = logging.getLogger(__name__)
 
 
 def load_phone_commands():
@@ -12,29 +17,40 @@ def load_phone_commands():
         return json.load(f)
 
 
+def get_phone_command(device_model: str, command: PhoneCommand) -> dict:
+    commands = load_phone_commands()
+    model_commands = commands.get(device_model)
+    if not model_commands:
+        raise ValueError(f"No phone commands defined for device model: {device_model}")
+
+    cmd = model_commands.get(command.value)
+    if not cmd:
+        raise ValueError(f"Command '{command.value}' not found for model '{device_model}'")
+
+    return cmd
+
+
 def load_barrier_settings():
     with open(SETTINGS_PATH) as f:
         return json.load(f)
 
 
-def get_phone_commands_for_device(device_type: str):
-    all_commands = load_phone_commands()
-    return all_commands.get(device_type, {}).get("commands", [])
+def get_setting(device_model: str, key: str) -> dict:
+    settings = load_barrier_settings()
 
+    if not settings:
+        raise ValueError("No settings defined.")
+    model_settings = settings.get(device_model)
+    if not model_settings:
+        raise ValueError(f"No settings defined for device model: {device_model}.")
+    print(model_settings)
 
-def get_settings_for_device(device_type: str):
-    all_settings = load_barrier_settings()
-    return all_settings.get(device_type, {}).get("settings", [])
+    setting = model_settings.get(key)
+    if not setting:
+        raise ValueError(f"Setting '{key}' not found for model '{device_model}'")
 
+    return setting
 
-def find_phone_command_by_name(device_type: str, name: str):
-    commands = get_phone_commands_for_device(device_type)
-    return next((cmd for cmd in commands if cmd["name"] == name), None)
-
-
-def find_setting_by_key(device_type: str, key: str):
-    settings = get_settings_for_device(device_type)
-    return next((s for s in settings if s["key"] == key), None)
 
 def build_message(template: str, params: dict) -> str:
     try:

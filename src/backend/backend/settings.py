@@ -30,6 +30,11 @@ ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split("
 
 CSRF_TRUSTED_ORIGINS = os.getenv("DJANGO_CSRF_TRUSTED_ORIGINS", "https://localhost,https://127.0.0.1").split(",")
 
+CORS_ALLOW_ALL_ORIGINS = os.getenv("DJANGO_CORS_ALLOW_ALL_ORIGINS", True)
+CORS_ALLOWED_ORIGINS = os.getenv("DJANGO_CORS_ALLOWED_ORIGINS",  "http://localhost,http://127.0.0.1").split(",")
+CORS_ALLOW_CREDENTIALS = True
+
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("users.custom_jwt_auth.CustomJWTAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": [
@@ -61,6 +66,7 @@ INSTALLED_APPS = [
     "access_requests",
     "barriers",
     "barriers_management",
+    "message_management",
     "phones",
     "users",
     "verifications",
@@ -195,6 +201,11 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+        "message_management": {
+            "handlers": ["console", "file"] if not DEBUG else ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         "phones": {
             "handlers": ["console", "file"] if not DEBUG else ["console"],
             "level": "INFO",
@@ -234,7 +245,3 @@ STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-
-# TODO - something with security
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOWS_CREDENTIALS = True

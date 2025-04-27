@@ -1,50 +1,63 @@
-from message_management.models import SMSMessage
-from message_management.config_loader import find_setting_by_key, find_phone_command_by_name, build_message
+from barriers.models import Barrier
+from message_management.config_loader import build_message, get_phone_command, get_setting
+from message_management.enums import KafkaTopic, PhoneCommand
 from message_management.kafka_producer import send_sms_to_kafka
+from message_management.models import SMSMessage
+from phones.models import BarrierPhone
 from verifications.models import Verification
 
 
-def send_verification(verification_id: int):
-    verification = Verification.objects.get(id=verification_id)
-    message = SMSMessage.objects.create(
-        message_type=SMSMessage.MessageType.VERIFICATION_CODE,
-        content=f"Ваш код подтверждения: {verification.code}",
-        phone=verification.phone
-    )
-    send_sms_to_kafka("sms_verification", message)
+class SMSService:
+    """Service class for sending different types of SMS messages."""
 
+    @staticmethod
+    def send_verification(verification: Verification):
+        message = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.VERIFICATION_CODE,
+            content=f"CODE: {verification.code}",
+            phone=verification.phone,
+        )
+        send_sms_to_kafka(KafkaTopic.SMS_VERIFICATION, message)
 
-def send_phone_command(barrier_id: int, phone_id: int, command_key: str):
-    barrier = Barrier.objects.get(id=barrier_id)
-    phone = AdditionalPhones.objects.get(id=phone_id)
-    params = {
-        "pwd": barrier.password,
-        "phone": phone.phone,
-        "index": phone.index,
-    }
+    @staticmethod
+    def send_add_phone_command(phone: BarrierPhone):
+        SMSService._send_phone_command(phone, PhoneCommand.ADD)
 
-    command = find_phone_command_by_name(barrier.device_type, command_key)
-    content = build_message(command["template"], params)
+    @staticmethod
+    def send_delete_phone_command(phone: BarrierPhone):
+        SMSService._send_phone_command(phone, PhoneCommand.DELETE)
 
-    message = SMSMessage.objects.create(
-        message_type=SMSMessage.MessageType.PHONE_COMMAND,
-        content=content,
-        phone=barrier.phone,
-        metadata=params,
-    )
-    send_sms_to_kafka("sms_configuration", message)
+    @staticmethod
+    def send_barrier_setting(barrier: Barrier, setting_key: str, params: dict):
+        setting = get_setting(barrier.device_model, setting_key)
+        if barrier.device_password:
+            params["pwd"] = barrier.device_password
+        content = build_message(setting["template"], params)
 
+        message = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.BARRIER_SETTING,
+            content=content,
+            phone=barrier.device_phone,
+            metadata=params,
+        )
+        send_sms_to_kafka(KafkaTopic.SMS_CONFIGURATION, message)
 
-def send_barrier_setting(barrier_id: int, setting_key: str, params: dict):
-    barrier = Barrier.objects.get(id=barrier_id)
+    @staticmethod
+    def _send_phone_command(phone: BarrierPhone, command: PhoneCommand):
+        barrier = phone.barrier
 
-    setting = find_setting_by_key(barrier.device_type, setting_key)
-    content = build_message(setting["template"], params)
+        command_config = get_phone_command(barrier.device_model, command)
+        params = {
+            "pwd": barrier.device_password,
+            "phone": phone.phone.removeprefix("+7"),
+            "index": phone.device_serial_number,
+        }
+        content = build_message(command_config["template"], params)
 
-    message = SMSMessage.objects.create(
-        message_type=SMSMessage.MessageType.BARRIER_SETTING,
-        content=content,
-        phone=barrier.phone,
-        metadata=params,
-    )
-    send_sms_to_kafka("sms_configuration", message)
+        message = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.PHONE_COMMAND,
+            content=content,
+            phone=barrier.device_phone,
+            metadata=params,
+        )
+        send_sms_to_kafka(KafkaTopic.SMS_CONFIGURATION, message)
