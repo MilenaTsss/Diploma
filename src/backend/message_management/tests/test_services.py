@@ -4,12 +4,7 @@ import pytest
 
 from message_management.enums import KafkaTopic, PhoneCommand
 from message_management.models import SMSMessage
-from message_management.services import (
-    send_add_phone_command,
-    send_barrier_setting,
-    send_delete_phone_command,
-    send_verification,
-)
+from message_management.services import SMSService
 
 
 @pytest.mark.django_db
@@ -17,7 +12,7 @@ class TestSendVerification:
     @patch("message_management.services.send_sms_to_kafka")
     def test_send_verification_success(self, mock_send_sms, create_verification):
         verification = create_verification()
-        send_verification(verification.id)
+        SMSService.send_verification(verification)
 
         message = SMSMessage.objects.get(message_type=SMSMessage.MessageType.VERIFICATION_CODE)
 
@@ -31,9 +26,9 @@ class TestSendAddPhoneCommand:
     @patch("message_management.services.build_message", return_value="ADD_COMMAND")
     @patch("message_management.services.get_phone_command")
     def test_send_add_phone_command_success(self, mock_get_command, mock_build_message, mock_send_sms, barrier_phone):
-        mock_get_command.return_value = {"template": "template_text"}
+        mock_get_command.return_value = {"template": "{pwd}{index}{phone}"}
 
-        send_add_phone_command(barrier_phone)
+        SMSService.send_add_phone_command(barrier_phone)
 
         message = SMSMessage.objects.get(message_type=SMSMessage.MessageType.PHONE_COMMAND)
 
@@ -51,9 +46,9 @@ class TestSendDeletePhoneCommand:
     def test_send_delete_phone_command_success(
         self, mock_get_command, mock_build_message, mock_send_sms, barrier_phone
     ):
-        mock_get_command.return_value = {"template": "template_text"}
+        mock_get_command.return_value = {"template": "{pwd}{index}{phone}"}
 
-        send_delete_phone_command(barrier_phone)
+        SMSService.send_delete_phone_command(barrier_phone)
 
         message = SMSMessage.objects.get(message_type=SMSMessage.MessageType.PHONE_COMMAND)
 
@@ -71,7 +66,7 @@ class TestSendBarrierSetting:
     def test_send_barrier_setting_success(self, mock_get_setting, mock_build_message, mock_send_sms, barrier):
         mock_get_setting.return_value = {"template": "template_setting"}
 
-        send_barrier_setting(barrier, "start", {"param1": "value1"})
+        SMSService.send_barrier_setting(barrier, "start", {"param1": "value1"})
 
         message = SMSMessage.objects.get(message_type=SMSMessage.MessageType.BARRIER_SETTING)
 

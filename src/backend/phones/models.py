@@ -136,12 +136,14 @@ class BarrierPhone(models.Model):
         if type == cls.PhoneType.SCHEDULE and schedule:
             ScheduleTimeInterval.create_schedule(phone_instance, schedule)
 
+        return phone_instance
+
+    def send_sms_to_create(self):
         from message_management.services import SMSService
 
-        if type == cls.PhoneType.PRIMARY or cls.PhoneType.PERMANENT:
-            SMSService.send_add_phone_command(phone_instance)
         # TODO - else schedule
-        return phone_instance
+        if self.type == self.PhoneType.PRIMARY or self.PhoneType.PERMANENT:
+            SMSService.send_add_phone_command(self)
 
     def delete(self, *args, **kwargs):
         raise PermissionDenied("Deletion of this object is not allowed.")

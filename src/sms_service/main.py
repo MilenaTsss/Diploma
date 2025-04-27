@@ -90,17 +90,16 @@ def main():
     modem = HuaweiModemClient(url=MODEM_URL, db_path=DB_PATH, username=MODEM_USERNAME, password=MODEM_PASSWORD)
 
     logger.debug("Creating Kafka consumers...")
-    sms_verification_consumer = create_sms_verification_consumer()
-    # sms_configuration_consumer = create_sms_configuration_consumer()
 
     # Thread pool for processing messages per partition
     logger.debug("Starting thread pool with %s workers", NUMBER_OF_PARTITIONS)
     with concurrent.futures.ThreadPoolExecutor(max_workers=NUMBER_OF_PARTITIONS) as executor:
         # For all partitions in verification topic
         for partition in range(NUMBER_OF_PARTITIONS):
+            consumer = create_sms_verification_consumer()
             executor.submit(
                 consume_loop,
-                sms_verification_consumer,
+                consumer,
                 handle_sms_verification,
                 partition,
                 KAFKA_SMS_VERIFICATION_TOPIC,
@@ -110,6 +109,7 @@ def main():
         # For all partitions in configuration topic
         # TODO UNCOMMENT THIS WHEN READY
         # for partition in range(NUMBER_OF_PARTITIONS):
+        #     sms_configuration_consumer = create_sms_configuration_consumer()
         #     executor.submit(
         #         consume_loop,
         #         sms_configuration_consumer,

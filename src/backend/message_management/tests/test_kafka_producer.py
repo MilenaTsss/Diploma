@@ -1,11 +1,13 @@
 import json
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 from django.utils import timezone
-from message_management.models import SMSMessage
+
 from message_management.enums import KafkaTopic
 from message_management.kafka_producer import send_sms_to_kafka
+from message_management.models import SMSMessage
+
 
 @pytest.mark.django_db
 @patch("message_management.kafka_producer.producer")
