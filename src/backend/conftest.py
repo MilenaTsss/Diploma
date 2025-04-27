@@ -4,6 +4,7 @@ from rest_framework.test import APIClient
 
 from access_requests.models import AccessRequest
 from barriers.models import Barrier, UserBarrier
+from phones.models import BarrierPhone
 from users.models import User
 from verifications.models import Verification, VerificationService
 
@@ -15,6 +16,10 @@ OTHER_PHONE = "+79999999999"
 BARRIER_DEVICE_PHONE = "+70000000001"
 PRIVATE_BARRIER_DEVICE_PHONE = "+70000000002"
 BLOCKED_USER_PHONE = "+79993332211"
+BARRIER_PERMANENT_PHONE = "+70000000003"
+BARRIER_PERMANENT_PHONE_NAME = "Permanent Phone"
+BARRIER_TEMPORARY_PHONE = "+70000000004"
+BARRIER_SCHEDULE_PHONE = "+70000000005"
 ADMIN_PASSWORD = "adminpassword"
 ANOTHER_ADMIN_PASSWORD = "anotheradminpass"
 SUPERUSER_PASSWORD = "SuperSecurePass"
@@ -176,3 +181,36 @@ def private_barrier_with_access(user, private_barrier, access_request):
 
     UserBarrier.objects.create(user=user, barrier=private_barrier, access_request=access_request)
     return private_barrier
+
+
+@pytest.fixture
+def create_barrier_phone():
+    """Factory fixture to create a barrier phone entry"""
+
+    def _create_barrier_phone(
+        user,
+        barrier,
+        phone=BARRIER_PERMANENT_PHONE,
+        type=BarrierPhone.PhoneType.PERMANENT,
+        name=BARRIER_PERMANENT_PHONE_NAME,
+        start_time=None,
+        end_time=None,
+        schedule=None,
+    ):
+        return BarrierPhone.create(
+            user=user,
+            barrier=barrier,
+            phone=phone,
+            type=type,
+            name=name,
+            start_time=start_time,
+            end_time=end_time,
+            schedule=schedule,
+        )
+
+    return _create_barrier_phone
+
+
+@pytest.fixture
+def barrier_phone(user, barrier, create_barrier_phone):
+    return create_barrier_phone(user, barrier)

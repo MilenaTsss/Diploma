@@ -123,7 +123,7 @@ class CreateBarrierPhoneSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         schedule_data = validated_data.pop("schedule", None)
         try:
-            return BarrierPhone.create(
+            phone = BarrierPhone.create(
                 user=validated_data["user"],
                 barrier=validated_data["barrier"],
                 phone=validated_data["phone"],
@@ -133,6 +133,8 @@ class CreateBarrierPhoneSerializer(serializers.ModelSerializer):
                 end_time=validated_data.get("end_time"),
                 schedule=schedule_data,
             )
+            phone.send_sms_to_create()
+            return phone
         except DjangoValidationError as e:
             raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
 

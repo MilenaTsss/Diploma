@@ -187,13 +187,14 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
         if access_request.status == AccessRequest.Status.ACCEPTED:
             UserBarrier.create(user=access_request.user, barrier=access_request.barrier, access_request=access_request)
             try:
-                BarrierPhone.create(
+                phone = BarrierPhone.create(
                     user=access_request.user,
                     barrier=access_request.barrier,
                     phone=access_request.user.phone,
                     type=BarrierPhone.PhoneType.PRIMARY,
                     name=access_request.user.full_name,
                 )
+                phone.send_sms_to_create()
             except DjangoValidationError as e:
                 raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
 

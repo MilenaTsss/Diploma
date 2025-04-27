@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.urls import reverse
 from django.utils.timezone import now
@@ -34,20 +36,24 @@ class TestSendVerificationCodeView:
         mock_create = mocker.patch("verifications.views.VerificationService.create_new_verification")
         mock_create.return_value = mocker.MagicMock(**self.verification)
 
-    def test_successful_code_send(self, api_client):
+    @patch("message_management.services.SMSService.send_verification")
+    def test_successful_code_send(self, mock_send_verification, api_client):
         response = api_client.post(self.url, self.data)
 
         assert response.status_code == status.HTTP_201_CREATED
         assert response.data["verification_token"] == self.verification["verification_token"]
         assert response.data["code"] == "123456"
+        mock_send_verification.assert_called_once()
 
-    def test_clean_called(self, api_client, mocker):
+    @patch("message_management.services.SMSService.send_verification")
+    def test_clean_called(self, mock_send_verification, api_client, mocker):
         mock_clean = mocker.patch("verifications.views.VerificationService.clean")
 
         response = api_client.post(self.url, self.data)
 
         mock_clean.assert_called_once()
         assert response.status_code == status.HTTP_201_CREATED
+        mock_send_verification.assert_called_once()
 
     def test_blocked_phone(self, api_client, mocker):
         mocker.patch(

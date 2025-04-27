@@ -174,8 +174,7 @@ class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
         if phone.type == BarrierPhone.PhoneType.PRIMARY:
             raise PermissionDenied("Primary phone number cannot be deleted.")
 
-        phone.is_active = False
-        phone.save()
+        phone.remove()
         return success_response({"status": "Phone deleted."})
 
 

@@ -1,3 +1,5 @@
+import logging
+
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import models
 
@@ -6,6 +8,8 @@ from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH, STRING_MAX_LENGT
 from core.validators import PhoneNumberValidator
 from phones.validators import validate_limits, validate_schedule_phone, validate_temporary_phone
 from users.models import User
+
+logger = logging.getLogger(__name__)
 
 
 class BarrierPhone(models.Model):
@@ -134,8 +138,31 @@ class BarrierPhone(models.Model):
 
         return phone_instance
 
+    def send_sms_to_create(self):
+        from message_management.services import SMSService
+
+        # TODO - else schedule
+        if self.type == self.PhoneType.PRIMARY or self.PhoneType.PERMANENT:
+            SMSService.send_add_phone_command(self)
+
     def delete(self, *args, **kwargs):
         raise PermissionDenied("Deletion of this object is not allowed.")
+
+    def remove(self, *args, **kwargs):
+        """Deactivate the phone and send a delete SMS command."""
+
+        if not self.is_active:
+            logger.warning("Attempt to remove an already inactive phone.")
+            return
+
+        self.is_active = False
+        self.save()
+
+        from message_management.services import SMSService
+
+        if self.type == self.PhoneType.PRIMARY or self.type == self.PhoneType.PERMANENT:
+            SMSService.send_delete_phone_command(self)
+        # TODO - else schedule
 
 
 class ScheduleTimeInterval(models.Model):

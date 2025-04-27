@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
@@ -6,6 +7,7 @@ from rest_framework import status
 
 from access_requests.models import AccessRequest
 from barriers.models import UserBarrier
+from phones.models import BarrierPhone
 
 
 @pytest.mark.django_db
@@ -129,7 +131,10 @@ class TestAccessRequestDetailView:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["error"][0] == "You can only cancel your own requests."
 
-    def test_user_can_accept_admin_request(self, authenticated_client, user, barrier, admin_access_request):
+    @patch.object(BarrierPhone, "send_sms_to_create")
+    def test_user_can_accept_admin_request(
+        self, mock_send_sms_to_create, authenticated_client, user, barrier, admin_access_request
+    ):
         url = reverse(self.base_url, args=[admin_access_request.id])
         data = json.dumps({"status": AccessRequest.Status.ACCEPTED})
         response = authenticated_client.patch(url, data=data, content_type="application/json")
@@ -138,6 +143,7 @@ class TestAccessRequestDetailView:
         admin_access_request.refresh_from_db()
         assert admin_access_request.status == AccessRequest.Status.ACCEPTED
         assert UserBarrier.objects.filter(user=user, barrier=barrier, is_active=True).exists()
+        mock_send_sms_to_create.assert_called_once()
 
     def test_user_cannot_reject_own_request(self, authenticated_client, user_access_request):
         url = reverse(self.base_url, args=[user_access_request.id])
@@ -164,7 +170,10 @@ class TestAccessRequestDetailView:
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert response.data["error"][0] == "You can only cancel your own requests."
 
-    def test_admin_can_accept_user_request(self, authenticated_admin_client, user, barrier, user_access_request):
+    @patch.object(BarrierPhone, "send_sms_to_create")
+    def test_admin_can_accept_user_request(
+        self, mock_send_sms_to_create, authenticated_admin_client, user, barrier, user_access_request
+    ):
         url = reverse(self.base_url_admin, args=[user_access_request.id])
         data = json.dumps({"status": AccessRequest.Status.ACCEPTED})
         response = authenticated_admin_client.patch(url, data=data, content_type="application/json")
@@ -173,6 +182,8 @@ class TestAccessRequestDetailView:
         user_access_request.refresh_from_db()
         assert user_access_request.status == AccessRequest.Status.ACCEPTED
         assert UserBarrier.objects.filter(user=user, barrier=barrier, is_active=True).exists()
+
+        mock_send_sms_to_create.assert_called_once()
 
     def test_admin_cannot_accept_own_request(self, authenticated_admin_client, admin_access_request):
         url = reverse(self.base_url_admin, args=[admin_access_request.id])
