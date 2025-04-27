@@ -10,6 +10,8 @@ const UserProfile: React.FC = () => {
   const [isEditingName, setIsEditingName] = useState(false);
   const [isEditingPhone, setIsEditingPhone] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+  const [showSwitch, setShowSwitch] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const [accessToken, setAccessToken] = useState(
     () => location.state?.access_token || localStorage.getItem("access_token"),
@@ -33,6 +35,7 @@ const UserProfile: React.FC = () => {
           const userData = await meResponse.json();
           setName(userData.full_name || "Без имени");
           setPhone(userData.phone || "-");
+          checkAdmin(userData.phone);
         } else {
           const refreshResponse = await fetch("/auth/token/refresh/", {
             method: "POST",
@@ -74,6 +77,25 @@ const UserProfile: React.FC = () => {
     fetchUserProfile();
   }, [accessToken, refreshToken, navigate]);
 
+  const checkAdmin = async (userPhone: string) => {
+    try {
+      const response = await fetch("/api/users/check_admin/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ phone: userPhone }),
+      });
+      const data = await response.json();
+      if (response.ok && data.is_admin) {
+        setShowSwitch(true);
+      }
+    } catch (error) {
+      console.error("Ошибка при проверке администратора:", error);
+    }
+  };
+
   const handleSave = async () => {
     try {
       const patchResponse = await fetch("/api/users/me/", {
@@ -114,6 +136,18 @@ const UserProfile: React.FC = () => {
     });
   };
 
+  const handleRoleSwitch = () => {
+    if (isAdmin) {
+      navigate("/user", {
+        state: { phone, access_token: accessToken, refresh_token: refreshToken },
+      });
+    } else {
+      navigate("/admin", {
+        state: { phone, access_token: accessToken, refresh_token: refreshToken },
+      });
+    }
+  };
+
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Профиль</h2>
@@ -152,6 +186,38 @@ const UserProfile: React.FC = () => {
           Изменить номер телефона
         </button>
       </div>
+
+      <div style={styles.switchBlock}>
+        <span style={!isAdmin ? styles.activeText : styles.inactiveText}>Пользователь</span>
+        <label style={styles.switch}>
+          <input
+              type="checkbox"
+              checked={isAdmin}
+              onChange={() => {
+                setIsAdmin((prev) => !prev);
+                handleRoleSwitch();
+              }}
+              style={styles.switchInput}
+          />
+          <span
+              style={{
+                ...styles.slider,
+                ...(isAdmin ? styles.switchChecked : {}),
+              }}
+          >
+      <span
+          style={{
+            ...styles.sliderBefore,
+            ...(isAdmin ? styles.switchCheckedBefore : {}),
+          }}
+      />
+    </span>
+        </label>
+        <span style={isAdmin ? styles.activeText : styles.inactiveText}>Администратор</span>
+      </div>
+
+
+
 
       <div style={styles.navbar}>
         <button
@@ -243,6 +309,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: "14px",
     width: "100%",
   },
+  switchBlock: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: "20px",
+    gap: "10px",
+    color: "#5a4478",
+  },
   navbar: {
     display: "flex",
     justifyContent: "space-around",
@@ -263,6 +337,50 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderBottom: "2px solid #5a4478",
     paddingBottom: "4px",
   },
+  activeNavButton: {
+    borderBottom: "2px solid #5a4478",
+    paddingBottom: "4px",
+  },
+  switch: {
+    position: "relative",
+    display: "inline-block",
+    width: "50px",
+    height: "24px",
+  },
+  slider: {
+    position: "absolute",
+    cursor: "pointer",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "#ccc",
+    borderRadius: "24px",
+    transition: "0.4s",
+  },
+  sliderBefore: {
+    position: "absolute",
+    content: "''",
+    height: "18px",
+    width: "18px",
+    left: "3px",
+    bottom: "3px",
+    backgroundColor: "white",
+    transition: "0.4s",
+    borderRadius: "50%",
+  },
+  switchInput: {
+    opacity: 0,
+    width: 0,
+    height: 0,
+  },
+  switchChecked: {
+    backgroundColor: "#5a4478",
+  },
+  switchCheckedBefore: {
+    transform: "translateX(26px)",
+  },
+
 };
 
 export default UserProfile;
