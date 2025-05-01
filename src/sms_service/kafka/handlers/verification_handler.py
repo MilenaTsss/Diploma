@@ -21,13 +21,13 @@ def handle_sms_verification(modem: HuaweiModemClient, message: Message) -> bool:
         content = data["content"]
         retries = data["retries"]
 
-        logger.info("Handling verification SMS for phone: %s, data: %s", phone, data)
+        logger.debug("Handling verification SMS for phone: %s, data: %s", phone, data)
 
         for attempt in range(retries):
             logger.debug("Attempt %d to send verification SMS to %s", attempt + 1, phone)
             success = modem.send_sms(phone, content)
             if success:
-                logger.info("Verification SMS sent to %s", phone)
+                logger.debug("Verification SMS sent to %s", phone)
                 return True  # <-- Success
 
             logger.error("Failed to send verification SMS to %s, attempt %d", phone, attempt + 1)
