@@ -10,6 +10,7 @@ from rest_framework import status
 from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH
 from core.utils import error_response
 from core.validators import PhoneNumberValidator
+from users.models import User
 from verifications.constants import (
     DELETION_DAYS,
     EXPIRATION_MINUTES,
@@ -92,6 +93,19 @@ class VerificationService:
             return error_response("Too many unverified codes. Try again later.", status.HTTP_429_TOO_MANY_REQUESTS)
 
     @staticmethod
+    def check_verification_mode(phone: str, mode):
+        user = User.objects.get_by_phone(phone)
+        if not user:
+            return
+        if mode == Verification.Mode.CHANGE_PHONE_NEW and user.is_active:
+            return error_response("This new phone number already exists.", status.HTTP_403_FORBIDDEN)
+        if (
+            mode in [Verification.Mode.RESET_PASSWORD, Verification.Mode.CHANGE_PASSWORD]
+            and user.role == User.Role.USER
+        ):
+            return error_response("You cannot reset or change password.", status.HTTP_403_FORBIDDEN)
+
+    @staticmethod
     def _check_verification_object(verification, phone):
         if not verification:
             return error_response("Verification not found.", status.HTTP_404_NOT_FOUND)
@@ -100,7 +114,7 @@ class VerificationService:
 
     @staticmethod
     def validate_verification_is_usable(phone, token):
-        verification = Verification.objects.filter(verification_token=token).first()
+        verification = Verification.get_verification_by_token(token)
 
         if error := VerificationService._check_verification_object(verification, phone):
             return error

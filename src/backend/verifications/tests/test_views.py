@@ -88,6 +88,35 @@ class TestSendVerificationCodeView:
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
         assert response.data["error"] == "Too many unverified"
 
+    class TestVerificationModeChecks:
+        url = reverse("send_code")
+
+        def test_phone_already_exists(self, api_client, user):
+            data = {"phone": user.phone, "mode": Verification.Mode.CHANGE_PHONE_NEW}
+
+            response = api_client.post(self.url, data)
+
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert response.data["error"] == "This new phone number already exists."
+
+        @pytest.mark.parametrize("mode", [Verification.Mode.RESET_PASSWORD, Verification.Mode.CHANGE_PASSWORD])
+        def test_cannot_change_password_for_regular_user(self, mode, api_client, user):
+            data = {"phone": user.phone, "mode": mode}
+
+            response = api_client.post(self.url, data)
+
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert response.data["error"] == "You cannot reset or change password."
+
+        @patch("message_management.services.SMSService.send_verification")
+        def test_passes_if_user_does_not_exist(self, mock_send_verification, api_client):
+            data = {"phone": "+79990000000", "mode": Verification.Mode.LOGIN}
+
+            response = api_client.post(self.url, data)
+
+            assert response.status_code == status.HTTP_201_CREATED
+            mock_send_verification.assert_called_once()
+
     def test_recent_code_already_sent(self, api_client, mocker):
         recent = Verification(
             phone=USER_PHONE,

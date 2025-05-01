@@ -34,7 +34,7 @@
           "Auth"
         ],
         "summary": "Отправка кода подтверждения в SMS.",
-        "description": "Отправляет одноразовый код подтверждения на указанный номер телефона.\n\nКод будет действовать в течение 5 минут.",
+        "description": "Отправляет одноразовый код подтверждения на указанный номер телефона.\n\nКод будет действовать в течение 30 минут.",
         "requestBody": {
           "required": true,
           "content": {
@@ -74,6 +74,10 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Verification code sent."
+                    },
                     "verification_token": {
                       "type": "string",
                       "description": "Токен верификации, который нужно передавать при подтверждении кода.",
@@ -85,13 +89,73 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат номера телефона."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": "Enter a valid phone number in the format +7XXXXXXXXXX.",
+                      "mode": "Invalid mode. Valid modes are: ['login', 'change_phone_old', 'change_phone_new', 'reset_password', 'change_password', 'delete_account']"
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": "This field is required.",
+                      "mode": "This field is required."
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Пользователь заблокирован."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked user": {
+                    "value": {
+                      "error": "This account is blocked for reason: `Spam`"
+                    }
+                  },
+                  "change phone": {
+                    "value": {
+                      "error": "This new phone number already exists."
+                    }
+                  },
+                  "change password": {
+                    "value": {
+                      "error": "You cannot reset or change password."
+                    }
+                  }
+                }
+              }
+            }
           },
           "429": {
-            "description": "Код уже отправлен. Попробуйте позже."
+            "description": "Превышен лимит. Попробуйте позже.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "too many attempts": {
+                    "value": {
+                      "error": "Too many verification attempts. Try again later."
+                    }
+                  },
+                  "too many unverified codes": {
+                    "value": {
+                      "error": "Too many unverified codes. Try again later."
+                    }
+                  },
+                  "verification code already sent": {
+                    "value": {
+                      "error": "Verification code was already sent. Try again later."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -143,9 +207,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": {
+                    "message": {
                       "type": "string",
-                      "example": "verified"
+                      "example": "Code verified successfully."
                     }
                   }
                 }
@@ -153,19 +217,107 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат кода подтверждения."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": "Enter a valid phone number in the format +7XXXXXXXXXX.",
+                      "verification_token": "Enter a valid 32-character verification token (letters and digits only).",
+                      "code": "Enter a valid 6-digit verification code."
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": "This field is required.",
+                      "verification_token": "This field is required.",
+                      "code": "This field is required."
+                    }
+                  },
+                  "wrong phone number": {
+                    "value": {
+                      "error": "Phone number does not match the verification record."
+                    }
+                  },
+                  "wrong code": {
+                    "value": {
+                      "error": "Invalid code."
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Пользователь заблокирован."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked user": {
+                    "value": {
+                      "error": "This account is blocked for reason: `Spam`"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Подтверждение не найдено",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "verification not found": {
+                    "value": {
+                      "error": "Verification not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "409": {
-            "description": "Код уже был использован."
+            "description": "Код уже был использован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "code been used": {
+                    "value": {
+                      "error": "This code has already been used. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
           },
           "410": {
-            "description": "Код истёк. Запросите новый."
+            "description": "Код истёк. Запросите новый.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "expired": {
+                    "value": {
+                      "error": "This code has expired. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
           },
           "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Превышен лимит. Попробуйте позже.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "too many attempts": {
+                    "value": {
+                      "error": "Too many verification attempts. Try again later."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."

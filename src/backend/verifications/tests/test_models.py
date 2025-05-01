@@ -115,6 +115,21 @@ class TestVerificationService:
 
             assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
 
+    class TestCheckVerificationMode:
+        def test_returns_none_for_new_user(self):
+            response = VerificationService.check_verification_mode("+79990000000", Verification.Mode.LOGIN)
+            assert response is None
+
+        def test_returns_error_for_active_user_on_change_phone_new(self, user):
+            response = VerificationService.check_verification_mode(user.phone, Verification.Mode.CHANGE_PHONE_NEW)
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert "This new phone number already exists." == response.data["error"]
+
+        def test_returns_error_for_user_trying_reset_password(self, user):
+            response = VerificationService.check_verification_mode(user.phone, Verification.Mode.RESET_PASSWORD)
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert "You cannot reset or change password." == response.data["error"]
+
     class TestCheckVerificationObject:
         def test_returns_error_if_none(self):
             response = VerificationService._check_verification_object(None, USER_PHONE)
