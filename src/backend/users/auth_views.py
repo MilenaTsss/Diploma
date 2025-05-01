@@ -112,7 +112,7 @@ class ResetPasswordView(APIView):
         serializer = ResetPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        user = User.objects.filter(phone=serializer.validated_data["phone"]).first()
+        user = User.objects.get_by_phone(serializer.validated_data["phone"])
         if not user:
             return error_response("User not found.", status.HTTP_404_NOT_FOUND)
         if not user.is_active:

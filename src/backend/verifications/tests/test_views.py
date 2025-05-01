@@ -106,11 +106,29 @@ class TestSendVerificationCodeView:
             response = api_client.post(self.url, data)
 
             assert response.status_code == status.HTTP_403_FORBIDDEN
-            assert response.data["error"] == "You cannot reset or change password."
+            assert response.data["error"] == "You do not have permission to perform this action."
 
+        @pytest.mark.parametrize(
+            "mode",
+            [
+                Verification.Mode.RESET_PASSWORD,
+                Verification.Mode.CHANGE_PASSWORD,
+                Verification.Mode.DELETE_ACCOUNT,
+                Verification.Mode.CHANGE_PHONE_OLD,
+            ],
+        )
+        def test_user_not_found_for_modes_that_require_user(self, mode, api_client):
+            data = {"phone": USER_PHONE, "mode": mode}
+
+            response = api_client.post(self.url, data)
+
+            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.data["error"] == "User not found."
+
+        @pytest.mark.parametrize("mode", [Verification.Mode.LOGIN, Verification.Mode.CHANGE_PHONE_NEW])
         @patch("message_management.services.SMSService.send_verification")
-        def test_passes_if_user_does_not_exist(self, mock_send_verification, api_client):
-            data = {"phone": "+79990000000", "mode": Verification.Mode.LOGIN}
+        def test_passes_for_modes_that_allow_missing_user(self, mock_send_verification, mode, api_client):
+            data = {"phone": USER_PHONE, "mode": mode}
 
             response = api_client.post(self.url, data)
 

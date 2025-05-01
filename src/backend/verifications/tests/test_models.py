@@ -4,7 +4,7 @@ import pytest
 from django.utils.timezone import now
 from rest_framework import status
 
-from conftest import OTHER_PHONE, USER_PHONE
+from conftest import ADMIN_PHONE, OTHER_PHONE, USER_PHONE
 from verifications.constants import (
     DELETION_DAYS,
     EXPIRATION_MINUTES,
@@ -116,19 +116,74 @@ class TestVerificationService:
             assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
 
     class TestCheckVerificationMode:
-        def test_returns_none_for_new_user(self):
-            response = VerificationService.check_verification_mode("+79990000000", Verification.Mode.LOGIN)
+        @pytest.mark.parametrize(
+            "mode",
+            [
+                Verification.Mode.LOGIN,
+                Verification.Mode.CHANGE_PHONE_NEW,
+            ],
+        )
+        def test_returns_none_when_user_does_not_exist_and_mode_allows_it(self, mode):
+            """Should return None for modes that allow missing user"""
+
+            response = VerificationService.check_verification_mode(USER_PHONE, mode)
+            assert response is None
+
+        @pytest.mark.parametrize(
+            "mode",
+            [
+                Verification.Mode.RESET_PASSWORD,
+                Verification.Mode.CHANGE_PASSWORD,
+                Verification.Mode.DELETE_ACCOUNT,
+                Verification.Mode.CHANGE_PHONE_OLD,
+            ],
+        )
+        def test_returns_error_when_user_not_found_for_reset_password(self, mode):
+            """Should return 404 if user not found for modes that require user"""
+
+            response = VerificationService.check_verification_mode(USER_PHONE, mode)
+            assert response.status_code == status.HTTP_404_NOT_FOUND
+            assert response.data["error"] == "User not found."
+
+        @pytest.mark.parametrize(
+            "mode",
+            [
+                Verification.Mode.RESET_PASSWORD,
+                Verification.Mode.CHANGE_PASSWORD,
+            ],
+        )
+        def test_returns_none_for_admin_trying_privileged_actions(self, admin_user, mode):
+            """Should return None for modes that allow missing user"""
+
+            response = VerificationService.check_verification_mode(ADMIN_PHONE, mode)
+            assert response is None
+
+        @pytest.mark.parametrize(
+            "mode",
+            [
+                Verification.Mode.RESET_PASSWORD,
+                Verification.Mode.CHANGE_PASSWORD,
+            ],
+        )
+        def test_returns_error_for_user_trying_privileged_actions(self, user, mode):
+            """Should return 403 if regular user tries privileged modes"""
+
+            response = VerificationService.check_verification_mode(user.phone, mode)
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert response.data["error"] == "You do not have permission to perform this action."
+
+        def test_returns_none_for_non_existed_new_phone(self):
+            """Superuser should be allowed to change password"""
+
+            response = VerificationService.check_verification_mode(USER_PHONE, Verification.Mode.CHANGE_PHONE_NEW)
             assert response is None
 
         def test_returns_error_for_active_user_on_change_phone_new(self, user):
+            """Should return 403 if active user tries to use CHANGE_PHONE_NEW"""
+
             response = VerificationService.check_verification_mode(user.phone, Verification.Mode.CHANGE_PHONE_NEW)
             assert response.status_code == status.HTTP_403_FORBIDDEN
-            assert "This new phone number already exists." == response.data["error"]
-
-        def test_returns_error_for_user_trying_reset_password(self, user):
-            response = VerificationService.check_verification_mode(user.phone, Verification.Mode.RESET_PASSWORD)
-            assert response.status_code == status.HTTP_403_FORBIDDEN
-            assert "You cannot reset or change password." == response.data["error"]
+            assert response.data["error"] == "This new phone number already exists."
 
     class TestCheckVerificationObject:
         def test_returns_error_if_none(self):
@@ -226,21 +281,17 @@ class TestVerificationService:
             )
 
             assert response is None
-            assert error.status_code == status.HTTP_404_NOT_FOUND
+            assert error.status_code == status.HTTP_400_BAD_REQUEST
             assert error.data["error"] == "Invalid verification mode."
 
-        @pytest.mark.parametrize(
-            "status_value",
-            [Verification.Status.SENT, Verification.Status.EXPIRED, Verification.Status.USED],
-        )
-        def test_returns_error_if_invalid_status(self, create_verification, status_value):
-            """Should return 400 if status is not VERIFIED"""
+        def test_returns_error_if_status_sent(self, create_verification):
+            """Should return 400 if status is SENT"""
 
             create_verification(
                 phone=USER_PHONE,
                 verification_token="new_token",
                 mode=Verification.Mode.LOGIN,
-                status=status_value,
+                status=Verification.Status.SENT,
             )
 
             response, error = VerificationService.get_verified_verification_or_error(
@@ -250,6 +301,38 @@ class TestVerificationService:
             assert response is None
             assert error.status_code == status.HTTP_400_BAD_REQUEST
             assert error.data["error"] == "Phone number has not been verified."
+
+        def test_returns_error_if_status_used(self, create_verification):
+            create_verification(
+                phone=USER_PHONE,
+                verification_token="used_token",
+                mode=Verification.Mode.LOGIN,
+                status=Verification.Status.USED,
+            )
+
+            response, error = VerificationService.get_verified_verification_or_error(
+                USER_PHONE, "used_token", Verification.Mode.LOGIN
+            )
+
+            assert response is None
+            assert error.status_code == status.HTTP_409_CONFLICT
+            assert error.data["error"] == "This code has already been used. Please request a new one."
+
+        def test_returns_error_if_status_expired(self, create_verification):
+            create_verification(
+                phone=USER_PHONE,
+                verification_token="expired_token",
+                mode=Verification.Mode.LOGIN,
+                status=Verification.Status.EXPIRED,
+            )
+
+            response, error = VerificationService.get_verified_verification_or_error(
+                USER_PHONE, "expired_token", Verification.Mode.LOGIN
+            )
+
+            assert response is None
+            assert error.status_code == status.HTTP_410_GONE
+            assert error.data["error"] == "This code has expired. Please request a new one."
 
 
 @pytest.mark.django_db
