@@ -21,7 +21,7 @@ class TestAdminUserAccountView:
         response = authenticated_admin_client.get(reverse("admin_get_user", args=[999999]))
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.data["error"] == "User not found."
+        assert response.data["detail"] == "User not found."
 
 
 @pytest.mark.django_db
@@ -44,7 +44,7 @@ class TestAdminBlockUserView:
         response = authenticated_admin_client.patch(reverse("admin_block_user", args=[999999]))
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.data["error"] == "User not found."
+        assert response.data["detail"] == "User not found."
 
     def test_missing_reason(self, authenticated_admin_client, user):
         """Test blocking a user without providing a reason"""
@@ -82,7 +82,7 @@ class TestAdminUnblockUserView:
         response = authenticated_admin_client.patch(reverse("admin_unblock_user", args=[999999]))
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.data["error"] == "User not found."
+        assert response.data["detail"] == "User not found."
 
     def test_already_active_user(self, authenticated_admin_client, user):
         """Test trying to unblock a user who is already active"""

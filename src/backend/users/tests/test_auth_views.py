@@ -29,14 +29,14 @@ class TestAdminPasswordVerificationView:
 
         response = api_client.post(self.url, {"phone": admin_user.phone, "password": "wrongpassword"})
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["error"] == "Invalid phone or password."
+        assert response.data["detail"] == "Invalid phone or password."
 
     def test_user_not_found_returns_404(self, api_client):
         """Test when user is not found"""
 
         response = api_client.post(self.url, {"phone": "+79990000000", "password": "any"})
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.data["error"] == "User not found."
+        assert response.data["detail"] == "User not found."
 
     def test_blocked_user_returns_403(self, api_client, admin_user):
         """Test when user is blocked (inactive)"""
@@ -47,7 +47,7 @@ class TestAdminPasswordVerificationView:
 
         response = api_client.post(self.url, {"phone": admin_user.phone, "password": ADMIN_PASSWORD})
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert "User is blocked. Reason: 'Spamming'." in response.data["error"]
+        assert response.data["detail"] == "User is blocked. Reason: 'Spamming'."
 
     def test_regular_user_role_returns_403(self, api_client, user):
         """Test when user with USER role tries to verify password"""
@@ -57,7 +57,7 @@ class TestAdminPasswordVerificationView:
 
         response = api_client.post(self.url, {"phone": user.phone, "password": "userpassword"})
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["error"] == "You do not have permission to perform this action."
+        assert response.data["detail"] == "You do not have permission to perform this action."
 
 
 @pytest.mark.django_db
@@ -189,7 +189,7 @@ class TestResetPasswordView:
         """Test that blocked admin cannot reset password"""
 
         admin_user.is_active = False
-        admin_user.block_reason = "reason"
+        admin_user.block_reason = "Spamming"
         admin_user.save()
 
         response = api_client.patch(
@@ -202,4 +202,4 @@ class TestResetPasswordView:
         )
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["error"] == "User is blocked. Reason: 'reason'."
+        assert response.data["detail"] == "User is blocked. Reason: 'Spamming'."

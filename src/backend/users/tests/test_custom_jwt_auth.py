@@ -55,7 +55,7 @@ class TestCustomJWTAuthentication:
 
     def test_raises_permission_denied_if_user_inactive(self, admin_user):
         admin_user.is_active = False
-        admin_user.block_reason = "Violation of terms"
+        admin_user.block_reason = "Spamming"
         admin_user.save()
 
         token = {api_settings.USER_ID_CLAIM: getattr(admin_user, api_settings.USER_ID_FIELD)}
@@ -63,4 +63,4 @@ class TestCustomJWTAuthentication:
         with pytest.raises(PermissionDenied) as exc_info:
             self.auth.get_user(token)
 
-        assert "User is blocked. Reason: 'Violation of terms'." in str(exc_info.value)
+        assert str(exc_info.value) == "User is blocked. Reason: 'Spamming'."

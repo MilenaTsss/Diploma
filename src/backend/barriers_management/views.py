@@ -98,7 +98,7 @@ class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
 
         barrier = super().get_object()
         if barrier.owner != self.request.user:
-            raise PermissionDenied(detail="You do not have permission to access this barrier.")
+            raise PermissionDenied("You do not have permission to access this barrier.")
 
         return barrier
 

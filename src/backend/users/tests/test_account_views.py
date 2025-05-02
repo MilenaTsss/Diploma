@@ -51,7 +51,7 @@ class TestUserAccountView:
         response = authenticated_client.delete(reverse("user_account"), {"verification_token": verification_token})
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data["error"] == "Invalid verification mode."
+        assert response.data["detail"] == "Invalid verification mode."
 
     def test_put_method_not_allowed(self, authenticated_client):
         """Test that PUT method is not allowed on user account view"""

@@ -143,7 +143,7 @@ class TestVerificationService:
 
             response = VerificationService.check_verification_mode(USER_PHONE, mode)
             assert response.status_code == status.HTTP_404_NOT_FOUND
-            assert response.data["error"] == "User not found."
+            assert response.data["detail"] == "User not found."
 
         @pytest.mark.parametrize(
             "mode",
@@ -170,7 +170,7 @@ class TestVerificationService:
 
             response = VerificationService.check_verification_mode(user.phone, mode)
             assert response.status_code == status.HTTP_403_FORBIDDEN
-            assert response.data["error"] == "You do not have permission to perform this action."
+            assert response.data["detail"] == "You do not have permission to perform this action."
 
         def test_returns_none_for_non_existed_new_phone(self):
             """Superuser should be allowed to change password"""
@@ -183,7 +183,7 @@ class TestVerificationService:
 
             response = VerificationService.check_verification_mode(user.phone, Verification.Mode.CHANGE_PHONE_NEW)
             assert response.status_code == status.HTTP_403_FORBIDDEN
-            assert response.data["error"] == "This new phone number already exists."
+            assert response.data["detail"] == "This new phone number already exists."
 
     class TestCheckVerificationObject:
         def test_returns_error_if_none(self):
@@ -260,7 +260,7 @@ class TestVerificationService:
 
             assert response is None
             assert error.status_code == status.HTTP_404_NOT_FOUND
-            assert error.data["error"] == "Verification not found."
+            assert error.data["detail"] == "Verification not found."
 
         def test_returns_error_if_phone_mismatch(self, verification):
             """Should return 400 if phone does not match"""
@@ -271,7 +271,7 @@ class TestVerificationService:
 
             assert response is None
             assert error.status_code == status.HTTP_400_BAD_REQUEST
-            assert error.data["error"] == "Phone number does not match the verification record."
+            assert error.data["detail"] == "Phone number does not match the verification record."
 
         def test_returns_error_if_mode_mismatch(self, verification):
             """Should return 404 if mode does not match"""
@@ -282,7 +282,7 @@ class TestVerificationService:
 
             assert response is None
             assert error.status_code == status.HTTP_400_BAD_REQUEST
-            assert error.data["error"] == "Invalid verification mode."
+            assert error.data["detail"] == "Invalid verification mode."
 
         def test_returns_error_if_status_sent(self, create_verification):
             """Should return 400 if status is SENT"""
@@ -300,7 +300,7 @@ class TestVerificationService:
 
             assert response is None
             assert error.status_code == status.HTTP_400_BAD_REQUEST
-            assert error.data["error"] == "Phone number has not been verified."
+            assert error.data["detail"] == "Phone number has not been verified."
 
         def test_returns_error_if_status_used(self, create_verification):
             create_verification(
@@ -316,7 +316,7 @@ class TestVerificationService:
 
             assert response is None
             assert error.status_code == status.HTTP_409_CONFLICT
-            assert error.data["error"] == "This code has already been used. Please request a new one."
+            assert error.data["detail"] == "This code has already been used. Please request a new one."
 
         def test_returns_error_if_status_expired(self, create_verification):
             create_verification(
@@ -332,7 +332,7 @@ class TestVerificationService:
 
             assert response is None
             assert error.status_code == status.HTTP_410_GONE
-            assert error.data["error"] == "This code has expired. Please request a new one."
+            assert error.data["detail"] == "This code has expired. Please request a new one."
 
 
 @pytest.mark.django_db

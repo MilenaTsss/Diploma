@@ -131,17 +131,17 @@
                 "examples": {
                   "blocked": {
                     "value": {
-                      "error": "User is blocked. Reason: 'Spam'."
+                      "detail": "User is blocked. Reason: 'Spam'."
                     }
                   },
                   "change phone": {
                     "value": {
-                      "error": "This new phone number already exists."
+                      "detail": "This new phone number already exists."
                     }
                   },
                   "change password": {
                     "value": {
-                      "error": "You do not have permission to perform this action."
+                      "detail": "You do not have permission to perform this action."
                     }
                   }
                 }
@@ -155,7 +155,7 @@
                 "examples": {
                   "user not found": {
                     "value": {
-                      "error": "User not found."
+                      "detail": "User not found."
                     }
                   }
                 }
@@ -169,17 +169,17 @@
                 "examples": {
                   "too many attempts": {
                     "value": {
-                      "error": "Too many verification attempts. Try again later."
+                      "detail": "Too many verification attempts. Try again later."
                     }
                   },
                   "too many unverified codes": {
                     "value": {
-                      "error": "Too many unverified codes. Try again later."
+                      "detail": "Too many unverified codes. Try again later."
                     }
                   },
                   "verification code already sent": {
                     "value": {
-                      "error": "Verification code was already sent. Try again later."
+                      "detail": "Verification code was already sent. Try again later."
                     }
                   }
                 }
@@ -291,12 +291,12 @@
                   },
                   "wrong phone number": {
                     "value": {
-                      "error": "Phone number does not match the verification record."
+                      "detail": "Phone number does not match the verification record."
                     }
                   },
                   "wrong code": {
                     "value": {
-                      "error": "Invalid code."
+                      "detail": "Invalid code."
                     }
                   }
                 }
@@ -310,7 +310,7 @@
                 "examples": {
                   "blocked": {
                     "value": {
-                      "error": "User is blocked. Reason: 'Spam'."
+                      "detail": "User is blocked. Reason: 'Spam'."
                     }
                   }
                 }
@@ -324,7 +324,7 @@
                 "examples": {
                   "verification not found": {
                     "value": {
-                      "error": "Verification not found."
+                      "detail": "Verification not found."
                     }
                   }
                 }
@@ -338,7 +338,7 @@
                 "examples": {
                   "code been used": {
                     "value": {
-                      "error": "This code has already been used. Please request a new one."
+                      "detail": "This code has already been used. Please request a new one."
                     }
                   }
                 }
@@ -352,7 +352,7 @@
                 "examples": {
                   "expired": {
                     "value": {
-                      "error": "This code has expired. Please request a new one."
+                      "detail": "This code has expired. Please request a new one."
                     }
                   }
                 }
@@ -366,7 +366,7 @@
                 "examples": {
                   "too many attempts": {
                     "value": {
-                      "error": "Too many verification attempts. Try again later."
+                      "detail": "Too many verification attempts. Try again later."
                     }
                   }
                 }
@@ -469,17 +469,17 @@
                   },
                   "wrong phone number": {
                     "value": {
-                      "error": "Phone number does not match the verification record."
+                      "detail": "Phone number does not match the verification record."
                     }
                   },
                   "wrong mode": {
                     "value": {
-                      "error": "Invalid verification mode."
+                      "detail": "Invalid verification mode."
                     }
                   },
                   "unverified": {
                     "value": {
-                      "error": "Phone number has not been verified."
+                      "detail": "Phone number has not been verified."
                     }
                   }
                 }
@@ -493,7 +493,7 @@
                 "examples": {
                   "blocked": {
                     "value": {
-                      "error": "User is blocked. Reason: 'Spam'."
+                      "detail": "User is blocked. Reason: 'Spam'."
                     }
                   }
                 }
@@ -507,7 +507,7 @@
                 "examples": {
                   "verification not found": {
                     "value": {
-                      "error": "Verification not found."
+                      "detail": "Verification not found."
                     }
                   }
                 }
@@ -521,7 +521,7 @@
                 "examples": {
                   "code been used": {
                     "value": {
-                      "error": "This code has already been used. Please request a new one."
+                      "detail": "This code has already been used. Please request a new one."
                     }
                   }
                 }
@@ -535,7 +535,7 @@
                 "examples": {
                   "expired": {
                     "value": {
-                      "error": "This code has expired. Please request a new one."
+                      "detail": "This code has expired. Please request a new one."
                     }
                   }
                 }
@@ -724,12 +724,12 @@
                 "examples": {
                   "blocked": {
                     "value": {
-                      "error": "User is blocked. Reason: 'Spam'."
+                      "detail": "User is blocked. Reason: 'Spam'."
                     }
                   },
                   "invalid": {
                     "value": {
-                      "error": "Invalid phone or password."
+                      "detail": "Invalid phone or password."
                     }
                   },
                   "not admin": {
@@ -748,7 +748,7 @@
                 "examples": {
                   "invalid": {
                     "value": {
-                      "error": "User not found."
+                      "detail": "User not found."
                     }
                   }
                 }
@@ -1067,17 +1067,17 @@
                   },
                   "wrong phone number": {
                     "value": {
-                      "error": "Phone number does not match the verification record."
+                      "detail": "Phone number does not match the verification record."
                     }
                   },
                   "wrong mode": {
                     "value": {
-                      "error": "Invalid verification mode."
+                      "detail": "Invalid verification mode."
                     }
                   },
                   "unverified": {
                     "value": {
-                      "error": "Phone number has not been verified."
+                      "detail": "Phone number has not been verified."
                     }
                   }
                 }
@@ -1125,7 +1125,7 @@
                 "examples": {
                   "verification not found": {
                     "value": {
-                      "error": "Verification not found."
+                      "detail": "Verification not found."
                     }
                   }
                 }
@@ -1139,7 +1139,7 @@
                 "examples": {
                   "code been used": {
                     "value": {
-                      "error": "This code has already been used. Please request a new one."
+                      "detail": "This code has already been used. Please request a new one."
                     }
                   }
                 }
@@ -1153,7 +1153,7 @@
                 "examples": {
                   "expired": {
                     "value": {
-                      "error": "This code has expired. Please request a new one."
+                      "detail": "This code has expired. Please request a new one."
                     }
                   }
                 }
@@ -1263,17 +1263,17 @@
                   },
                   "wrong phone number": {
                     "value": {
-                      "error": "Phone number does not match the verification record."
+                      "detail": "Phone number does not match the verification record."
                     }
                   },
                   "wrong mode": {
                     "value": {
-                      "error": "Invalid verification mode."
+                      "detail": "Invalid verification mode."
                     }
                   },
                   "unverified": {
                     "value": {
-                      "error": "Phone number has not been verified."
+                      "detail": "Phone number has not been verified."
                     }
                   },
                   "wrong new phone": {
@@ -1328,7 +1328,7 @@
                 "examples": {
                   "verification not found": {
                     "value": {
-                      "error": "Verification not found."
+                      "detail": "Verification not found."
                     }
                   }
                 }
@@ -1342,7 +1342,7 @@
                 "examples": {
                   "code been used": {
                     "value": {
-                      "error": "This code has already been used. Please request a new one."
+                      "detail": "This code has already been used. Please request a new one."
                     }
                   }
                 }
@@ -1356,7 +1356,7 @@
                 "examples": {
                   "expired": {
                     "value": {
-                      "error": "This code has expired. Please request a new one."
+                      "detail": "This code has expired. Please request a new one."
                     }
                   }
                 }
@@ -1466,17 +1466,17 @@
                   },
                   "wrong phone number": {
                     "value": {
-                      "error": "Phone number does not match the verification record."
+                      "detail": "Phone number does not match the verification record."
                     }
                   },
                   "wrong mode": {
                     "value": {
-                      "error": "Invalid verification mode."
+                      "detail": "Invalid verification mode."
                     }
                   },
                   "unverified": {
                     "value": {
-                      "error": "Phone number has not been verified."
+                      "detail": "Phone number has not been verified."
                     }
                   },
                   "wrong current password": {
@@ -1536,7 +1536,7 @@
                 "examples": {
                   "verification not found": {
                     "value": {
-                      "error": "Verification not found."
+                      "detail": "Verification not found."
                     }
                   }
                 }
@@ -1550,7 +1550,7 @@
                 "examples": {
                   "code been used": {
                     "value": {
-                      "error": "This code has already been used. Please request a new one."
+                      "detail": "This code has already been used. Please request a new one."
                     }
                   }
                 }
@@ -1564,7 +1564,7 @@
                 "examples": {
                   "expired": {
                     "value": {
-                      "error": "This code has expired. Please request a new one."
+                      "detail": "This code has expired. Please request a new one."
                     }
                   }
                 }
@@ -1678,17 +1678,17 @@
                   },
                   "wrong phone number": {
                     "value": {
-                      "error": "Phone number does not match the verification record."
+                      "detail": "Phone number does not match the verification record."
                     }
                   },
                   "wrong mode": {
                     "value": {
-                      "error": "Invalid verification mode."
+                      "detail": "Invalid verification mode."
                     }
                   },
                   "unverified": {
                     "value": {
-                      "error": "Phone number has not been verified."
+                      "detail": "Phone number has not been verified."
                     }
                   }
                 }
@@ -1707,7 +1707,7 @@
                   },
                   "not admin": {
                     "value": {
-                      "error": "You do not have permission to perform this action."
+                      "detail": "You do not have permission to perform this action."
                     }
                   }
                 }
@@ -1721,12 +1721,12 @@
                 "examples": {
                   "verification not found": {
                     "value": {
-                      "error": "Verification not found."
+                      "detail": "Verification not found."
                     }
                   },
                   "user not found": {
                     "value": {
-                      "error": "User not found."
+                      "detail": "User not found."
                     }
                   }
                 }
@@ -1740,7 +1740,7 @@
                 "examples": {
                   "code been used": {
                     "value": {
-                      "error": "This code has already been used. Please request a new one."
+                      "detail": "This code has already been used. Please request a new one."
                     }
                   }
                 }
@@ -1754,7 +1754,7 @@
                 "examples": {
                   "expired": {
                     "value": {
-                      "error": "This code has expired. Please request a new one."
+                      "detail": "This code has expired. Please request a new one."
                     }
                   }
                 }
@@ -1848,7 +1848,7 @@
                 "examples": {
                   "user not found": {
                     "value": {
-                      "error": "User not found."
+                      "detail": "User not found."
                     }
                   }
                 }
@@ -1920,12 +1920,12 @@
                 "examples": {
                   "required reason": {
                     "value": {
-                      "error": "Reason is required for blocking a user."
+                      "detail": "Reason is required for blocking a user."
                     }
                   },
                   "already blocked": {
                     "value": {
-                      "error": "User is already blocked."
+                      "detail": "User is already blocked."
                     }
                   }
                 }
@@ -1969,7 +1969,7 @@
                   },
                   "cannot block admin": {
                     "value": {
-                      "error": "You cannot block an admin."
+                      "detail": "You cannot block an admin."
                     }
                   }
                 }
@@ -1983,7 +1983,7 @@
                 "examples": {
                   "user not found": {
                     "value": {
-                      "error": "User not found."
+                      "detail": "User not found."
                     }
                   }
                 }
@@ -2038,7 +2038,7 @@
                 "examples": {
                   "already not blocked": {
                     "value": {
-                      "error": "User is already active."
+                      "detail": "User is already active."
                     }
                   }
                 }
@@ -2082,7 +2082,7 @@
                   },
                   "cannot unblock admin": {
                     "value": {
-                      "error": "You cannot unblock an admin."
+                      "detail": "You cannot unblock an admin."
                     }
                   }
                 }
@@ -2096,7 +2096,7 @@
                 "examples": {
                   "user not found": {
                     "value": {
-                      "error": "User not found."
+                      "detail": "User not found."
                     }
                   }
                 }
@@ -2226,7 +2226,7 @@
                 "examples": {
                   "user not found": {
                     "value": {
-                      "error": "User not found."
+                      "detail": "User not found."
                     }
                   }
                 }
@@ -2298,7 +2298,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Список шлагбаумов с фильтрацией и пагинацией.",
+            "description": "Список шлагбаумов с фильтрацией, пагинацией и сортировкой.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2327,14 +2327,53 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Неправильный номер страницы",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "wrong page number": {
+                    "value": {
+                      "detail": "Invalid page."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2391,7 +2430,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Список доступных шлагбаумов.",
+            "description": "Список своих шлагбаумов с пагинацией и сортировкой.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2420,14 +2459,53 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Неправильный номер страницы",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "wrong page number": {
+                    "value": {
+                      "detail": "Invalid page."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2470,17 +2548,58 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет доступа к данному шлагбауму."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2523,17 +2642,58 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет доступа к данному шлагбауму."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2583,14 +2743,53 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3883,19 +4082,73 @@
         ],
         "responses": {
           "200": {
-            "description": "Пользователь успешно вышел из шлагбаума."
-          },
-          "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Пользователь успешно вышел из шлагбаума.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Left the barrier successfully."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Пользователь не имеет доступа к этому шлагбауму."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум не найден."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."

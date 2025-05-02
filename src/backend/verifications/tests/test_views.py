@@ -64,7 +64,7 @@ class TestSendVerificationCodeView:
         response = api_client.post(self.url, self.data)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["error"] == "Blocked"
+        assert response.data["detail"] == "Blocked"
 
     def test_fail_limit_exceeded(self, api_client, mocker):
         mocker.patch(
@@ -75,7 +75,7 @@ class TestSendVerificationCodeView:
         response = api_client.post(self.url, self.data)
 
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-        assert response.data["error"] == "Too many failed"
+        assert response.data["detail"] == "Too many failed"
 
     def test_unverified_limit_exceeded(self, api_client, mocker):
         mocker.patch(
@@ -86,7 +86,7 @@ class TestSendVerificationCodeView:
         response = api_client.post(self.url, self.data)
 
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-        assert response.data["error"] == "Too many unverified"
+        assert response.data["detail"] == "Too many unverified"
 
     class TestVerificationModeChecks:
         url = reverse("send_code")
@@ -97,7 +97,7 @@ class TestSendVerificationCodeView:
             response = api_client.post(self.url, data)
 
             assert response.status_code == status.HTTP_403_FORBIDDEN
-            assert response.data["error"] == "This new phone number already exists."
+            assert response.data["detail"] == "This new phone number already exists."
 
         @pytest.mark.parametrize("mode", [Verification.Mode.RESET_PASSWORD, Verification.Mode.CHANGE_PASSWORD])
         def test_cannot_change_password_for_regular_user(self, mode, api_client, user):
@@ -106,7 +106,7 @@ class TestSendVerificationCodeView:
             response = api_client.post(self.url, data)
 
             assert response.status_code == status.HTTP_403_FORBIDDEN
-            assert response.data["error"] == "You do not have permission to perform this action."
+            assert response.data["detail"] == "You do not have permission to perform this action."
 
         @pytest.mark.parametrize(
             "mode",
@@ -123,7 +123,7 @@ class TestSendVerificationCodeView:
             response = api_client.post(self.url, data)
 
             assert response.status_code == status.HTTP_404_NOT_FOUND
-            assert response.data["error"] == "User not found."
+            assert response.data["detail"] == "User not found."
 
         @pytest.mark.parametrize("mode", [Verification.Mode.LOGIN, Verification.Mode.CHANGE_PHONE_NEW])
         @patch("message_management.services.SMSService.send_verification")
@@ -146,7 +146,7 @@ class TestSendVerificationCodeView:
         response = api_client.post(self.url, self.data)
 
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-        assert response.data["error"] == "Verification code was already sent. Try again later."
+        assert response.data["detail"] == "Verification code was already sent. Try again later."
         assert "Retry-After" in response.headers
 
 
@@ -197,7 +197,7 @@ class TestVerifyCodeView:
         response = api_client.patch(self.url, verification_data)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["error"] == "Blocked"
+        assert response.data["detail"] == "Blocked"
 
     def test_fail_limit_exceeded(self, api_client, verification_data, mocker):
         mocker.patch(
@@ -208,7 +208,7 @@ class TestVerifyCodeView:
         response = api_client.patch(self.url, verification_data)
 
         assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
-        assert response.data["error"] == "Too many failed"
+        assert response.data["detail"] == "Too many failed"
 
     def test_verification_fails_due_to_validation(self, api_client, verification_data, mocker):
         mocker.patch(
@@ -219,7 +219,7 @@ class TestVerifyCodeView:
         response = api_client.patch(self.url, verification_data)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data["error"] == "Some validation error"
+        assert response.data["detail"] == "Some validation error"
 
     def test_verification_code_mismatch(self, api_client, verification):
 
@@ -233,6 +233,6 @@ class TestVerifyCodeView:
         )
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data["error"] == "Invalid code."
+        assert response.data["detail"] == "Invalid code."
         verification.refresh_from_db()
         assert verification.failed_attempts == 1

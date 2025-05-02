@@ -30,7 +30,7 @@ class AdminUserAccountView(generics.RetrieveAPIView):
         try:
             return super().get_object()
         except Http404:
-            raise NotFound(detail={"error": "User not found."})
+            raise NotFound("User not found.")
 
 
 @permission_classes([IsAdminUser])
@@ -41,7 +41,7 @@ class AdminBlockUserView(APIView):
         try:
             user = get_object_or_404(User, id=id)
         except Http404:
-            raise NotFound(detail={"error": "User not found."})
+            return error_response("User not found.", status.HTTP_404_NOT_FOUND)
 
         reason = request.data.get("reason")
         if not reason:
@@ -68,7 +68,7 @@ class AdminUnblockUserView(APIView):
         try:
             user = get_object_or_404(User, id=id)
         except Http404:
-            raise NotFound(detail={"error": "User not found."})
+            return error_response("User not found.", status.HTTP_404_NOT_FOUND)
 
         if user.is_active:
             return error_response("User is already active.", status.HTTP_400_BAD_REQUEST)
@@ -92,7 +92,7 @@ class AdminSearchUserView(APIView):
         serializer.is_valid(raise_exception=True)
 
         phone = serializer.validated_data["phone"]
-        user = User.objects.filter(phone=phone).first()
+        user = User.objects.get_by_phone(phone)
 
         if not user:
             return error_response("User not found.", status.HTTP_404_NOT_FOUND)
