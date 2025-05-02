@@ -129,9 +129,9 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "blocked user": {
+                  "blocked": {
                     "value": {
-                      "error": "This account is blocked for reason: `Spam`"
+                      "error": "User is blocked. Reason: 'Spam'."
                     }
                   },
                   "change phone": {
@@ -308,9 +308,9 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "blocked user": {
+                  "blocked": {
                     "value": {
-                      "error": "This account is blocked for reason: `Spam`"
+                      "error": "User is blocked. Reason: 'Spam'."
                     }
                   }
                 }
@@ -491,9 +491,9 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "blocked user": {
+                  "blocked": {
                     "value": {
-                      "error": "This account is blocked for reason: `Spam`"
+                      "error": "User is blocked. Reason: 'Spam'."
                     }
                   }
                 }
@@ -718,13 +718,37 @@
             }
           },
           "403": {
-            "description": "Неверный номер телефона или пароль.",
+            "description": "Нет доступа.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "error": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "invalid": {
+                    "value": {
+                      "error": "Invalid phone or password."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Пользователь не найден.",
             "content": {
               "application/json": {
                 "examples": {
                   "invalid": {
                     "value": {
-                      "error": "Invalid phone or password."
+                      "error": "User not found."
                     }
                   }
                 }
@@ -844,9 +868,15 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Unauthorized": {
+                  "unauthorized": {
                     "value": {
                       "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
                     }
                   }
                 }
@@ -858,9 +888,9 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Unauthorized": {
+                  "blocked": {
                     "value": {
-                      "detail": "User is blocked"
+                      "detail": "User is blocked. Reason: 'Spam'."
                     }
                   }
                 }
@@ -943,9 +973,15 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Unauthorized": {
+                  "unauthorized": {
                     "value": {
                       "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
                     }
                   }
                 }
@@ -957,9 +993,9 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Unauthorized": {
+                  "blocked": {
                     "value": {
-                      "detail": "User is blocked"
+                      "detail": "User is blocked. Reason: 'Spam'."
                     }
                   }
                 }
@@ -1053,9 +1089,15 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Unauthorized": {
+                  "unauthorized": {
                     "value": {
                       "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
                     }
                   }
                 }
@@ -1067,9 +1109,9 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Unauthorized": {
+                  "blocked": {
                     "value": {
-                      "detail": "User is blocked"
+                      "detail": "User is blocked. Reason: 'Spam'."
                     }
                   }
                 }
@@ -1250,9 +1292,15 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Unauthorized": {
+                  "unauthorized": {
                     "value": {
                       "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
                     }
                   }
                 }
@@ -1264,9 +1312,9 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Unauthorized": {
+                  "blocked": {
                     "value": {
-                      "detail": "User is blocked"
+                      "detail": "User is blocked. Reason: 'Spam'."
                     }
                   }
                 }
@@ -1447,9 +1495,15 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Unauthorized": {
+                  "unauthorized": {
                     "value": {
                       "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
                     }
                   }
                 }
@@ -1461,9 +1515,9 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Unauthorized": {
+                  "blocked": {
                     "value": {
-                      "detail": "User is blocked"
+                      "detail": "User is blocked. Reason: 'Spam'."
                     }
                   },
                   "not admin": {
@@ -1561,7 +1615,20 @@
         },
         "responses": {
           "200": {
-            "description": "Пароль успешно восстановлен."
+            "description": "Пароль успешно восстановлен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Password successfully reset."
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "Некорректные параметры запроса.",
@@ -1623,27 +1690,6 @@
                     "value": {
                       "error": "Phone number has not been verified."
                     }
-                  },
-                  "wrong current password": {
-                    "value": {
-                      "old_password": [
-                        "Current password is incorrect."
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Пользователь не авторизован.",
-            "content": {
-              "application/json": {
-                "examples": {
-                  "Unauthorized": {
-                    "value": {
-                      "detail": "Authentication credentials were not provided."
-                    }
                   }
                 }
               }
@@ -1654,14 +1700,14 @@
             "content": {
               "application/json": {
                 "examples": {
-                  "Unauthorized": {
+                  "blocked": {
                     "value": {
-                      "detail": "User is blocked"
+                      "detail": "User is blocked. Reason: 'Spam'."
                     }
                   },
                   "not admin": {
                     "value": {
-                      "detail": "You do not have permission to perform this action."
+                      "error": "You do not have permission to perform this action."
                     }
                   }
                 }
@@ -1669,13 +1715,18 @@
             }
           },
           "404": {
-            "description": "Подтверждение не найдено",
+            "description": "Подтверждение или пользователь не найдено.",
             "content": {
               "application/json": {
                 "examples": {
                   "verification not found": {
                     "value": {
                       "error": "Verification not found."
+                    }
+                  },
+                  "user not found": {
+                    "value": {
+                      "error": "User not found."
                     }
                   }
                 }
@@ -1751,17 +1802,58 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `user_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Пользователь с указанным `id` не найден."
+            "description": "Пользователь не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "user not found": {
+                    "value": {
+                      "error": "User not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1822,16 +1914,81 @@
             }
           },
           "400": {
-            "description": "Некорректный параметр запроса - `user_id`."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "required reason": {
+                    "value": {
+                      "error": "Reason is required for blocking a user."
+                    }
+                  },
+                  "already blocked": {
+                    "value": {
+                      "error": "User is already blocked."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "cannot block admin": {
+                    "value": {
+                      "error": "You cannot block an admin."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Пользователь с указанным `id` не найден."
+            "description": "Пользователь не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "user not found": {
+                    "value": {
+                      "error": "User not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1875,16 +2032,76 @@
             }
           },
           "400": {
-            "description": "Некорректный параметр запроса - `user_id`."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "already not blocked": {
+                    "value": {
+                      "error": "User is already active."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "cannot unblock admin": {
+                    "value": {
+                      "error": "You cannot unblock an admin."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Пользователь с указанным `id` не найден."
+            "description": "Пользователь не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "user not found": {
+                    "value": {
+                      "error": "User not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1934,16 +2151,87 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат номера телефона."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Пользователь с таким номером телефона не найден."
+            "description": "Пользователь не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "user not found": {
+                    "value": {
+                      "error": "User not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."

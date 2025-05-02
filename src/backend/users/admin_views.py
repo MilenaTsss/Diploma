@@ -1,6 +1,8 @@
+from django.http import Http404
 from django.shortcuts import render
 from rest_framework import generics, status
 from rest_framework.decorators import permission_classes
+from rest_framework.exceptions import NotFound
 from rest_framework.generics import get_object_or_404
 from rest_framework.permissions import IsAdminUser
 from rest_framework.views import APIView
@@ -24,13 +26,22 @@ class AdminUserAccountView(generics.RetrieveAPIView):
     serializer_class = UserSerializer
     lookup_field = "id"
 
+    def get_object(self):
+        try:
+            return super().get_object()
+        except Http404:
+            raise NotFound(detail={"error": "User not found."})
+
 
 @permission_classes([IsAdminUser])
 class AdminBlockUserView(APIView):
     """Block user (for admins only)."""
 
     def patch(self, request, id):
-        user = get_object_or_404(User, id=id)
+        try:
+            user = get_object_or_404(User, id=id)
+        except Http404:
+            raise NotFound(detail={"error": "User not found."})
 
         reason = request.data.get("reason")
         if not reason:
@@ -54,7 +65,10 @@ class AdminUnblockUserView(APIView):
     """Unblock a user (for admins only)."""
 
     def patch(self, request, id):
-        user = get_object_or_404(User, id=id)
+        try:
+            user = get_object_or_404(User, id=id)
+        except Http404:
+            raise NotFound(detail={"error": "User not found."})
 
         if user.is_active:
             return error_response("User is already active.", status.HTTP_400_BAD_REQUEST)
