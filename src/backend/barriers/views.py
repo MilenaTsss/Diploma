@@ -1,6 +1,7 @@
 import logging
 
 from django.db.models import Q
+from django.http import Http404
 from rest_framework import status
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.generics import DestroyAPIView, RetrieveAPIView
@@ -72,10 +73,14 @@ class BarrierView(RetrieveAPIView):
     lookup_field = "id"
 
     def get_object(self):
-        barrier = super().get_object()
+        try:
+            barrier = super().get_object()
+        except Http404:
+            raise NotFound("Barrier not found.")
+
         user = self.request.user
 
-        if barrier.is_public or (UserBarrier.user_has_access_to_barrier(user, barrier)):
+        if barrier.is_public or UserBarrier.user_has_access_to_barrier(user, barrier):
             return barrier
 
         raise PermissionDenied("You do not have access to this barrier.")
@@ -89,7 +94,11 @@ class BarrierLimitView(RetrieveAPIView):
     lookup_field = "id"
 
     def get_object(self):
-        barrier = super().get_object()
+        try:
+            barrier = super().get_object()
+        except Http404:
+            raise NotFound("Barrier not found.")
+
         user = self.request.user
 
         if not (barrier.is_public or UserBarrier.user_has_access_to_barrier(user, barrier) or barrier.owner == user):
@@ -101,16 +110,16 @@ class BarrierLimitView(RetrieveAPIView):
 
         return barrier.limits
 
-    def get(self, request, *args, **kwargs):
-        return self.retrieve(request, *args, **kwargs)
-
 
 class LeaveBarrierView(DestroyAPIView):
     queryset = Barrier.objects.filter(is_active=True)
     lookup_field = "id"
 
     def delete(self, request, *args, **kwargs):
-        barrier = self.get_object()
+        try:
+            barrier = self.get_object()
+        except Http404:
+            return error_response("Barrier not found.", status.HTTP_404_NOT_FOUND)
 
         user_barrier = UserBarrier.objects.filter(user=self.request.user, barrier=barrier, is_active=True).first()
         if not user_barrier:
@@ -127,7 +136,7 @@ class BarrierAccessCheckView(APIView):
     def get(self, request, id):
         barrier = Barrier.objects.filter(id=id, is_active=True).first()
         if not barrier:
-            raise NotFound("Barrier not found.")
+            return error_response("Barrier not found.", status.HTTP_404_NOT_FOUND)
 
         has_access = UserBarrier.user_has_access_to_barrier(request.user, barrier)
 

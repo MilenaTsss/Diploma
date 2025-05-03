@@ -1,7 +1,9 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from barriers.models import Barrier, BarrierLimit
 from barriers.validators import DevicePasswordValidator
+from core.utils import ConflictError
 
 
 class AdminBarrierSerializer(serializers.ModelSerializer):
@@ -17,6 +19,10 @@ class CreateBarrierSerializer(serializers.ModelSerializer):
 
     additional_info = serializers.CharField(required=True, allow_blank=True)
     device_phones_amount = serializers.IntegerField(required=True)
+    device_model = serializers.ChoiceField(
+        choices=Barrier.Model.choices,
+        error_messages={"invalid_choice": f"Invalid device model. Valid models are: {Barrier.Model.values}"},
+    )
 
     class Meta:
         model = Barrier
@@ -34,14 +40,14 @@ class CreateBarrierSerializer(serializers.ModelSerializer):
         """Check if a device with the given phone number already exists"""
 
         if Barrier.objects.filter(device_phone=value, is_active=True).exists():
-            raise serializers.ValidationError({"error": "A barrier with this phone number already exists."})
+            raise ConflictError("This phone is already taken by another barrier.")
         return value
 
     def validate_device_phones_amount(self, value):
         """Ensure `device_phones_amount` is greater than 0"""
 
         if value <= 0:
-            raise serializers.ValidationError({"error": "The number of device phone slots must be greater than 0."})
+            raise serializers.ValidationError("The number of device phone slots must be greater than 0.")
         return value
 
     def validate(self, attrs):
@@ -52,9 +58,14 @@ class CreateBarrierSerializer(serializers.ModelSerializer):
 
         if model != Barrier.Model.TELEMETRICA:
             if not password:
-                raise serializers.ValidationError({"error": "Device password is required for this device model."})
+                raise serializers.ValidationError(
+                    {"device_password": "Device password is required for this device model."}
+                )
 
-            DevicePasswordValidator()(password)
+            try:
+                DevicePasswordValidator()(password)
+            except DjangoValidationError as e:
+                raise serializers.ValidationError({"device_password": list(e.messages)})
 
         return attrs
 
@@ -80,7 +91,10 @@ class UpdateBarrierSerializer(serializers.ModelSerializer):
 
         if model != Barrier.Model.TELEMETRICA:
             if password:
-                DevicePasswordValidator()(password)
+                try:
+                    DevicePasswordValidator()(password)
+                except DjangoValidationError as e:
+                    raise serializers.ValidationError({"device_password": list(e.messages)})
 
         return attrs
 
@@ -114,10 +128,10 @@ class UpdateBarrierLimitSerializer(serializers.ModelSerializer):
 
         unknown = received_fields - allowed_fields
         if unknown:
-            raise serializers.ValidationError({"error": f"Unexpected fields: {', '.join(sorted(unknown))}"})
+            raise serializers.ValidationError({"detail": f"Invalid limit. Valid limits are: {sorted(allowed_fields)}."})
 
         if not received_fields:
-            raise serializers.ValidationError({"error": "At least one field must be provided."})
+            raise serializers.ValidationError({"detail": "At least one field must be provided."})
 
         device_phones_amount = self.instance.barrier.device_phones_amount
 
@@ -134,6 +148,6 @@ class UpdateBarrierLimitSerializer(serializers.ModelSerializer):
             or schedule_limit > device_phones_amount
             or global_schedule_limit > device_phones_amount
         ):
-            raise serializers.ValidationError({"error": "Each limit must not exceed the amount of phones in device."})
+            raise serializers.ValidationError({"detail": "Each limit must not exceed the amount of phones in device."})
 
         return super().validate(attrs)

@@ -10,6 +10,7 @@ from barriers_management.serializers import (
     UpdateBarrierSerializer,
 )
 from conftest import BARRIER_ADDRESS, BARRIER_DEVICE_PASSWORD, BARRIER_DEVICE_PHONE
+from core.utils import ConflictError
 
 
 @pytest.mark.django_db
@@ -54,10 +55,11 @@ class TestCreateBarrierSerializer:
         data = copy.deepcopy(self.data)
         data["device_phone"] = barrier.device_phone
 
-        serializer = CreateBarrierSerializer(data=data, context=admin_context)
+        with pytest.raises(ConflictError) as exc_info:
+            serializer = CreateBarrierSerializer(data=data, context=admin_context)
+            serializer.is_valid(raise_exception=True)
 
-        assert not serializer.is_valid()
-        assert "device_phone" in serializer.errors
+        assert str(exc_info.value) == "This phone is already taken by another barrier."
 
     def test_invalid_amount(self, admin_context):
         data = copy.deepcopy(self.data)
@@ -75,7 +77,7 @@ class TestCreateBarrierSerializer:
         serializer = CreateBarrierSerializer(data=data, context=admin_context)
 
         assert not serializer.is_valid()
-        assert serializer.errors["error"][0] == "Device password is required for this device model."
+        assert serializer.errors["device_password"][0] == "Device password is required for this device model."
 
     def test_invalid_password_format(self, admin_context):
         data = copy.deepcopy(self.data)
@@ -84,7 +86,7 @@ class TestCreateBarrierSerializer:
         serializer = CreateBarrierSerializer(data=data, context=admin_context)
 
         assert not serializer.is_valid()
-        assert "Enter a valid device password. Must be exactly 4 digits." in serializer.errors["non_field_errors"]
+        assert serializer.errors["device_password"][0] == "Enter a valid device password. Must be exactly 4 digits."
 
     def test_no_password_for_some_models(self, admin_context):
         data = copy.deepcopy(self.data)
@@ -117,7 +119,7 @@ class TestUpdateBarrierSerializer:
         serializer = UpdateBarrierSerializer(instance=barrier, data=data, partial=True)
 
         assert not serializer.is_valid()
-        assert "Enter a valid device password. Must be exactly 4 digits." in serializer.errors["non_field_errors"]
+        assert "Enter a valid device password. Must be exactly 4 digits." in serializer.errors["device_password"]
 
 
 @pytest.mark.django_db
@@ -160,7 +162,7 @@ class TestUpdateBarrierLimitSerializer:
 
         serializer = UpdateBarrierLimitSerializer(limit, data=data, partial=True)
         assert not serializer.is_valid()
-        assert serializer.errors["error"][0].startswith("Unexpected fields:")
+        assert "Invalid limit. Valid limits are: " in serializer.errors["detail"][0]
 
     def test_empty_payload_raises_error(self, barrier):
         limit = BarrierLimit.objects.create(barrier=barrier)
@@ -168,7 +170,7 @@ class TestUpdateBarrierLimitSerializer:
 
         serializer = UpdateBarrierLimitSerializer(limit, data=data, partial=True)
         assert not serializer.is_valid()
-        assert serializer.errors["error"][0] == "At least one field must be provided."
+        assert "At least one field must be provided." in serializer.errors["detail"]
 
     def test_limit_exceeds_device_capacity(self, barrier):
         barrier.device_phones_amount = 5
@@ -179,4 +181,4 @@ class TestUpdateBarrierLimitSerializer:
 
         serializer = UpdateBarrierLimitSerializer(limit, data=data, partial=True)
         assert not serializer.is_valid()
-        assert serializer.errors["error"][0] == "Each limit must not exceed the amount of phones in device."
+        assert "Each limit must not exceed the amount of phones in device." in serializer.errors["detail"][0]

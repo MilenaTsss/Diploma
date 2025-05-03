@@ -103,7 +103,17 @@ class TestAdminBarrierView:
         response = authenticated_admin_client.get(url)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["detail"] == "You do not have permission to access this barrier."
+        assert response.data["detail"] == "You do not have access to this barrier."
+
+    def test_admin_get_nonexistent_barrier(self, authenticated_admin_client):
+        """Should return 404 when barrier does not exist"""
+
+        url = reverse("admin_barrier_view", args=[999999])
+
+        response = authenticated_admin_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Barrier not found."
 
     def test_admin_update_barrier(self, authenticated_admin_client, admin_user, barrier):
         url = reverse("admin_barrier_view", args=[barrier.id])
@@ -124,7 +134,7 @@ class TestAdminBarrierView:
         response = authenticated_admin_client.patch(url, data)
 
         assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert "Enter a valid device password. Must be exactly 4 digits." in response.data["non_field_errors"]
+        assert "Enter a valid device password. Must be exactly 4 digits." in response.data["device_password"]
 
     def test_admin_delete_barrier(self, authenticated_admin_client, admin_user, barrier):
         url = reverse("admin_barrier_view", args=[barrier.id])
@@ -174,7 +184,7 @@ class TestBarrierLimitUpdateView:
         response = api_client.patch(url, data)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["detail"] == "You are not the owner of this barrier."
+        assert response.data["detail"] == "You do not have access to this barrier."
 
     def test_update_limit_invalid_negative_value(self, authenticated_admin_client, admin_user, barrier):
         url = reverse("update_barrier_limit", args=[barrier.id])
@@ -192,6 +202,17 @@ class TestBarrierLimitUpdateView:
         response = authenticated_admin_client.put(url, data)
 
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    def test_update_limit_barrier_not_found(self, authenticated_admin_client):
+        """Should return 404 if the barrier does not exist"""
+
+        url = reverse("update_barrier_limit", args=[999999])
+        data = {"sms_weekly_limit": 5}
+
+        response = authenticated_admin_client.patch(url, data)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Barrier not found."
 
 
 @pytest.mark.django_db
@@ -243,7 +264,7 @@ class TestAdminBarrierUsersListView:
         response = authenticated_admin_client.get(url)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["detail"] == "You are not the owner of this barrier."
+        assert response.data["detail"] == "You do not have access to this barrier."
 
     def test_inactive_users_not_listed(self, authenticated_admin_client, private_barrier_with_access, user):
         user.is_active = False
@@ -272,7 +293,17 @@ class TestAdminBarrierUsersListView:
         response = authenticated_admin_client.get(url)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.data["detail"] == "Not found."
+        assert response.data["detail"] == "Barrier not found."
+
+    def test_barrier_not_found(self, authenticated_admin_client):
+        """Should return 404 if the barrier does not exist"""
+
+        url = reverse("barrier_users_list", args=[999999])
+
+        response = authenticated_admin_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Barrier not found."
 
 
 @pytest.mark.django_db
@@ -293,14 +324,14 @@ class TestAdminRemoveUserFromBarrierView:
         response = authenticated_admin_client.delete(url)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.data["detail"] == "Not found."
+        assert response.data["detail"] == "User not found."
 
     def test_barrier_not_found_returns_404(self, authenticated_admin_client, admin_user, user):
         url = reverse("barrier_remove_user", kwargs={"barrier_id": 99999, "user_id": user.id})
         response = authenticated_admin_client.delete(url)
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
-        assert response.data["detail"] == "Not found."
+        assert response.data["detail"] == "Barrier not found."
 
     def test_admin_cannot_remove_user_from_foreign_barrier(
         self, authenticated_admin_client, another_admin, user, barrier
@@ -311,7 +342,7 @@ class TestAdminRemoveUserFromBarrierView:
         response = authenticated_admin_client.delete(url)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["detail"] == "You are not the owner of this barrier."
+        assert response.data["detail"] == "You do not have access to this barrier."
 
     def test_remove_user_not_found(self, authenticated_admin_client, admin_user, barrier, user):
         url = reverse("barrier_remove_user", kwargs={"barrier_id": barrier.id, "user_id": user.id})
