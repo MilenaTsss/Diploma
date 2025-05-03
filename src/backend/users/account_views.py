@@ -1,13 +1,12 @@
 import logging
 
-from rest_framework import status
 from rest_framework.decorators import permission_classes
 from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.views import APIView
 
-from core.utils import deleted_response, error_response, success_response
+from core.utils import deleted_response, success_response
 from users.serializers import (
     ChangePasswordSerializer,
     ChangePhoneSerializer,
@@ -35,12 +34,10 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
 
         user = self.get_object()
         serializer = UpdateUserSerializer(self.get_object(), data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
 
-        if serializer.is_valid():
-            serializer.save()
-            return success_response(UserSerializer(user).data)
-
-        return error_response(serializer.errors, status.HTTP_400_BAD_REQUEST)
+        serializer.save()
+        return success_response(UserSerializer(user).data)
 
     def delete(self, request, *args, **kwargs):
         """Deactivate account (verification required)"""
@@ -62,6 +59,8 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
 
         verification.status = Verification.Status.USED
         verification.save(update_fields=["status"])
+
+        # TODO - add deactivating other tables like barrier and all phones
 
         return deleted_response()
 
@@ -95,6 +94,7 @@ class ChangePhoneView(APIView):
             return error
 
         # TODO - add changing phone with other tables like barrier
+
         user.phone = new_phone
         user.save(update_fields=["phone"])
 

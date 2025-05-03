@@ -73,6 +73,13 @@ class TestBarrierView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data["detail"] == "You do not have access to this barrier."
 
+    def test_barrier_not_found_returns_error(self, authenticated_client):
+        url = reverse("get_barrier", args=[99999])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Barrier not found."
+
 
 @pytest.mark.django_db
 class TestBarrierLimitView:
@@ -124,6 +131,13 @@ class TestBarrierLimitView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data["detail"] == "You do not have access to this barrier."
 
+    def test_barrier_not_found_returns_error(self, authenticated_client):
+        url = reverse("get_barrier_limits", args=[99999])
+        response = authenticated_client.get(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Barrier not found."
+
 
 @pytest.mark.django_db
 class TestLeaveBarrierView:
@@ -142,7 +156,14 @@ class TestLeaveBarrierView:
         response = authenticated_client.delete(url)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["error"] == "You do not have access to this barrier."
+        assert response.data["detail"] == "You do not have access to this barrier."
+
+    def test_barrier_not_found_returns_error(self, authenticated_client):
+        url = reverse("leave_barrier", args=[99999])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Barrier not found."
 
 
 @pytest.mark.django_db

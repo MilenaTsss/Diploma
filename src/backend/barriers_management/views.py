@@ -1,5 +1,6 @@
 import logging
 
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.decorators import permission_classes
@@ -94,11 +95,13 @@ class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
         return context
 
     def get_object(self):
-        """Add explicit permission check and better 403 response"""
+        try:
+            barrier = super().get_object()
+        except Http404:
+            raise NotFound("Barrier not found.")
 
-        barrier = super().get_object()
         if barrier.owner != self.request.user:
-            raise PermissionDenied(detail="You do not have permission to access this barrier.")
+            raise PermissionDenied("You do not have access to this barrier.")
 
         return barrier
 
@@ -132,10 +135,13 @@ class AdminBarrierLimitUpdateView(generics.UpdateAPIView):
     lookup_field = "id"
 
     def get_object(self):
-        barrier = super().get_object()
+        try:
+            barrier = super().get_object()
+        except Http404:
+            raise NotFound("Barrier not found.")
 
         if barrier.owner != self.request.user:
-            raise PermissionDenied("You are not the owner of this barrier.")
+            raise PermissionDenied("You do not have access to this barrier.")
 
         limit, _ = BarrierLimit.objects.get_or_create(barrier=barrier)
         return limit
@@ -164,10 +170,13 @@ class AdminBarrierUsersListView(BasePaginatedListView):
 
     def get_object(self):
         barrier_id = self.kwargs.get("id")
-        barrier = get_object_or_404(Barrier, id=barrier_id, is_active=True)
+        try:
+            barrier = get_object_or_404(Barrier, id=barrier_id, is_active=True)
+        except Http404:
+            raise NotFound("Barrier not found.")
 
         if barrier.owner != self.request.user:
-            raise PermissionDenied("You are not the owner of this barrier.")
+            raise PermissionDenied("You do not have access to this barrier.")
 
         return barrier
 
@@ -191,11 +200,17 @@ class AdminRemoveUserFromBarrierView(DestroyAPIView):
         barrier_id = self.kwargs["barrier_id"]
         user_id = self.kwargs["user_id"]
 
-        barrier = get_object_or_404(Barrier, id=barrier_id, is_active=True)
-        user = get_object_or_404(User, id=user_id, is_active=True)
+        try:
+            barrier = get_object_or_404(Barrier, id=barrier_id, is_active=True)
+        except Http404:
+            raise NotFound("Barrier not found.")
+        try:
+            user = get_object_or_404(User, id=user_id, is_active=True)
+        except Http404:
+            raise NotFound("User not found.")
 
         if barrier.owner != self.request.user:
-            raise PermissionDenied("You are not the owner of this barrier.")
+            raise PermissionDenied("You do not have access to this barrier.")
 
         user_barrier = UserBarrier.objects.filter(user=user, barrier=barrier, is_active=True).first()
 

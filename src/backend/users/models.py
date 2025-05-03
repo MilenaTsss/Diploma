@@ -80,7 +80,7 @@ class UserManager(BaseUserManager):
         user = self.get_by_phone(phone)
         if user and not user.is_active:
             reason = user.block_reason
-            return error_response(f"This account is blocked for reason: `{reason}`", status.HTTP_403_FORBIDDEN)
+            return error_response(f"User is blocked. Reason: '{reason}'.", status.HTTP_403_FORBIDDEN)
 
 
 class User(AbstractBaseUser, PermissionsMixin):

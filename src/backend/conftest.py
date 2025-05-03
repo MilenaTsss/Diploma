@@ -15,6 +15,7 @@ SUPERUSER_PHONE = "+79994443322"
 OTHER_PHONE = "+79999999999"
 BARRIER_DEVICE_PHONE = "+70000000001"
 PRIVATE_BARRIER_DEVICE_PHONE = "+70000000002"
+OTHER_BARRIER_DEVICE_PHONE = "+70000000006"
 BLOCKED_USER_PHONE = "+79993332211"
 BARRIER_PERMANENT_PHONE = "+70000000003"
 BARRIER_PERMANENT_PHONE_NAME = "Permanent Phone"
@@ -27,6 +28,7 @@ USER_NAME = "John User"
 ADMIN_NAME = "Admin"
 BARRIER_ADDRESS = "Street Barrier"
 PRIVATE_BARRIER_ADDRESS = "Private Barrier"
+OTHER_BARRIER_ADDRESS = "St. Another, 9"
 BARRIER_DEVICE_PASSWORD = "1234"
 
 
@@ -120,31 +122,66 @@ def create_verification():
 
 
 @pytest.fixture
-def barrier(admin_user):
-    """A public barrier owned by admin"""
+def create_barrier():
+    """Factory fixture to create a barrier entry"""
 
-    return Barrier.objects.create(
+    def _create_barrier(
+        owner,
         address=BARRIER_ADDRESS,
-        owner=admin_user,
         device_phone=BARRIER_DEVICE_PHONE,
         device_model=Barrier.Model.RTU5025,
+        device_password=BARRIER_DEVICE_PASSWORD,
         device_phones_amount=10,
         is_public=True,
+    ):
+        return Barrier.objects.create(
+            address=address,
+            owner=owner,
+            device_phone=device_phone,
+            device_model=device_model,
+            device_password=device_password,
+            device_phones_amount=device_phones_amount,
+            is_public=is_public,
+        )
+
+    return _create_barrier
+
+
+@pytest.fixture
+def barrier(admin_user, create_barrier):
+    """A public barrier owned by admin"""
+
+    return create_barrier(owner=admin_user)
+
+
+@pytest.fixture
+def private_barrier(admin_user, create_barrier):
+    """A private barrier not accessible to regular user"""
+
+    return create_barrier(
+        owner=admin_user, address=PRIVATE_BARRIER_ADDRESS, device_phone=PRIVATE_BARRIER_DEVICE_PHONE, is_public=False
     )
 
 
 @pytest.fixture
-def private_barrier(admin_user):
-    """A private barrier not accessible to regular user"""
+def other_barrier(another_admin, create_barrier):
 
-    return Barrier.objects.create(
-        address=PRIVATE_BARRIER_ADDRESS,
+    return create_barrier(
+        address=OTHER_BARRIER_ADDRESS,
+        owner=another_admin,
+        device_phone=OTHER_BARRIER_DEVICE_PHONE,
+        device_model=Barrier.Model.ELFOC,
+    )
+
+
+@pytest.fixture
+def other_admin_barrier(admin_user, create_barrier):
+
+    return create_barrier(
         owner=admin_user,
-        device_phone=PRIVATE_BARRIER_DEVICE_PHONE,
-        device_model=Barrier.Model.RTU5035,
-        device_password="1234",
-        device_phones_amount=10,
-        is_public=False,
+        address=OTHER_BARRIER_ADDRESS,
+        device_phone=OTHER_BARRIER_DEVICE_PHONE,
+        device_model=Barrier.Model.ELFOC,
     )
 
 
