@@ -2874,16 +2874,99 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ],
+                      "device_model": [
+                        "Invalid device model. Valid models are: ['RTU5025', 'RTU5035', 'Telemetrica', 'Elfoc']"
+                      ],
+                      "device_phones_amount": [
+                        "The number of device phone slots must be greater than 0."
+                      ],
+                      "device_password": [
+                        "Enter a valid device password. Must be exactly 4 digits."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ],
+                      "device_password": [
+                        "Device password is required for this device model."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
           },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+          "409": {
+            "description": "Номер телефона уже используется.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone is used": {
+                    "value": {
+                      "detail": "This phone is already taken by another barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2914,7 +2997,8 @@
                 "-address",
                 "created_at",
                 "-created_at",
-                "updated_at"
+                "updated_at",
+                "-updated_at"
               ]
             }
           },
@@ -2972,14 +3056,58 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Неправильный номер страницы",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "wrong page number": {
+                    "value": {
+                      "detail": "Invalid page."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3022,20 +3150,63 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3081,6 +3252,11 @@
                     "type": "boolean",
                     "description": "Определяет, можно ли найти шлагбаум через поиск в системе.",
                     "example": false
+                  },
+                  "device_password": {
+                    "type": "integer",
+                    "description": "Пароль от устройства, если устройство его требует. Обычно состоит из 4 цифр.",
+                    "example": 1234
                   }
                 }
               }
@@ -3099,19 +3275,78 @@
             }
           },
           "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "device_password": [
+                        "Enter a valid device password. Must be exactly 4 digits."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3145,20 +3380,63 @@
           "200": {
             "description": "Шлагбаум успешно удален."
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3212,19 +3490,92 @@
             }
           },
           "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "detail": [
+                        "Invalid limit. Valid limits are: ['global_schedule_phone_limit', 'global_temp_phone_limit', 'schedule_interval_limit', 'sms_weekly_limit', 'user_phone_limit', 'user_schedule_phone_limit', 'user_temp_phone_limit']."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "detail": [
+                        "At least one field must be provided."
+                      ]
+                    }
+                  },
+                  "too much": {
+                    "value": {
+                      "detail": [
+                        "Each limit must not exceed the amount of phones in device."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет прав на изменение лимитов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
