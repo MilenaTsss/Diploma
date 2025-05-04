@@ -1,11 +1,9 @@
 import logging
 
-from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import Http404
 from rest_framework import generics
 from rest_framework.decorators import permission_classes
 from rest_framework.exceptions import MethodNotAllowed, NotFound, PermissionDenied
-from rest_framework.exceptions import ValidationError as DRFValidationError
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser
 
@@ -189,18 +187,16 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
         serializer.save()
 
         if access_request.status == AccessRequest.Status.ACCEPTED:
+            phone = BarrierPhone.create(
+                user=access_request.user,
+                barrier=access_request.barrier,
+                phone=access_request.user.phone,
+                type=BarrierPhone.PhoneType.PRIMARY,
+                name=access_request.user.full_name,
+            )
+            phone.send_sms_to_create()
+
             UserBarrier.create(user=access_request.user, barrier=access_request.barrier, access_request=access_request)
-            try:
-                phone = BarrierPhone.create(
-                    user=access_request.user,
-                    barrier=access_request.barrier,
-                    phone=access_request.user.phone,
-                    type=BarrierPhone.PhoneType.PRIMARY,
-                    name=access_request.user.full_name,
-                )
-                phone.send_sms_to_create()
-            except DjangoValidationError as e:
-                raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
 
         return success_response(AccessRequestSerializer(access_request, context=self.get_serializer_context()).data)
 

@@ -1,3 +1,4 @@
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.decorators import permission_classes
@@ -7,7 +8,7 @@ from rest_framework.permissions import IsAdminUser
 
 from barriers.models import Barrier, UserBarrier
 from core.pagination import BasePaginatedListView
-from core.utils import created_response, success_response
+from core.utils import created_response, deleted_response, success_response
 from phones.models import BarrierPhone, ScheduleTimeInterval
 from phones.serializers import (
     BarrierPhoneSerializer,
@@ -16,15 +17,19 @@ from phones.serializers import (
     UpdateBarrierPhoneSerializer,
     UpdatePhoneScheduleSerializer,
 )
+from users.models import User
 
 
 def get_barrier(user, barrier_id, as_admin):
-    barrier = get_object_or_404(Barrier, id=barrier_id, is_active=True)
+    try:
+        barrier = get_object_or_404(Barrier, id=barrier_id, is_active=True)
+    except Http404:
+        raise NotFound("Barrier not found.")
 
     if as_admin and barrier.owner != user:
-        raise PermissionDenied("You are not the owner of this barrier.")
+        raise PermissionDenied("You do not have access to this barrier.")
     if not as_admin and not UserBarrier.user_has_access_to_barrier(user, barrier):
-        raise PermissionDenied("You don't have access to this barrier.")
+        raise PermissionDenied("You do not have access to this barrier.")
 
     return barrier
 
@@ -108,6 +113,8 @@ class BaseBarrierPhoneListView(BasePaginatedListView):
         if self.as_admin:
             user_id = self.request.query_params.get("user")
             if user_id:
+                if not User.objects.filter(id=user_id, is_active=True).exists():
+                    raise NotFound("User not found.")
                 queryset = queryset.filter(user_id=user_id)
         else:
             queryset = queryset.filter(user=user)
@@ -150,11 +157,14 @@ class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
     as_admin = False
 
     def get_object(self):
-        phone = super().get_object()
+        try:
+            phone = super().get_object()
+        except Http404:
+            raise NotFound("Phone not found.")
         user = self.request.user
 
         if self.as_admin and phone.barrier.owner != user or not self.as_admin and phone.user != user:
-            raise PermissionDenied("You don't have access to this phone.")
+            raise PermissionDenied("You do not have access to this phone.")
 
         return phone
 
@@ -175,7 +185,8 @@ class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
             raise PermissionDenied("Primary phone number cannot be deleted.")
 
         phone.remove()
-        return success_response({"status": "Phone deleted."})
+        phone.send_sms_to_delete()
+        return deleted_response()
 
 
 class UserBarrierPhoneDetailView(BaseBarrierPhoneDetailView):
@@ -206,7 +217,10 @@ class BaseBarrierPhoneScheduleView(RetrieveUpdateAPIView):
 
         user = self.request.user
         if self.as_admin and phone.barrier.owner != user or not self.as_admin and phone.user != user:
-            raise PermissionDenied("You don't have access to this phone.")
+            raise PermissionDenied("You do not have access to this phone.")
+
+        if phone.type != BarrierPhone.PhoneType.SCHEDULE:
+            raise PermissionDenied("Only schedule-type phones have a schedule.")
 
         return phone
 

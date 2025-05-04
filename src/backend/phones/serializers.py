@@ -1,9 +1,8 @@
 from datetime import date, datetime, timedelta
 
-from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.timezone import now
 from rest_framework import serializers
-from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied
 
 from phones.constants import MINIMUM_TIME_INTERVAL_MINUTES
 from phones.models import BarrierPhone, ScheduleTimeInterval
@@ -27,12 +26,12 @@ class ScheduleTimeIntervalSerializer(serializers.ModelSerializer):
         end = attrs["end_time"]
 
         if start >= end:
-            raise serializers.ValidationError({"error": "start_time must be earlier than end_time."})
+            raise serializers.ValidationError({"time": "start_time must be earlier than end_time."})
 
         duration = datetime.combine(date.today(), end) - datetime.combine(date.today(), start)
         if duration < timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES):
             message = f"Interval must be at least {MINIMUM_TIME_INTERVAL_MINUTES} minutes long."
-            raise serializers.ValidationError({"error": message})
+            raise serializers.ValidationError({"time": message})
 
         return attrs
 
@@ -60,7 +59,7 @@ class ScheduleSerializer(serializers.Serializer):
                     f"Intervals on {day} overlap: "
                     f"'{prev['start_time']}–{prev['end_time']} and {curr['start_time']}–{curr['end_time']}'"
                 )
-                raise serializers.ValidationError({"error": message})
+                raise serializers.ValidationError({"schedule": message})
 
             prev_end = datetime.combine(date.today(), prev["end_time"])
             curr_start = datetime.combine(date.today(), curr["start_time"])
@@ -70,7 +69,7 @@ class ScheduleSerializer(serializers.Serializer):
                     f"Intervals on {day} must have at least {MINIMUM_TIME_INTERVAL_MINUTES} minutes between them: "
                     f"'{prev['start_time']}–{prev['end_time']} and {curr['start_time']}–{curr['end_time']}'"
                 )
-                raise serializers.ValidationError({"error": message})
+                raise serializers.ValidationError({"schedule": message})
 
     def validate(self, attrs):
         for day, intervals in attrs.items():
@@ -100,43 +99,45 @@ class CreateBarrierPhoneSerializer(serializers.ModelSerializer):
         model = BarrierPhone
         fields = ["phone", "type", "name", "start_time", "end_time", "user", "schedule"]
 
+    def to_internal_value(self, data):
+        try:
+            return super().to_internal_value(data)
+        except serializers.ValidationError as exc:
+            errors = exc.detail
+            for field, messages in errors.items():
+                if any("does not exist" in str(msg) for msg in messages):
+                    raise NotFound(f"{field.capitalize()} not found.")
+            raise
+
     def validate(self, attrs):
         request = self.context["request"]
         as_admin = self.context.get("as_admin", False)
         barrier = self.context.get("barrier")
 
-        if not barrier:
-            raise serializers.ValidationError({"error": "Barrier context is required."})
         attrs["barrier"] = barrier
 
         if as_admin:
             if not attrs.get("user"):
-                raise serializers.ValidationError({"error": "User field is required for admins."})
+                raise serializers.ValidationError({"user": "This field is required."})
         else:
             attrs["user"] = request.user
-
-        if attrs.get("type") == BarrierPhone.PhoneType.PRIMARY:
-            raise serializers.ValidationError({"error": "Primary phone numbers cannot be created manually."})
 
         return attrs
 
     def create(self, validated_data):
         schedule_data = validated_data.pop("schedule", None)
-        try:
-            phone = BarrierPhone.create(
-                user=validated_data["user"],
-                barrier=validated_data["barrier"],
-                phone=validated_data["phone"],
-                type=validated_data["type"],
-                name=validated_data.get("name", ""),
-                start_time=validated_data.get("start_time"),
-                end_time=validated_data.get("end_time"),
-                schedule=schedule_data,
-            )
-            phone.send_sms_to_create()
-            return phone
-        except DjangoValidationError as e:
-            raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
+        phone = BarrierPhone.create(
+            user=validated_data["user"],
+            barrier=validated_data["barrier"],
+            phone=validated_data["phone"],
+            type=validated_data["type"],
+            name=validated_data.get("name", ""),
+            start_time=validated_data.get("start_time"),
+            end_time=validated_data.get("end_time"),
+            schedule=schedule_data,
+        )
+        phone.send_sms_to_create()
+        return phone
 
 
 class UpdateBarrierPhoneSerializer(serializers.ModelSerializer):
@@ -146,27 +147,25 @@ class UpdateBarrierPhoneSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         phone = self.instance
-        start_time = attrs.get("start_time", phone.start_time)
-        end_time = attrs.get("end_time", phone.end_time)
+        start_time = attrs.get("start_time")
+        end_time = attrs.get("end_time")
 
-        if phone.type == BarrierPhone.PhoneType.PRIMARY and "name" in attrs:
-            raise serializers.ValidationError({"error": "Cannot update name for primary phone number."})
+        if phone.type == BarrierPhone.PhoneType.TEMPORARY:
+            # If one time field is passed, both must be
+            if (start_time is not None) ^ (end_time is not None):
+                raise serializers.ValidationError(
+                    {"time": "Both start_time and end_time must be provided while updating temporary phones."}
+                )
 
-        if (
-            phone.type == BarrierPhone.PhoneType.TEMPORARY
-            and phone.start_time
-            and phone.start_time < now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES)
-        ):
-            message = (
-                f"Temporary phone number cannot be updated less than "
-                f"{MINIMUM_TIME_INTERVAL_MINUTES} minutes before start."
-            )
-            raise serializers.ValidationError({"error": message})
-
-        try:
-            validate_temporary_phone(phone.type, start_time, end_time)
-        except DjangoValidationError as e:
-            raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
+            # Only validate times if provided
+            if start_time and end_time:
+                if phone.start_time and phone.start_time < now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES):
+                    message = (
+                        f"Temporary phone number cannot be updated less than "
+                        f"{MINIMUM_TIME_INTERVAL_MINUTES} minutes before start."
+                    )
+                    raise PermissionDenied(message)
+                validate_temporary_phone(phone.type, start_time, end_time)
 
         return attrs
 
@@ -174,11 +173,7 @@ class UpdateBarrierPhoneSerializer(serializers.ModelSerializer):
 class UpdatePhoneScheduleSerializer(ScheduleSerializer):
     """Partial update of schedule: only update the days that were explicitly passed."""
 
-    # TODO - check everything
     def update(self, phone: BarrierPhone, validated_data):
-        try:
-            validate_schedule_phone(phone.type, validated_data, phone.barrier)
-        except DjangoValidationError as e:
-            raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
+        validate_schedule_phone(phone.type, validated_data, phone.barrier)
         ScheduleTimeInterval.replace_schedule(phone, validated_data)
         return phone
