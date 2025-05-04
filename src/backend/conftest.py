@@ -1,9 +1,12 @@
+from datetime import time, timedelta
+
 import pytest
 from django.utils.timezone import now
 from rest_framework.test import APIClient
 
 from access_requests.models import AccessRequest
 from barriers.models import Barrier, UserBarrier
+from phones.constants import MINIMUM_TIME_INTERVAL_MINUTES
 from phones.models import BarrierPhone
 from users.models import User
 from verifications.models import Verification, VerificationService
@@ -56,7 +59,7 @@ def user():
 
 @pytest.fixture
 def another_user():
-    return User.objects.create_admin(phone=OTHER_PHONE, full_name=USER_NAME)
+    return User.objects.create_user(phone=OTHER_PHONE, full_name=USER_NAME)
 
 
 @pytest.fixture
@@ -251,3 +254,32 @@ def create_barrier_phone():
 @pytest.fixture
 def barrier_phone(user, barrier, create_barrier_phone):
     return create_barrier_phone(user, barrier)
+
+
+@pytest.fixture
+def temporary_barrier_phone(user, barrier, create_barrier_phone):
+    return create_barrier_phone(
+        user,
+        barrier,
+        phone=BARRIER_TEMPORARY_PHONE,
+        type=BarrierPhone.PhoneType.TEMPORARY,
+        start_time=now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES + 5),
+        end_time=now() + timedelta(hours=2),
+    )
+
+
+@pytest.fixture
+def schedule_barrier_phone(user, barrier, create_barrier_phone):
+    schedule = {
+        "monday": [{"start_time": time(9, 0), "end_time": time(10, 0)}],
+        "wednesday": [{"start_time": time(14, 0), "end_time": time(15, 0)}],
+    }
+
+    return create_barrier_phone(
+        user=user,
+        barrier=barrier,
+        phone=BARRIER_SCHEDULE_PHONE,
+        type=BarrierPhone.PhoneType.SCHEDULE,
+        name="Schedule Phone",
+        schedule=schedule,
+    )

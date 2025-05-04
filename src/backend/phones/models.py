@@ -1,10 +1,12 @@
 import logging
 
-from django.core.exceptions import PermissionDenied, ValidationError
+from django.core.exceptions import PermissionDenied
 from django.db import models
+from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
 
 from barriers.models import Barrier
 from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH, STRING_MAX_LENGTH
+from core.utils import ConflictError
 from core.validators import PhoneNumberValidator
 from phones.validators import validate_limits, validate_schedule_phone, validate_temporary_phone
 from users.models import User
@@ -110,17 +112,19 @@ class BarrierPhone(models.Model):
         """Creates a new BarrierPhone instance with validation and optional schedule."""
 
         if cls.objects.filter(user=user, barrier=barrier, phone=phone, is_active=True).exists():
-            raise ValidationError("This phone number already exists for this user in the barrier.")
+            raise ConflictError("Phone already exists for this user in the barrier.")
         if type == cls.PhoneType.PRIMARY:
             if cls.objects.filter(user=user, barrier=barrier, type=cls.PhoneType.PRIMARY, is_active=True).exists():
-                raise ValidationError("User already has a primary phone number in this barrier.")
+                raise ConflictError("User already has a primary phone number in this barrier.")
+            if user.phone != phone:
+                raise DRFPermissionDenied("Wrong phone given as primary. Primary phone should be users main number.")
 
         validate_limits(type, barrier, user)
         validate_temporary_phone(type, start_time, end_time)
         validate_schedule_phone(type, schedule, barrier)
 
         if (serial_number := cls.get_available_serial_number(barrier)) is None:
-            raise ValidationError("Barrier has reached the maximum number of phone numbers.")
+            raise ConflictError("Barrier has reached the maximum number of phone numbers.")
 
         phone_instance = cls.objects.create(
             user=user,
@@ -158,11 +162,12 @@ class BarrierPhone(models.Model):
         self.is_active = False
         self.save()
 
+    def send_sms_to_delete(self):
         from message_management.services import SMSService
 
-        if self.type == self.PhoneType.PRIMARY or self.type == self.PhoneType.PERMANENT:
-            SMSService.send_delete_phone_command(self)
         # TODO - else schedule
+        if self.type == self.PhoneType.PRIMARY or self.PhoneType.PERMANENT:
+            SMSService.send_delete_phone_command(self)
 
 
 class ScheduleTimeInterval(models.Model):

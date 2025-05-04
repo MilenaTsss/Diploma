@@ -28,10 +28,10 @@ class HuaweiModemClient:
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS sms_messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id INTEGER PRIMARY KEY,
                 phone TEXT,
                 content TEXT,
-                date_time TEXT,
+                date_time REAL,
                 modem_index INTEGER UNIQUE,
                 message_type TEXT CHECK( message_type IN ('incoming','outgoing') ) NOT NULL
             )
@@ -44,7 +44,7 @@ class HuaweiModemClient:
     def send_sms(self, phone_number: str, message: str) -> bool:
         """Send an SMS to a phone number."""
 
-        logger.debug("Sending SMS to %s: %s", phone_number, message)
+        logger.debug("Sending SMS to %s: '%s'", phone_number, message)
 
         if HAS_PHONES_RESTRICTION and phone_number not in AVAILABLE_PHONES:
             logger.warning("SKIPPING. Phone number %s is not allowed to send SMS.", phone_number)
@@ -55,7 +55,7 @@ class HuaweiModemClient:
             result = client.sms.send_sms([phone_number], message)
             success = result == ResponseEnum.OK.value
             if success:
-                logger.info("SMS successfully sent to %s", phone_number)
+                logger.debug("SMS successfully sent to %s", phone_number)
             else:
                 logger.error("Failed to send SMS to %s", phone_number)
             return success
@@ -63,18 +63,21 @@ class HuaweiModemClient:
     def _save_messages(self, messages: List[dict]):
         """Internal method to save messages to the database."""
 
+        from datetime import datetime
+
         logger.debug("Saving %d messages to the database...", len(messages))
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
         for msg in messages:
             try:
+                timestamp = datetime.strptime(msg["Date"], "%Y-%m-%d %H:%M:%S").timestamp()
                 cursor.execute(
                     """
-                    INSERT INTO sms_messages (phone, content, date_time, modem_index, message_type)
+                    INSERT OR IGNORE INTO sms_messages (phone, content, date_time, modem_index, message_type)
                     VALUES (?, ?, ?, ?, ?)
                 """,
-                    (msg["Phone"], msg["Content"], msg["Date"], msg["Index"], msg["message_type"]),
+                    (msg["Phone"], msg["Content"], timestamp, msg["Index"], msg["message_type"]),
                 )
                 logger.debug("Saved message from phone %s", msg["Phone"])
             except sqlite3.IntegrityError as e:
@@ -85,7 +88,7 @@ class HuaweiModemClient:
         conn.close()
         logger.debug("All messages saved to the database.")
 
-    def read_sms(self) -> List[dict]:
+    def _read_sms(self) -> List[dict]:
         """Read incoming and outgoing SMS messages and store them."""
 
         logger.debug("Reading incoming and outgoing SMS messages from modem...")
@@ -103,7 +106,7 @@ class HuaweiModemClient:
                 new_messages.append({**msg.to_dict(), "message_type": "outgoing"})
 
         self._save_messages(new_messages)
-        logger.info("Finished reading and saving %d new SMS messages.", len(new_messages))
+        logger.debug("Finished reading and saving %d new SMS messages.", len(new_messages))
         return new_messages
 
     def get_all_stored_sms(self) -> List[dict]:
@@ -118,3 +121,30 @@ class HuaweiModemClient:
 
         logger.debug("Fetched %d SMS messages.", len(rows))
         return [{"phone": row[0], "content": row[1], "date_time": row[2], "message_type": row[3]} for row in rows]
+
+    def get_reply_from_phone_since(self, phone: str, since_timestamp: float) -> str | None:
+        """Returns the first incoming message from a given phone number that was received after the given timestamp."""
+
+        self._read_sms()  # Sync modem messages to local DB
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT content FROM sms_messages
+            WHERE phone = ?
+              AND message_type = 'incoming'
+              AND date_time >= ?
+            ORDER BY date_time ASC
+            LIMIT 1
+        """,
+            (phone, since_timestamp),
+        )
+        row = cursor.fetchone()
+        conn.close()
+
+        if row:
+            logger.info("Found reply from %s: %s", phone, row[0])
+            return row[0]
+
+        return None
