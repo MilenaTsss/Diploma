@@ -1,8 +1,13 @@
+from unittest.mock import patch
+
 import pytest
 from django.urls import reverse
 from rest_framework import status
 
+from barriers.models import UserBarrier
 from conftest import ADMIN_PASSWORD, OTHER_PHONE
+from phones.models import BarrierPhone
+from users.account_views import ChangePhoneView
 from users.models import User
 from verifications.models import Verification
 
@@ -44,6 +49,37 @@ class TestUserAccountView:
         delete_verification.refresh_from_db()
         assert delete_verification.status == Verification.Status.USED
 
+    @patch.object(BarrierPhone, "send_sms_to_delete")
+    def test_delete_user_deactivates_links_and_phones(
+        self,
+        mock_send_sms,
+        authenticated_client,
+        user,
+        delete_verification,
+        barrier,
+        create_barrier_phone,
+    ):
+        access_request = barrier.access_requests.create(user=user, status="accepted", request_type="from_user")
+        UserBarrier.objects.create(user=user, barrier=barrier, access_request=access_request)
+
+        phone = create_barrier_phone(user, barrier)
+
+        response = authenticated_client.delete(
+            reverse("user_account"), {"verification_token": delete_verification.verification_token}
+        )
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+        user.refresh_from_db()
+        assert not user.is_active
+
+        user_barrier = UserBarrier.objects.get(user=user, barrier=barrier)
+        assert not user_barrier.is_active
+
+        phone.refresh_from_db()
+        assert not phone.is_active
+        mock_send_sms.assert_called_once()
+
     def test_delete_user_account_invalid_verification(self, authenticated_client, create_verification):
         """Test deleting user account with invalid verification token"""
         verification_token = create_verification(mode=Verification.Mode.LOGIN).verification_token
@@ -66,7 +102,10 @@ class TestUserAccountView:
 class TestChangePhoneView:
     """Tests for ChangePhoneView"""
 
-    def test_change_phone_success(self, authenticated_client, user, old_phone_verification, new_phone_verification):
+    @patch.object(ChangePhoneView, "update_primary_phones_on_user_change")
+    def test_change_phone_success(
+        self, mock_update_phones, authenticated_client, user, old_phone_verification, new_phone_verification
+    ):
         """Test changing phone number successfully"""
 
         data = {
@@ -84,6 +123,57 @@ class TestChangePhoneView:
         new_phone_verification.refresh_from_db()
         assert old_phone_verification.status == Verification.Status.USED
         assert new_phone_verification.status == Verification.Status.USED
+
+        mock_update_phones.assert_called_once_with(user, old_phone_verification.phone, OTHER_PHONE)
+
+    @patch.object(BarrierPhone, "send_sms_to_delete")
+    @patch.object(BarrierPhone, "send_sms_to_create")
+    class TestChangePhonePrimaryReplacement:
+        def test_primary_phone_replaced_on_change(
+            self,
+            mock_send_create,
+            mock_send_delete,
+            authenticated_client,
+            user,
+            barrier,
+            create_access_request,
+            old_phone_verification,
+            new_phone_verification,
+            create_barrier_phone,
+        ):
+            access_request = create_access_request(user=user, barrier=barrier, status="accepted")
+            UserBarrier.objects.create(user=user, barrier=barrier, access_request=access_request)
+            old_phone = user.phone
+            new_phone = OTHER_PHONE
+
+            phone = create_barrier_phone(user, barrier, phone=old_phone, type=BarrierPhone.PhoneType.PRIMARY)
+
+            data = {
+                "new_phone": new_phone,
+                "old_verification_token": old_phone_verification.verification_token,
+                "new_verification_token": new_phone_verification.verification_token,
+            }
+
+            response = authenticated_client.patch(reverse("change_phone"), data)
+            assert response.status_code == 200
+
+            user.refresh_from_db()
+            assert user.phone == new_phone
+
+            phone.refresh_from_db()
+            assert not phone.is_active
+
+            new_phone_obj = BarrierPhone.objects.get(
+                user=user,
+                barrier=barrier,
+                phone=new_phone,
+                type=BarrierPhone.PhoneType.PRIMARY,
+                is_active=True,
+            )
+            assert new_phone_obj is not None
+
+            mock_send_delete.assert_called_once_with()
+            mock_send_create.assert_called_once_with()
 
 
 @pytest.mark.django_db

@@ -11,6 +11,7 @@ from barriers.models import Barrier, BarrierLimit, UserBarrier
 from barriers.serializers import BarrierLimitSerializer, BarrierSerializer
 from core.pagination import BasePaginatedListView
 from core.utils import error_response, success_response
+from phones.models import BarrierPhone
 
 logger = logging.getLogger(__name__)
 
@@ -120,13 +121,21 @@ class LeaveBarrierView(DestroyAPIView):
             barrier = self.get_object()
         except Http404:
             return error_response("Barrier not found.", status.HTTP_404_NOT_FOUND)
+        user = self.request.user
 
-        user_barrier = UserBarrier.objects.filter(user=self.request.user, barrier=barrier, is_active=True).first()
+        user_barrier = UserBarrier.objects.filter(user=user, barrier=barrier, is_active=True).first()
         if not user_barrier:
             return error_response("You do not have access to this barrier.", status.HTTP_403_FORBIDDEN)
 
         user_barrier.is_active = False
         user_barrier.save(update_fields=["is_active"])
+
+        logger.info(f"Deleting all phones for user '{user.id}' while leaving barrier '{barrier.id}'")
+        phones = BarrierPhone.objects.filter(user=user, barrier=barrier, is_active=True)
+        for phone in phones:
+            phone.remove()
+            phone.send_sms_to_delete()
+
         return success_response({"message": "Left the barrier successfully."})
 
 

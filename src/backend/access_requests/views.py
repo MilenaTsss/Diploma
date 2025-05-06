@@ -104,7 +104,7 @@ class BaseAccessRequestListView(BasePaginatedListView):
             queryset = queryset.filter(barrier_id=int(barrier_id))
 
         # Filter by hidden flag
-        hidden_bool = request.query_params.get("hidden", "false").lower() == "true"
+        hidden_bool = request.query_params.get("hidden", "false").strip().lower() == "true"
         hidden_field = "hidden_for_admin" if self.as_admin else "hidden_for_user"
         queryset = queryset.filter(**{hidden_field: hidden_bool})
 

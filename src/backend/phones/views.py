@@ -22,7 +22,7 @@ from users.models import User
 
 def get_barrier(user, barrier_id, as_admin):
     try:
-        barrier = get_object_or_404(Barrier, id=barrier_id, is_active=True)
+        barrier = get_object_or_404(Barrier, id=barrier_id)
     except Http404:
         raise NotFound("Barrier not found.")
 
@@ -108,7 +108,7 @@ class BaseBarrierPhoneListView(BasePaginatedListView):
         if ordering.lstrip("-") not in self.ALLOWED_ORDERING_FIELDS:
             ordering = self.DEFAULT_ORDERING
 
-        queryset = BarrierPhone.objects.filter(barrier=barrier, is_active=True)
+        queryset = BarrierPhone.objects.filter(barrier=barrier)
 
         if self.as_admin:
             user_id = self.request.query_params.get("user")
@@ -132,6 +132,12 @@ class BaseBarrierPhoneListView(BasePaginatedListView):
         if type_filter in BarrierPhone.PhoneType.values:
             queryset = queryset.filter(type=type_filter)
 
+        is_active_filter = self.request.query_params.get("is_active", "true").strip().lower()
+        if is_active_filter == "false":
+            queryset = queryset.filter(is_active=False)
+        else:
+            queryset = queryset.filter(is_active=True)
+
         return queryset.order_by(ordering)
 
 
@@ -151,7 +157,7 @@ class AdminBarrierPhoneListView(BaseBarrierPhoneListView):
 class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
     """Base view for retrieving, updating, and deactivating a phone"""
 
-    queryset = BarrierPhone.objects.filter(is_active=True)
+    queryset = BarrierPhone.objects.all()
     serializer_class = BarrierPhoneSerializer
     lookup_field = "id"
     as_admin = False
@@ -170,6 +176,10 @@ class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
 
     def patch(self, request, *args, **kwargs):
         phone = self.get_object()
+
+        if not phone.is_active:
+            raise PermissionDenied("Cannot update a deactivated phone.")
+
         serializer = UpdateBarrierPhoneSerializer(phone, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -181,6 +191,8 @@ class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
     def delete(self, request, *args, **kwargs):
         phone = self.get_object()
 
+        if not phone.is_active:
+            raise PermissionDenied("Phone is already deactivated.")
         if phone.type == BarrierPhone.PhoneType.PRIMARY:
             raise PermissionDenied("Primary phone number cannot be deleted.")
 
@@ -211,7 +223,7 @@ class BaseBarrierPhoneScheduleView(RetrieveUpdateAPIView):
 
     def get_phone(self):
         phone_id = self.kwargs["id"]
-        phone = BarrierPhone.objects.filter(id=phone_id, is_active=True).first()
+        phone = BarrierPhone.objects.filter(id=phone_id).first()
         if not phone:
             raise NotFound("Phone not found.")
 
@@ -232,6 +244,10 @@ class BaseBarrierPhoneScheduleView(RetrieveUpdateAPIView):
 
     def put(self, request, *args, **kwargs):
         phone = self.get_phone()
+
+        if not phone.is_active:
+            raise PermissionDenied("Cannot update a deactivated phone.")
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.update(phone, serializer.validated_data)

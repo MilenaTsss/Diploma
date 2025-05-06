@@ -144,10 +144,13 @@ class BarrierPhone(models.Model):
 
     def send_sms_to_create(self):
         from message_management.services import SMSService
+        from scheduler.task_manager import PhoneTaskManager
 
-        # TODO - else schedule
-        if self.type == self.PhoneType.PRIMARY or self.PhoneType.PERMANENT:
+        if self.type == self.PhoneType.PRIMARY or self.type == self.PhoneType.PERMANENT:
             SMSService.send_add_phone_command(self)
+        else:
+            logger.info(f"Scheduling SMS for phone {self.id}")
+            PhoneTaskManager(self).add_tasks()
 
     def delete(self, *args, **kwargs):
         raise PermissionDenied("Deletion of this object is not allowed.")
@@ -155,19 +158,18 @@ class BarrierPhone(models.Model):
     def remove(self, *args, **kwargs):
         """Deactivate the phone and send a delete SMS command."""
 
-        if not self.is_active:
-            logger.warning("Attempt to remove an already inactive phone.")
-            return
-
         self.is_active = False
         self.save()
 
     def send_sms_to_delete(self):
         from message_management.services import SMSService
+        from scheduler.task_manager import PhoneTaskManager
 
-        # TODO - else schedule
-        if self.type == self.PhoneType.PRIMARY or self.PhoneType.PERMANENT:
+        if self.type == self.PhoneType.PRIMARY or self.type == self.PhoneType.PERMANENT:
             SMSService.send_delete_phone_command(self)
+        else:
+            logger.info(f"Scheduling SMS for phone {self.id}")
+            PhoneTaskManager(self).delete_tasks()
 
 
 class ScheduleTimeInterval(models.Model):

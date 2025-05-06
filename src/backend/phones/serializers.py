@@ -1,3 +1,4 @@
+import logging
 from datetime import date, datetime, timedelta
 
 from django.utils.timezone import now
@@ -7,13 +8,16 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from phones.constants import MINIMUM_TIME_INTERVAL_MINUTES
 from phones.models import BarrierPhone, ScheduleTimeInterval
 from phones.validators import validate_schedule_phone, validate_temporary_phone
+from scheduler.task_manager import PhoneTaskManager
 from users.models import User
+
+logger = logging.getLogger(__name__)
 
 
 class BarrierPhoneSerializer(serializers.ModelSerializer):
     class Meta:
         model = BarrierPhone
-        exclude = ["device_serial_number", "is_active"]
+        exclude = ["device_serial_number"]
 
 
 class ScheduleTimeIntervalSerializer(serializers.ModelSerializer):
@@ -169,6 +173,15 @@ class UpdateBarrierPhoneSerializer(serializers.ModelSerializer):
 
         return attrs
 
+    def update(self, phone: BarrierPhone, validated_data):
+        for attr, value in validated_data.items():
+            setattr(phone, attr, value)
+        phone.save()
+        if phone.type == BarrierPhone.PhoneType.TEMPORARY:
+            PhoneTaskManager(phone).edit_tasks()
+
+        return phone
+
 
 class UpdatePhoneScheduleSerializer(ScheduleSerializer):
     """Partial update of schedule: only update the days that were explicitly passed."""
@@ -176,4 +189,5 @@ class UpdatePhoneScheduleSerializer(ScheduleSerializer):
     def update(self, phone: BarrierPhone, validated_data):
         validate_schedule_phone(phone.type, validated_data, phone.barrier)
         ScheduleTimeInterval.replace_schedule(phone, validated_data)
+        PhoneTaskManager(phone).edit_tasks()
         return phone

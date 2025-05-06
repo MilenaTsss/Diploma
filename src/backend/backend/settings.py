@@ -54,6 +54,7 @@ SIMPLE_JWT = {
 # Application definition
 
 INSTALLED_APPS = [
+    "django_apscheduler",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -68,6 +69,7 @@ INSTALLED_APPS = [
     "barriers_management",
     "message_management",
     "phones",
+    "scheduler",
     "users",
     "verifications",
 ]
@@ -146,12 +148,13 @@ LOGGING = {
     "disable_existing_loggers": False,
     "formatters": {
         "verbose": {
-            "format": '{{"time": "{asctime}", "level": "{levelname}", "module": "{name}", "message": "{message}"}}',
+            "format": '{{"time": "{asctime}", "level": "{levelname}", "module": "{name}", "pid": "{process}", '
+            '"thread": "{thread}", "message": "{message}"}}',
             "datefmt": "%Y-%m-%d %H:%M:%S",
             "style": "{",
         },
         "simple": {
-            "format": "[{levelname}] {asctime} {name} - {message}",
+            "format": "[{levelname}] {asctime} {name} (pid={process}, thread={thread}) - {message}",
             "style": "{",
         },
     },
@@ -171,6 +174,11 @@ LOGGING = {
         },
     },
     "loggers": {
+        "apscheduler": {
+            "handlers": ["console", "file"] if not DEBUG else ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         "django": {
             "handlers": ["console", "file"] if not DEBUG else ["console"],
             "level": "INFO",
@@ -207,6 +215,11 @@ LOGGING = {
             "propagate": False,
         },
         "phones": {
+            "handlers": ["console", "file"] if not DEBUG else ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "scheduler": {
             "handlers": ["console", "file"] if not DEBUG else ["console"],
             "level": "INFO",
             "propagate": False,

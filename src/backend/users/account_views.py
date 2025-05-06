@@ -6,7 +6,9 @@ from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.views import APIView
 
+from barriers.models import UserBarrier
 from core.utils import deleted_response, success_response
+from phones.models import BarrierPhone
 from users.serializers import (
     ChangePasswordSerializer,
     ChangePhoneSerializer,
@@ -60,7 +62,17 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
         verification.status = Verification.Status.USED
         verification.save(update_fields=["status"])
 
-        # TODO - add deactivating other tables like barrier and all phones
+        logger.info(f"Deleting user barrier relations on '{user.id}' while deleting user")
+        UserBarrier.objects.filter(user=user, is_active=True).update(is_active=False)
+
+        phones = BarrierPhone.objects.filter(user=user, is_active=True)
+        for phone in phones:
+            phone.remove()
+            phone.send_sms_to_delete()
+            logger.info(
+                f"Deleted phone {phone.phone} for user '{user.id}' from barrier '{phone.barrier.id}' "
+                f"while deleting user"
+            )
 
         return deleted_response()
 
@@ -70,6 +82,32 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
 
 class ChangePhoneView(APIView):
     """Update user's main phone number (verification required with old and new phones)"""
+
+    @staticmethod
+    def update_primary_phones_on_user_change(user, old_phone: str, new_phone: str):
+        old_phones = BarrierPhone.objects.filter(
+            user=user, phone=old_phone, type=BarrierPhone.PhoneType.PRIMARY, is_active=True
+        )
+
+        for old_phone_entry in old_phones:
+            barrier = old_phone_entry.barrier
+
+            old_phone_entry.remove()
+            old_phone_entry.send_sms_to_delete()
+
+            if BarrierPhone.objects.filter(
+                user=user, barrier=barrier, phone=new_phone, type=BarrierPhone.PhoneType.PRIMARY, is_active=True
+            ).exists():
+                continue
+
+            new_phone_entry = BarrierPhone.create(
+                user=user,
+                barrier=barrier,
+                phone=new_phone,
+                type=BarrierPhone.PhoneType.PRIMARY,
+                name=user.get_full_name(),
+            )
+            new_phone_entry.send_sms_to_create()
 
     def patch(self, request):
         serializer = ChangePhoneSerializer(data=request.data)
@@ -93,8 +131,6 @@ class ChangePhoneView(APIView):
         if error:
             return error
 
-        # TODO - add changing phone with other tables like barrier
-
         user.phone = new_phone
         user.save(update_fields=["phone"])
 
@@ -102,6 +138,8 @@ class ChangePhoneView(APIView):
         verification_old.save(update_fields=["status"])
         verification_new.status = Verification.Status.USED
         verification_new.save(update_fields=["status"])
+
+        self.update_primary_phones_on_user_change(user, old_phone, new_phone)
 
         return success_response(UserSerializer(user).data)
 
