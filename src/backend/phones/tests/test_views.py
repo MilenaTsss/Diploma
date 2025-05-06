@@ -1,4 +1,5 @@
 import json
+from datetime import time
 from unittest.mock import patch
 
 import pytest
@@ -168,6 +169,26 @@ class TestBarrierPhoneListViews:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data["detail"] == "You do not have access to this barrier."
 
+    def test_is_active_filter_in_list_view(self, authenticated_admin_client, user, barrier, create_barrier_phone):
+        create_barrier_phone(user, barrier, phone="+70000000001")
+
+        inactive = create_barrier_phone(user, barrier, phone="+70000000002")
+        inactive.is_active = False
+        inactive.save()
+
+        url = self.admin_url(barrier)
+
+        response = authenticated_admin_client.get(url)
+        assert len(response.data["phones"]) == 1
+
+        response = authenticated_admin_client.get(url, {"is_active": "false"})
+        assert len(response.data["phones"]) == 1
+        assert response.data["phones"][0]["phone"] == "+70000000002"
+
+        response = authenticated_admin_client.get(url, {"is_active": "invalid"})
+        assert len(response.data["phones"]) == 1
+        assert response.data["phones"][0]["phone"] == "+70000000001"
+
 
 @pytest.mark.django_db
 class TestBarrierPhoneDetailViews:
@@ -211,18 +232,22 @@ class TestBarrierPhoneDetailViews:
         barrier_phone.refresh_from_db()
         assert barrier_phone.name == "Updated Name"
 
+    def test_patch_fails_on_inactive_phone(self, authenticated_client, barrier_phone):
+        barrier_phone.is_active = False
+        barrier_phone.save()
+
+        url = reverse(self.base_url, args=[barrier_phone.id])
+        data = {"name": "Blocked update"}
+        response = authenticated_client.patch(url, data=json.dumps(data), content_type="application/json")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "Cannot update a deactivated phone."
+
     def test_put_method_not_allowed(self, authenticated_client, barrier_phone):
         url = reverse(self.base_url, args=[barrier_phone.id])
         response = authenticated_client.put(url)
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
         assert response.data["detail"].lower() == 'method "put" not allowed.'
-
-    def test_user_cannot_delete_primary_phone(self, authenticated_client, barrier, user, create_barrier_phone):
-        phone = create_barrier_phone(user, barrier, phone=user.phone, type=BarrierPhone.PhoneType.PRIMARY)
-        url = reverse(self.base_url, args=[phone.id])
-        response = authenticated_client.delete(url)
-        assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["detail"] == "Primary phone number cannot be deleted."
 
     @patch.object(BarrierPhone, "send_sms_to_delete")
     def test_user_can_delete_phone(self, mock_send_sms, authenticated_client, barrier, user, barrier_phone):
@@ -232,3 +257,101 @@ class TestBarrierPhoneDetailViews:
         barrier_phone.refresh_from_db()
         assert barrier_phone.is_active is False
         mock_send_sms.assert_called_once()
+
+    def test_user_cannot_delete_primary_phone(self, authenticated_client, barrier, user, create_barrier_phone):
+        phone = create_barrier_phone(user, barrier, phone=user.phone, type=BarrierPhone.PhoneType.PRIMARY)
+        url = reverse(self.base_url, args=[phone.id])
+        response = authenticated_client.delete(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "Primary phone number cannot be deleted."
+
+    @patch.object(BarrierPhone, "send_sms_to_delete")
+    def test_cannot_delete_already_inactive_phone(self, mock_send_sms, authenticated_client, barrier_phone):
+        barrier_phone.is_active = False
+        barrier_phone.save()
+
+        url = reverse(self.base_url, args=[barrier_phone.id])
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "Phone is already deactivated."
+        mock_send_sms.assert_not_called()
+
+
+@pytest.mark.django_db
+class TestBarrierPhoneScheduleView:
+    base_url = "user_barrier_phone_schedule_view"
+    base_url_admin = "admin_barrier_phone_schedule_view"
+
+    def test_get_schedule(self, authenticated_client, schedule_barrier_phone):
+        url = reverse(self.base_url, args=[schedule_barrier_phone.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_200_OK
+        assert isinstance(response.data["monday"], list)
+
+    def test_get_fails_if_phone_not_schedule_type(self, authenticated_client, barrier_phone):
+        url = reverse(self.base_url, args=[barrier_phone.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "Only schedule-type phones have a schedule."
+
+    def test_get_not_found(self, authenticated_client):
+        url = reverse(self.base_url, args=[999999])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Phone not found."
+
+    def test_patch_not_allowed(self, authenticated_client, schedule_barrier_phone):
+        url = reverse(self.base_url, args=[schedule_barrier_phone.id])
+        response = authenticated_client.patch(url)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    def test_user_cannot_access_foreign_phone(self, authenticated_client, another_user, barrier, create_barrier_phone):
+        schedule = {"monday": [{"start_time": time(9, 0), "end_time": time(10, 0)}]}
+        phone = create_barrier_phone(another_user, barrier, type=BarrierPhone.PhoneType.SCHEDULE, schedule=schedule)
+        url = reverse(self.base_url, args=[phone.id])
+        response = authenticated_client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You do not have access to this phone."
+
+    def test_admin_cannot_access_foreign_barrier_phone(
+        self, authenticated_admin_client, user, other_barrier, create_barrier_phone
+    ):
+        schedule = {"tuesday": [{"start_time": time(14, 0), "end_time": time(15, 0)}]}
+        phone = create_barrier_phone(user, other_barrier, type=BarrierPhone.PhoneType.SCHEDULE, schedule=schedule)
+        url = reverse(self.base_url_admin, args=[phone.id])
+        response = authenticated_admin_client.get(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You do not have access to this phone."
+
+    @patch("phones.serializers.ScheduleTimeInterval.replace_schedule")
+    @patch("phones.serializers.validate_schedule_phone")
+    @patch("phones.serializers.PhoneTaskManager.edit_tasks")
+    def test_put_schedule_success(
+        self, mock_edit, mock_validate, mock_replace, authenticated_client, schedule_barrier_phone
+    ):
+        url = reverse(self.base_url, args=[schedule_barrier_phone.id])
+        data = {
+            "monday": [{"start_time": "09:00", "end_time": "10:00"}],
+            "tuesday": [{"start_time": "11:00", "end_time": "12:00"}],
+        }
+
+        response = authenticated_client.put(url, data=json.dumps(data), content_type="application/json")
+        assert response.status_code == status.HTTP_200_OK
+        assert "monday" in response.data
+        mock_validate.assert_called_once()
+        mock_replace.assert_called_once()
+        mock_edit.assert_called_once()
+
+    def test_put_rejected_if_inactive(self, authenticated_client, schedule_barrier_phone):
+        schedule_barrier_phone.is_active = False
+        schedule_barrier_phone.save()
+
+        url = reverse(self.base_url, args=[schedule_barrier_phone.id])
+        data = {
+            "monday": [{"start_time": "09:00", "end_time": "10:00"}],
+        }
+
+        response = authenticated_client.put(url, data=json.dumps(data), content_type="application/json")
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "Cannot update a deactivated phone."

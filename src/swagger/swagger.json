@@ -8,11 +8,11 @@
   "servers": [
     {
       "url": "http://localhost/api",
-      "description": "Local docker prod server"
+      "description": "Local development server"
     },
     {
-      "url": "http://localhost:8000/api",
-      "description": "Local development server"
+      "url": "https://localhost/api",
+      "description": "Local docker prod server"
     },
     {
       "url": "http://46.8.225.185/api",
@@ -5720,6 +5720,14 @@
             "description": "Фильтр по типу номера."
           },
           {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Фильтр по активным и удалённым номерам (`true` - только активные, `false` - только удалённые). По умолчанию только активные. "
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -6052,6 +6060,11 @@
                     "value": {
                       "detail": "You do not have access to this phone."
                     }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Cannot update a deactivated phone."
+                    }
                   }
                 }
               }
@@ -6136,6 +6149,11 @@
                   "without access": {
                     "value": {
                       "detail": "You do not have access to this barrier."
+                    }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Phone is already deactivated."
                     }
                   }
                 }
@@ -6399,6 +6417,11 @@
                   "without access": {
                     "value": {
                       "detail": "You do not have access to this phone."
+                    }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Cannot update a deactivated phone."
                     }
                   },
                   "not schedule": {
@@ -6827,6 +6850,14 @@
             "description": "Фильтр по типу номера."
           },
           {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Фильтр по активным и удалённым номерам (`true` - только активные, `false` - только удалённые). По умолчанию только активные. "
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -7174,6 +7205,11 @@
                     "value": {
                       "detail": "You do not have access to this phone."
                     }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Cannot update a deactivated phone."
+                    }
                   }
                 }
               }
@@ -7263,6 +7299,11 @@
                   "without access": {
                     "value": {
                       "detail": "You do not have access to this barrier."
+                    }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Phone is already deactivated."
                     }
                   }
                 }
@@ -7536,6 +7577,11 @@
                   "without access": {
                     "value": {
                       "detail": "You do not have access to this phone."
+                    }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Cannot update a deactivated phone."
                     }
                   },
                   "not schedule": {
@@ -7917,6 +7963,10 @@
             "format": "date-time",
             "nullable": true,
             "example": "2025-08-01T18:00:00+03:00"
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
           }
         }
       },

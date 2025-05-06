@@ -63,18 +63,57 @@ class TestBarrierPhoneModel:
 
             assert BarrierPhone.get_available_serial_number(barrier) is None
 
-    class TestBarrierPhoneSMS:
+    @pytest.mark.django_db
+    class TestBarrierPhoneSendSMSCreate:
         @patch("message_management.services.SMSService.send_add_phone_command")
-        def test_send_sms_to_create_calls_sms(self, mock_send, barrier_phone):
+        def test_send_sms_to_create_primary_calls_sms(self, mock_send, barrier_phone):
             barrier_phone.type = BarrierPhone.PhoneType.PRIMARY
             barrier_phone.send_sms_to_create()
             mock_send.assert_called_once_with(barrier_phone)
 
+        @patch("message_management.services.SMSService.send_add_phone_command")
+        def test_send_sms_to_create_permanent_calls_sms(self, mock_send, barrier_phone):
+            barrier_phone.type = BarrierPhone.PhoneType.PERMANENT
+            barrier_phone.send_sms_to_create()
+            mock_send.assert_called_once_with(barrier_phone)
+
+        @patch("scheduler.task_manager.PhoneTaskManager.add_tasks")
+        def test_send_sms_to_create_temporary_schedules_task(self, mock_add_tasks, barrier_phone):
+            barrier_phone.type = BarrierPhone.PhoneType.TEMPORARY
+            barrier_phone.send_sms_to_create()
+            mock_add_tasks.assert_called_once()
+
+        @patch("scheduler.task_manager.PhoneTaskManager.add_tasks")
+        def test_send_sms_to_create_schedule_schedules_task(self, mock_add_tasks, barrier_phone):
+            barrier_phone.type = BarrierPhone.PhoneType.SCHEDULE
+            barrier_phone.send_sms_to_create()
+            mock_add_tasks.assert_called_once()
+
+    @pytest.mark.django_db
+    class TestBarrierPhoneSendSMSDelete:
         @patch("message_management.services.SMSService.send_delete_phone_command")
-        def test_send_sms_to_delete_calls_sms(self, mock_send, barrier_phone):
+        def test_send_sms_to_delete_primary_calls_sms(self, mock_send, barrier_phone):
             barrier_phone.type = BarrierPhone.PhoneType.PRIMARY
             barrier_phone.send_sms_to_delete()
             mock_send.assert_called_once_with(barrier_phone)
+
+        @patch("message_management.services.SMSService.send_delete_phone_command")
+        def test_send_sms_to_delete_permanent_calls_sms(self, mock_send, barrier_phone):
+            barrier_phone.type = BarrierPhone.PhoneType.PERMANENT
+            barrier_phone.send_sms_to_delete()
+            mock_send.assert_called_once_with(barrier_phone)
+
+        @patch("scheduler.task_manager.PhoneTaskManager.delete_tasks")
+        def test_send_sms_to_delete_temporary_schedules_task(self, mock_delete_tasks, barrier_phone):
+            barrier_phone.type = BarrierPhone.PhoneType.TEMPORARY
+            barrier_phone.send_sms_to_delete()
+            mock_delete_tasks.assert_called_once()
+
+        @patch("scheduler.task_manager.PhoneTaskManager.delete_tasks")
+        def test_send_sms_to_delete_schedule_schedules_task(self, mock_delete_tasks, barrier_phone):
+            barrier_phone.type = BarrierPhone.PhoneType.SCHEDULE
+            barrier_phone.send_sms_to_delete()
+            mock_delete_tasks.assert_called_once()
 
     class TestBarrierPhoneRemoval:
         def test_delete_raises_error(self, barrier_phone):

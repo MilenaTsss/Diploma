@@ -18,6 +18,7 @@ from barriers_management.serializers import (
 )
 from core.pagination import BasePaginatedListView
 from core.utils import created_response, deleted_response, success_response
+from phones.models import BarrierPhone
 from users.models import User
 from users.serializers import UserSerializer
 
@@ -118,6 +119,19 @@ class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
         """Mark the barrier as inactive (soft delete)"""
 
         barrier = self.get_object()
+
+        logger.info(f"Deleting user barrier relations on '{barrier.id}' while deleting barrier")
+        UserBarrier.objects.filter(barrier=barrier, is_active=True).update(is_active=False)
+
+        phones = BarrierPhone.objects.filter(barrier=barrier, is_active=True)
+        for phone in phones:
+            phone.remove()
+            phone.send_sms_to_delete()
+            logger.info(
+                f"Deleted phone '{phone.phone}' for user '{phone.user.id}' on barrier '{barrier.id}' "
+                f"while deleting barrier"
+            )
+
         barrier.is_active = False
         barrier.save(update_fields=["is_active"])
         return deleted_response()

@@ -1,8 +1,11 @@
+from unittest.mock import patch
+
 import pytest
 from django.urls import reverse
 from rest_framework import status
 
 from barriers.models import BarrierLimit, UserBarrier
+from phones.models import BarrierPhone
 
 
 @pytest.mark.django_db
@@ -164,6 +167,41 @@ class TestLeaveBarrierView:
 
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.data["detail"] == "Barrier not found."
+
+    @patch.object(BarrierPhone, "send_sms_to_delete")
+    def test_all_user_phones_are_removed_on_leave(
+        self, mock_send_sms, authenticated_client, user, private_barrier_with_access
+    ):
+        barrier = private_barrier_with_access
+        url = reverse("leave_barrier", args=[barrier.id])
+
+        BarrierPhone.objects.create(
+            user=user,
+            barrier=barrier,
+            phone=user.phone,
+            type=BarrierPhone.PhoneType.PRIMARY,
+            device_serial_number=1,
+        )
+        BarrierPhone.objects.create(
+            user=user,
+            barrier=barrier,
+            phone="+79998887766",
+            type=BarrierPhone.PhoneType.PERMANENT,
+            device_serial_number=2,
+        )
+
+        response = authenticated_client.delete(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["message"] == "Left the barrier successfully."
+
+        user_barrier = UserBarrier.objects.get(user=user, barrier=barrier)
+        assert not user_barrier.is_active
+
+        for phone in BarrierPhone.objects.filter(user=user, barrier=barrier):
+            assert not phone.is_active
+
+        assert mock_send_sms.call_count == 2
 
 
 @pytest.mark.django_db

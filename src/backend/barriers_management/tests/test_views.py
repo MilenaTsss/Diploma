@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from django.urls import reverse
 from rest_framework import status
@@ -5,6 +7,7 @@ from rest_framework import status
 from access_requests.models import AccessRequest
 from barriers.models import Barrier, BarrierLimit, UserBarrier
 from conftest import BARRIER_ADDRESS, BARRIER_DEVICE_PASSWORD, BARRIER_DEVICE_PHONE, OTHER_PHONE, USER_PHONE
+from phones.models import BarrierPhone
 from users.models import User
 
 
@@ -152,6 +155,38 @@ class TestAdminBarrierView:
         response = authenticated_admin_client.put(url, data)
 
         assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+
+    @patch.object(BarrierPhone, "send_sms_to_delete")
+    def test_admin_delete_barrier_removes_related_entities(
+        self,
+        mock_send_sms,
+        authenticated_admin_client,
+        user,
+        barrier,
+        access_request,
+        create_barrier_phone,
+    ):
+        UserBarrier.objects.create(user=user, barrier=barrier, access_request=access_request)
+
+        create_barrier_phone(user=user, barrier=barrier, phone=user.phone, type=BarrierPhone.PhoneType.PRIMARY)
+        create_barrier_phone(user=user, barrier=barrier, phone="+79992222222", type=BarrierPhone.PhoneType.PERMANENT)
+
+        url = reverse("admin_barrier_view", args=[barrier.id])
+        response = authenticated_admin_client.delete(url)
+
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+        barrier.refresh_from_db()
+        assert not barrier.is_active
+
+        for ub in UserBarrier.objects.filter(barrier=barrier):
+            assert not ub.is_active
+
+        phones = BarrierPhone.objects.filter(barrier=barrier)
+        for phone in phones:
+            assert not phone.is_active
+
+        assert mock_send_sms.call_count == phones.count()
 
 
 @pytest.mark.django_db
