@@ -57,6 +57,7 @@ const VerificationPage: React.FC = () => {
 
       const verifyJson = await verifyResponse.json();
 
+      console.log(verifyJson.message);
       if (verifyJson.message === "Code verified successfully.") {
         const loginResponse = await fetch("/api/auth/login/", {
           method: "POST",
@@ -104,7 +105,6 @@ const VerificationPage: React.FC = () => {
     setTimer(60);
     setIsResendDisabled(true);
     setErrorMessage("");
-    console.log("Повторная отправка кода для:", phone);
 
     try {
       const response = await fetch("/api/auth/codes/", {
@@ -121,20 +121,28 @@ const VerificationPage: React.FC = () => {
 
       const data = await response.json();
 
-      if (response.ok && data.verification_token) {
+      if (response.status === 201 && data.verification_token) {
         setVerificationToken(data.verification_token);
+      } else if (response.status === 400) {
+        const messages = [];
+        if (data.phone) messages.push(...data.phone);
+        if (data.mode) messages.push(...data.mode);
+        setErrorMessage(messages.join(" "));
+      } else if (response.status === 403) {
+        setErrorMessage(data.detail || "Пользователь заблокирован.");
+      } else if (response.status === 404) {
+        setErrorMessage(data.detail || "Пользователь не найден.");
+      } else if (response.status === 429) {
+        setErrorMessage(data.detail || "Превышен лимит. Попробуйте позже.");
       } else {
-        let message = data.detail || data || "Ошибка при повторной отправке";
-        if (data.retry_after) {
-          message += ` (Подождите ${data.retry_after} сек)`;
-        }
-        setErrorMessage(message);
+        setErrorMessage(data.detail || "Ошибка при повторной отправке кода.");
       }
     } catch (error) {
       console.error("Ошибка при повторной отправке:", error);
       setErrorMessage("Не удалось повторно связаться с сервером");
     }
   };
+
 
   return (
     <div style={styles.container}>

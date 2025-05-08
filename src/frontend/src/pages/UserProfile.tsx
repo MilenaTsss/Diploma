@@ -186,17 +186,36 @@ const UserProfile: React.FC = () => {
         <div style={styles.navbar}>
           <button
               style={styles.navButton}
-              onClick={() => navigateWithState("/barriers")}
+              onClick={() =>
+                  navigate("/barriers", {
+                    state: {
+                      phone,
+                      access_token: accessToken,
+                      refresh_token: refreshToken,
+                    },
+                  })
+              }
           >
             Шлагбаумы
           </button>
           <button
               style={styles.navButton}
-              onClick={() => navigateWithState("/requests")}
+              onClick={() =>
+                  navigate("/requests", {
+                    state: {
+                      phone,
+                      access_token: accessToken,
+                      refresh_token: refreshToken,
+                    },
+                  })
+              }
           >
             Запросы
           </button>
-          <button style={{ ...styles.navButton, ...styles.activeNavButton }}>Профиль</button>
+          <button
+              style={{ ...styles.navButton, ...styles.navButtonActive }}>
+            Профиль
+          </button>
         </div>
       </div>
   );
@@ -325,6 +344,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   inactiveText: {
     color: "#999",
   },
+  navButtonActive: { borderBottom: "2px solid #5a4478", paddingBottom: "4px" },
 };
 
 export default UserProfile;
