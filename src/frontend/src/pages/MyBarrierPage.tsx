@@ -19,7 +19,7 @@ const MyBarrierPage: React.FC = () => {
                 <button style={styles.backButton} onClick={() => navigate(-1)}>
                     <FaArrowLeft />
                 </button>
-                <h1 style={styles.title}>Ул Баумана 98</h1>
+                <h1 style={styles.title}>манежная площадь, 1, москва</h1>
             </div>
 
             <div style={styles.container}>
@@ -40,7 +40,7 @@ const MyBarrierPage: React.FC = () => {
                 <h2 style={styles.subtitle}>Основной номер:</h2>
                 <div style={styles.phoneCard}>
                     <span>Иван Иванов</span>
-                    <span>+7 999 123 45 67</span>
+                    <span>+71111111111</span>
                 </div>
 
                 {/* Дополнительные номера */}
