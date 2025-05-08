@@ -5,6 +5,7 @@ from django.utils.timezone import now
 from rest_framework.test import APIClient
 
 from access_requests.models import AccessRequest
+from action_history.models import BarrierActionLog
 from barriers.models import Barrier, UserBarrier
 from phones.constants import MINIMUM_TIME_INTERVAL_MINUTES
 from phones.models import BarrierPhone
@@ -233,6 +234,8 @@ def create_barrier_phone():
         phone=BARRIER_PERMANENT_PHONE,
         type=BarrierPhone.PhoneType.PERMANENT,
         name=BARRIER_PERMANENT_PHONE_NAME,
+        author=BarrierActionLog.Author.SYSTEM,
+        reason=BarrierActionLog.Reason.MANUAL,
         start_time=None,
         end_time=None,
         schedule=None,
@@ -243,6 +246,8 @@ def create_barrier_phone():
             phone=phone,
             type=type,
             name=name,
+            author=author,
+            reason=reason,
             start_time=start_time,
             end_time=end_time,
             schedule=schedule,
@@ -283,3 +288,35 @@ def schedule_barrier_phone(user, barrier, create_barrier_phone):
         name="Schedule Phone",
         schedule=schedule,
     )
+
+
+# @pytest.fixture
+# def create_action_log(db):
+#     """Factory fixture to create a BarrierActionLog"""
+#
+#     def _create_action_log(
+#         barrier,
+#         phone,
+#         author=BarrierActionLog.Author.USER,
+#         action_type=BarrierActionLog.ActionType.ADD_PHONE,
+#         reason=BarrierActionLog.Reason.MANUAL,
+#         old_value=None,
+#         new_value=None,
+#     ):
+#         return BarrierActionLog.objects.create(
+#             phone=phone,
+#             barrier=barrier,
+#             author=author,
+#             action_type=action_type,
+#             reason=reason,
+#             old_value=old_value,
+#             new_value=new_value,
+#         )
+#
+#     return _create_action_log
+#
+# @pytest.fixture
+# def action_log(barrier, barrier_phone):
+#     phone, log = barrier_phone
+#     return log
+#     # return create_action_log(barrier, barrier_phone)

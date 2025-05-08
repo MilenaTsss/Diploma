@@ -6,6 +6,7 @@ from rest_framework.exceptions import MethodNotAllowed, NotFound, PermissionDeni
 from rest_framework.generics import RetrieveUpdateAPIView, RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAdminUser
 
+from action_history.models import BarrierActionLog
 from barriers.models import Barrier, UserBarrier
 from core.pagination import BasePaginatedListView
 from core.utils import created_response, deleted_response, success_response
@@ -162,6 +163,11 @@ class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
     lookup_field = "id"
     as_admin = False
 
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"as_admin": self.as_admin})
+        return context
+
     def get_object(self):
         try:
             phone = super().get_object()
@@ -195,9 +201,10 @@ class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
             raise PermissionDenied("Phone is already deactivated.")
         if phone.type == BarrierPhone.PhoneType.PRIMARY:
             raise PermissionDenied("Primary phone number cannot be deleted.")
+        author = BarrierActionLog.Author.ADMIN if self.as_admin else BarrierActionLog.Author.USER
 
-        phone.remove()
-        phone.send_sms_to_delete()
+        _, log = phone.remove(author=author, reason=BarrierActionLog.Reason.MANUAL)
+        phone.send_sms_to_delete(log)
         return deleted_response()
 
 
@@ -220,6 +227,11 @@ class BaseBarrierPhoneScheduleView(RetrieveUpdateAPIView):
     serializer_class = UpdatePhoneScheduleSerializer
     lookup_field = "id"
     as_admin = False
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context.update({"as_admin": self.as_admin})
+        return context
 
     def get_phone(self):
         phone_id = self.kwargs["id"]

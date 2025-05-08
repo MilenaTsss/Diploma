@@ -6,6 +6,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from access_requests.models import AccessRequest
+from action_history.models import BarrierActionLog
 from barriers.models import UserBarrier
 from phones.models import BarrierPhone
 
@@ -183,7 +184,20 @@ class TestAccessRequestDetailView:
         admin_access_request.refresh_from_db()
         assert admin_access_request.status == AccessRequest.Status.ACCEPTED
         assert UserBarrier.objects.filter(user=user, barrier=barrier, is_active=True).exists()
-        mock_send_sms_to_create.assert_called_once()
+
+        phone = BarrierPhone.objects.get(user=user, barrier=barrier, type=BarrierPhone.PhoneType.PRIMARY)
+        assert phone.phone == user.phone
+
+        log = BarrierActionLog.objects.get(
+            phone=phone,
+            action_type=BarrierActionLog.ActionType.ADD_PHONE,
+            reason=BarrierActionLog.Reason.ACCESS_GRANTED,
+        )
+
+        assert log.author == BarrierActionLog.Author.SYSTEM
+        assert log.new_value == phone.describe_phone_params()
+
+        mock_send_sms_to_create.assert_called_once_with(log)
 
     def test_user_cannot_reject_own_request(self, authenticated_client, user_access_request):
         url = reverse(self.base_url, args=[user_access_request.id])
@@ -223,7 +237,19 @@ class TestAccessRequestDetailView:
         assert user_access_request.status == AccessRequest.Status.ACCEPTED
         assert UserBarrier.objects.filter(user=user, barrier=barrier, is_active=True).exists()
 
-        mock_send_sms_to_create.assert_called_once()
+        phone = BarrierPhone.objects.get(user=user, barrier=barrier, type=BarrierPhone.PhoneType.PRIMARY)
+        assert phone.phone == user.phone
+
+        log = BarrierActionLog.objects.get(
+            phone=phone,
+            action_type=BarrierActionLog.ActionType.ADD_PHONE,
+            reason=BarrierActionLog.Reason.ACCESS_GRANTED,
+        )
+
+        assert log.author == BarrierActionLog.Author.SYSTEM
+        assert log.new_value == phone.describe_phone_params()
+
+        mock_send_sms_to_create.assert_called_once_with(log)
 
     def test_admin_cannot_accept_own_request(self, authenticated_admin_client, admin_access_request):
         url = reverse(self.base_url_admin, args=[admin_access_request.id])

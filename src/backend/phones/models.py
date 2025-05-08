@@ -4,6 +4,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import models
 from rest_framework.exceptions import PermissionDenied as DRFPermissionDenied
 
+from action_history.models import BarrierActionLog
 from barriers.models import Barrier
 from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH, STRING_MAX_LENGTH
 from core.utils import ConflictError
@@ -64,26 +65,19 @@ class BarrierPhone(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # TODO - add a field to track the status and the last action performed with this phone
-    # class Status(models.TextChoices):
-    #     ACTIVE = "active", "Active"
-    #     ADDING = "adding", "Adding"
-    #     ADD_FAILED = "add_failed", "Add failed"
-    #     REMOVING = "removing", "Removing"
-    #     REMOVED = "removed", "Removed"
-    #     REMOVE_FAILED = "remove_failed", "Remove failed"
-    #
-    # status = models.CharField(
-    #     max_length=CHOICE_MAX_LENGTH,
-    #     choices=Status.choices,
-    #     default=Status.ACTIVE,
-    # )
-    # last_action = models.ForeignKey(
-    #     "ActionHistory",
-    #     null=True, blank=True,
-    #     on_delete=models.SET_NULL,
-    #     related_name="related_phones"
-    # )
+    class AccessState(models.TextChoices):
+        UNKNOWN = "unknown", "Unknown"
+        OPEN = "open", "Open"
+        CLOSED = "closed", "Closed"
+        ERROR_OPENING = "error_opening", "Error Opening"
+        ERROR_CLOSING = "error_closing", "Error Closing"
+
+    access_state = models.CharField(
+        max_length=CHOICE_MAX_LENGTH,
+        choices=AccessState.choices,
+        default=AccessState.UNKNOWN,
+        help_text="Current access state of the phone.",
+    )
 
     def __str__(self):
         return f"Phone: {self.phone} ({self.user}, {self.barrier})"
@@ -107,8 +101,45 @@ class BarrierPhone(models.Model):
 
         return min(free_numbers) if free_numbers else None
 
+    def describe_phone_params(self) -> str:
+        parts = [f"name={self.name}"]
+
+        if self.type == BarrierPhone.PhoneType.TEMPORARY:
+            if self.start_time:
+                parts.append(f"start_time={self.start_time.strftime('%Y-%m-%d %H:%M')}")
+            if self.end_time:
+                parts.append(f"end_time={self.end_time.strftime('%Y-%m-%d %H:%M')}")
+
+        elif self.type == BarrierPhone.PhoneType.SCHEDULE:
+            schedule = ScheduleTimeInterval.get_schedule_grouped_by_day(self)
+            readable_schedule = []
+            for day, intervals in schedule.items():
+                if not intervals:
+                    continue
+                formatted_intervals = [
+                    f"{i['start_time'].strftime('%H:%M')}–{i['end_time'].strftime('%H:%M')}" for i in intervals
+                ]
+                readable_schedule.append(f"{day}: {', '.join(formatted_intervals)}")
+            if readable_schedule:
+                parts.append("schedule={" + "; ".join(readable_schedule) + "}")
+
+        return ", ".join(parts)
+
     @classmethod
-    def create(cls, *, user, barrier, phone, type, name="", start_time=None, end_time=None, schedule=None):
+    def create(
+        cls,
+        *,
+        user: User,
+        barrier: Barrier,
+        phone,
+        type: PhoneType,
+        name: str = "",
+        author: BarrierActionLog.Author = BarrierActionLog.Author.USER,
+        reason: BarrierActionLog.Reason = BarrierActionLog.Reason.MANUAL,
+        start_time=None,
+        end_time=None,
+        schedule=None,
+    ):
         """Creates a new BarrierPhone instance with validation and optional schedule."""
 
         if cls.objects.filter(user=user, barrier=barrier, phone=phone, is_active=True).exists():
@@ -140,36 +171,55 @@ class BarrierPhone(models.Model):
         if type == cls.PhoneType.SCHEDULE and schedule:
             ScheduleTimeInterval.create_schedule(phone_instance, schedule)
 
-        return phone_instance
+        log = BarrierActionLog.objects.create(
+            phone=phone_instance,
+            barrier=barrier,
+            author=author,
+            action_type=BarrierActionLog.ActionType.ADD_PHONE,
+            reason=reason,
+            new_value=cls.describe_phone_params(phone_instance),
+        )
 
-    def send_sms_to_create(self):
+        return phone_instance, log
+
+    def send_sms_to_create(self, log: BarrierActionLog):
         from message_management.services import SMSService
         from scheduler.task_manager import PhoneTaskManager
 
         if self.type == self.PhoneType.PRIMARY or self.type == self.PhoneType.PERMANENT:
-            SMSService.send_add_phone_command(self)
+            SMSService.send_add_phone_command(self, log)
         else:
             logger.info(f"Scheduling SMS for phone {self.id}")
-            PhoneTaskManager(self).add_tasks()
+            PhoneTaskManager(self, log).add_tasks()
 
     def delete(self, *args, **kwargs):
         raise PermissionDenied("Deletion of this object is not allowed.")
 
-    def remove(self, *args, **kwargs):
+    def remove(self, author: BarrierActionLog.Author, reason: BarrierActionLog.Reason):
         """Deactivate the phone and send a delete SMS command."""
 
         self.is_active = False
         self.save()
 
-    def send_sms_to_delete(self):
+        log = BarrierActionLog.objects.create(
+            phone=self,
+            barrier=self.barrier,
+            author=author,
+            action_type=BarrierActionLog.ActionType.DELETE_PHONE,
+            reason=reason,
+        )
+
+        return self, log
+
+    def send_sms_to_delete(self, log: BarrierActionLog):
         from message_management.services import SMSService
         from scheduler.task_manager import PhoneTaskManager
 
         if self.type == self.PhoneType.PRIMARY or self.type == self.PhoneType.PERMANENT:
-            SMSService.send_delete_phone_command(self)
+            SMSService.send_delete_phone_command(self, log)
         else:
             logger.info(f"Scheduling SMS for phone {self.id}")
-            PhoneTaskManager(self).delete_tasks()
+            PhoneTaskManager(self, log).delete_tasks()
 
 
 class ScheduleTimeInterval(models.Model):
