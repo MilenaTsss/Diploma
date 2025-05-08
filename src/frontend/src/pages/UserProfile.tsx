@@ -13,10 +13,11 @@ const UserProfile: React.FC = () => {
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [accessToken, setAccessToken] = useState(
-      () => location.state?.access_token || localStorage.getItem("access_token")
+    () => location.state?.access_token || localStorage.getItem("access_token"),
   );
   const [refreshToken] = useState(
-      () => location.state?.refresh_token || localStorage.getItem("refresh_token")
+    () =>
+      location.state?.refresh_token || localStorage.getItem("refresh_token"),
   );
 
   useEffect(() => {
@@ -121,103 +122,131 @@ const UserProfile: React.FC = () => {
   const handleRoleSwitch = () => {
     if (isAdmin) {
       navigate("/user", {
-        state: { phone, access_token: accessToken, refresh_token: refreshToken },
+        state: {
+          phone,
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        },
       });
     } else {
       navigate("/admin", {
-        state: { phone, access_token: accessToken, refresh_token: refreshToken },
+        state: {
+          phone,
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        },
       });
     }
   };
 
   return (
-      <div style={styles.container}>
-        <h2 style={styles.title}>Профиль</h2>
+    <div style={styles.container}>
+      <h2 style={styles.title}>Профиль</h2>
 
-        <div style={styles.card}>
-          {isEditingName ? (
-              <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  style={styles.input}
-              />
-          ) : (
-              <p style={styles.text}>{name || "—"}</p>
-          )}
-          <button
-              style={styles.button}
-              onClick={() => {
-                isEditingName ? handleSave() : setIsEditingName(true);
-              }}
-          >
-            {isEditingName ? (requestSent ? "Сохранено" : "Сохранить") : "Изменить имя"}
-          </button>
-        </div>
-
-        <div style={styles.card}>
-          <p style={styles.text}>{phone || "—"}</p>
-          <button style={styles.button} onClick={() => navigateWithState("/change-phone")}>
-            Изменить телефон
-          </button>
-        </div>
-
-        {showSwitch && (
-            <div style={styles.switchBlock}>
-              <span style={!isAdmin ? styles.activeText : styles.inactiveText}>Пользователь</span>
-              <label style={styles.switch}>
-                <input
-                    type="checkbox"
-                    checked={isAdmin}
-                    onChange={() => {
-                      setIsAdmin((prev) => !prev);
-                      handleRoleSwitch();
-                    }}
-                    style={styles.switchInput}
-                />
-                <span style={{ ...styles.slider, ...(isAdmin ? styles.switchChecked : {}) }}>
-              <span style={{ ...styles.sliderBefore, ...(isAdmin ? styles.switchCheckedBefore : {}) }} />
-            </span>
-              </label>
-              <span style={isAdmin ? styles.activeText : styles.inactiveText}>Администратор</span>
-            </div>
+      <div style={styles.card}>
+        {isEditingName ? (
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            style={styles.input}
+          />
+        ) : (
+          <p style={styles.text}>{name || "—"}</p>
         )}
-
-        <div style={styles.navbar}>
-          <button
-              style={styles.navButton}
-              onClick={() =>
-                  navigate("/barriers", {
-                    state: {
-                      phone,
-                      access_token: accessToken,
-                      refresh_token: refreshToken,
-                    },
-                  })
-              }
-          >
-            Шлагбаумы
-          </button>
-          <button
-              style={styles.navButton}
-              onClick={() =>
-                  navigate("/requests", {
-                    state: {
-                      phone,
-                      access_token: accessToken,
-                      refresh_token: refreshToken,
-                    },
-                  })
-              }
-          >
-            Запросы
-          </button>
-          <button
-              style={{ ...styles.navButton, ...styles.navButtonActive }}>
-            Профиль
-          </button>
-        </div>
+        <button
+          style={styles.button}
+          onClick={() => {
+            isEditingName ? handleSave() : setIsEditingName(true);
+          }}
+        >
+          {isEditingName
+            ? requestSent
+              ? "Сохранено"
+              : "Сохранить"
+            : "Изменить имя"}
+        </button>
       </div>
+
+      <div style={styles.card}>
+        <p style={styles.text}>{phone || "—"}</p>
+        <button
+          style={styles.button}
+          onClick={() => navigateWithState("/change-phone")}
+        >
+          Изменить телефон
+        </button>
+      </div>
+
+      {showSwitch && (
+        <div style={styles.switchBlock}>
+          <span style={!isAdmin ? styles.activeText : styles.inactiveText}>
+            Пользователь
+          </span>
+          <label style={styles.switch}>
+            <input
+              type="checkbox"
+              checked={isAdmin}
+              onChange={() => {
+                setIsAdmin((prev) => !prev);
+                handleRoleSwitch();
+              }}
+              style={styles.switchInput}
+            />
+            <span
+              style={{
+                ...styles.slider,
+                ...(isAdmin ? styles.switchChecked : {}),
+              }}
+            >
+              <span
+                style={{
+                  ...styles.sliderBefore,
+                  ...(isAdmin ? styles.switchCheckedBefore : {}),
+                }}
+              />
+            </span>
+          </label>
+          <span style={isAdmin ? styles.activeText : styles.inactiveText}>
+            Администратор
+          </span>
+        </div>
+      )}
+
+      <div style={styles.navbar}>
+        <button
+          style={styles.navButton}
+          onClick={() =>
+            navigate("/barriers", {
+              state: {
+                phone,
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              },
+            })
+          }
+        >
+          Шлагбаумы
+        </button>
+        <button
+          style={styles.navButton}
+          onClick={() =>
+            navigate("/requests", {
+              state: {
+                phone,
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              },
+            })
+          }
+        >
+          Запросы
+        </button>
+        <button style={{ ...styles.navButton, ...styles.navButtonActive }}>
+          Профиль
+        </button>
+      </div>
+    </div>
   );
 };
 

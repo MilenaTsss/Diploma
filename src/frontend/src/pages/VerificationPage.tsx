@@ -143,7 +143,6 @@ const VerificationPage: React.FC = () => {
     }
   };
 
-
   return (
     <div style={styles.container}>
       <button style={styles.backButton} onClick={() => navigate("/login")}>

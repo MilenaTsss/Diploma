@@ -7,10 +7,10 @@ const UserRequests: React.FC = () => {
   const [type, setType] = useState<"outgoing" | "incoming">("outgoing");
   const [requests, setRequests] = useState<any[]>([]);
   const [accessToken, setAccessToken] = useState(
-      location.state?.access_token || localStorage.getItem("access_token")
+    location.state?.access_token || localStorage.getItem("access_token"),
   );
   const [refreshToken] = useState(
-      location.state?.refresh_token || localStorage.getItem("refresh_token")
+    location.state?.refresh_token || localStorage.getItem("refresh_token"),
   );
 
   const fetchRequests = async (token = accessToken) => {
@@ -37,13 +37,13 @@ const UserRequests: React.FC = () => {
       const data = await res.json();
       if (res.ok && data.access_requests) {
         const requestsWithAddresses = await Promise.all(
-            data.access_requests.map(async (r: any) => {
-              const barrierRes = await fetch(`/api/barriers/${r.barrier}/`, {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              const barrierData = await barrierRes.json();
-              return { ...r, address: barrierData.address || "Неизвестно" };
-            })
+          data.access_requests.map(async (r: any) => {
+            const barrierRes = await fetch(`/api/barriers/${r.barrier}/`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const barrierData = await barrierRes.json();
+            return { ...r, address: barrierData.address || "Неизвестно" };
+          }),
         );
         setRequests(requestsWithAddresses);
       }
@@ -57,9 +57,9 @@ const UserRequests: React.FC = () => {
   }, [type]);
 
   const updateRequestStatus = async (
-      requestId: number,
-      status: string,
-      hide = false
+    requestId: number,
+    status: string,
+    hide = false,
   ) => {
     try {
       await fetch(`/api/access_requests/${requestId}/`, {
@@ -80,104 +80,103 @@ const UserRequests: React.FC = () => {
   };
 
   return (
-      <div style={styles.container}>
-        <h2 style={styles.title}>Запросы</h2>
-        <div style={styles.tabs}>
-          <button
-              style={{
-                ...styles.tab,
-                borderBottom: type === "outgoing" ? "2px solid #5a4478" : "none",
-              }}
-              onClick={() => setType("outgoing")}
-          >
-            Исходящие
-          </button>
-          <button
-              style={{
-                ...styles.tab,
-                borderBottom: type === "incoming" ? "2px solid #5a4478" : "none",
-              }}
-              onClick={() => setType("incoming")}
-          >
-            Входящие
-          </button>
-        </div>
-        <div style={styles.requestList}>
-          {requests.map((request) => (
-              <div key={request.id} style={{ ...styles.requestCard }}>
-                <p style={styles.requestText}>{request.address}</p>
-                {type === "outgoing" && request.status === "pending" && (
-                    <button
-                        style={styles.cancelButton}
-                        onClick={() =>
-                            updateRequestStatus(request.id, "cancelled", true)
-                        }
-                    >
-                      Отменить
-                    </button>
-                )}
-                {type === "incoming" && request.status === "pending" && (
-                    <div style={styles.actionRow}>
-                      <button
-                          style={styles.acceptButton}
-                          onClick={() => updateRequestStatus(request.id, "accepted")}
-                      >
-                        Принять
-                      </button>
-                      <button
-                          style={styles.declineButton}
-                          onClick={() => updateRequestStatus(request.id, "rejected")}
-                      >
-                        Отклонить
-                      </button>
-                    </div>
-                )}
-                {request.status === "accepted" && (
-                    <p style={styles.approvedText}>Принят</p>
-                )}
-                {request.status === "rejected" && (
-                    <p style={styles.declinedText}>Отклонен</p>
-                )}
-                {request.status === "cancelled" && (
-                    <p style={styles.declinedText}>Отменен</p>
-                )}
-              </div>
-          ))}
-        </div>
-
-        <div style={styles.navbar}>
-          <button
-              style={styles.navButton}
-              onClick={() =>
-                  navigate("/barriers", {
-                    state: {
-                      access_token: accessToken,
-                      refresh_token: refreshToken,
-                    },
-                  })
-              }
-          >
-            Шлагбаумы
-          </button>
-          <button
-              style={{ ...styles.navButton, ...styles.navButtonActive }}>
-            Запросы
-          </button>
-          <button
-              style={styles.navButton}
-              onClick={() =>
-                  navigate("/user", {
-                    state: {
-                      access_token: accessToken,
-                      refresh_token: refreshToken,
-                    },
-                  })
-              }
-          >
-            Профиль
-          </button>
-        </div>
+    <div style={styles.container}>
+      <h2 style={styles.title}>Запросы</h2>
+      <div style={styles.tabs}>
+        <button
+          style={{
+            ...styles.tab,
+            borderBottom: type === "outgoing" ? "2px solid #5a4478" : "none",
+          }}
+          onClick={() => setType("outgoing")}
+        >
+          Исходящие
+        </button>
+        <button
+          style={{
+            ...styles.tab,
+            borderBottom: type === "incoming" ? "2px solid #5a4478" : "none",
+          }}
+          onClick={() => setType("incoming")}
+        >
+          Входящие
+        </button>
       </div>
+      <div style={styles.requestList}>
+        {requests.map((request) => (
+          <div key={request.id} style={{ ...styles.requestCard }}>
+            <p style={styles.requestText}>{request.address}</p>
+            {type === "outgoing" && request.status === "pending" && (
+              <button
+                style={styles.cancelButton}
+                onClick={() =>
+                  updateRequestStatus(request.id, "cancelled", true)
+                }
+              >
+                Отменить
+              </button>
+            )}
+            {type === "incoming" && request.status === "pending" && (
+              <div style={styles.actionRow}>
+                <button
+                  style={styles.acceptButton}
+                  onClick={() => updateRequestStatus(request.id, "accepted")}
+                >
+                  Принять
+                </button>
+                <button
+                  style={styles.declineButton}
+                  onClick={() => updateRequestStatus(request.id, "rejected")}
+                >
+                  Отклонить
+                </button>
+              </div>
+            )}
+            {request.status === "accepted" && (
+              <p style={styles.approvedText}>Принят</p>
+            )}
+            {request.status === "rejected" && (
+              <p style={styles.declinedText}>Отклонен</p>
+            )}
+            {request.status === "cancelled" && (
+              <p style={styles.declinedText}>Отменен</p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div style={styles.navbar}>
+        <button
+          style={styles.navButton}
+          onClick={() =>
+            navigate("/barriers", {
+              state: {
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              },
+            })
+          }
+        >
+          Шлагбаумы
+        </button>
+        <button style={{ ...styles.navButton, ...styles.navButtonActive }}>
+          Запросы
+        </button>
+        <button
+          style={styles.navButton}
+          onClick={() =>
+            navigate("/user", {
+              state: {
+                access_token: accessToken,
+                refresh_token: refreshToken,
+              },
+            })
+          }
+        >
+          Профиль
+        </button>
+      </div>
+    </div>
   );
 };
 
