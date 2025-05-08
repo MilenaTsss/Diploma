@@ -97,7 +97,7 @@ const AdminSmsPage: React.FC = () => {
 
       const verifyJson = await verifyResponse.json();
 
-      if (verifyJson === "Code verified successfully.") {
+      if (verifyJson.message === "Code verified successfully.") {
         const loginResponse = await fetch("/api/auth/login/", {
           method: "POST",
           headers: {

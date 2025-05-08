@@ -1,3 +1,4 @@
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import generics
 from rest_framework.decorators import permission_classes
@@ -7,7 +8,7 @@ from rest_framework.permissions import IsAdminUser
 
 from barriers.models import Barrier, UserBarrier
 from core.pagination import BasePaginatedListView
-from core.utils import created_response, success_response
+from core.utils import created_response, deleted_response, success_response
 from phones.models import BarrierPhone, ScheduleTimeInterval
 from phones.serializers import (
     BarrierPhoneSerializer,
@@ -16,15 +17,19 @@ from phones.serializers import (
     UpdateBarrierPhoneSerializer,
     UpdatePhoneScheduleSerializer,
 )
+from users.models import User
 
 
 def get_barrier(user, barrier_id, as_admin):
-    barrier = get_object_or_404(Barrier, id=barrier_id, is_active=True)
+    try:
+        barrier = get_object_or_404(Barrier, id=barrier_id)
+    except Http404:
+        raise NotFound("Barrier not found.")
 
     if as_admin and barrier.owner != user:
-        raise PermissionDenied("You are not the owner of this barrier.")
+        raise PermissionDenied("You do not have access to this barrier.")
     if not as_admin and not UserBarrier.user_has_access_to_barrier(user, barrier):
-        raise PermissionDenied("You don't have access to this barrier.")
+        raise PermissionDenied("You do not have access to this barrier.")
 
     return barrier
 
@@ -103,11 +108,13 @@ class BaseBarrierPhoneListView(BasePaginatedListView):
         if ordering.lstrip("-") not in self.ALLOWED_ORDERING_FIELDS:
             ordering = self.DEFAULT_ORDERING
 
-        queryset = BarrierPhone.objects.filter(barrier=barrier, is_active=True)
+        queryset = BarrierPhone.objects.filter(barrier=barrier)
 
         if self.as_admin:
             user_id = self.request.query_params.get("user")
             if user_id:
+                if not User.objects.filter(id=user_id, is_active=True).exists():
+                    raise NotFound("User not found.")
                 queryset = queryset.filter(user_id=user_id)
         else:
             queryset = queryset.filter(user=user)
@@ -124,6 +131,12 @@ class BaseBarrierPhoneListView(BasePaginatedListView):
         type_filter = self.request.query_params.get("type", "").strip()
         if type_filter in BarrierPhone.PhoneType.values:
             queryset = queryset.filter(type=type_filter)
+
+        is_active_filter = self.request.query_params.get("is_active", "true").strip().lower()
+        if is_active_filter == "false":
+            queryset = queryset.filter(is_active=False)
+        else:
+            queryset = queryset.filter(is_active=True)
 
         return queryset.order_by(ordering)
 
@@ -144,22 +157,29 @@ class AdminBarrierPhoneListView(BaseBarrierPhoneListView):
 class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
     """Base view for retrieving, updating, and deactivating a phone"""
 
-    queryset = BarrierPhone.objects.filter(is_active=True)
+    queryset = BarrierPhone.objects.all()
     serializer_class = BarrierPhoneSerializer
     lookup_field = "id"
     as_admin = False
 
     def get_object(self):
-        phone = super().get_object()
+        try:
+            phone = super().get_object()
+        except Http404:
+            raise NotFound("Phone not found.")
         user = self.request.user
 
         if self.as_admin and phone.barrier.owner != user or not self.as_admin and phone.user != user:
-            raise PermissionDenied("You don't have access to this phone.")
+            raise PermissionDenied("You do not have access to this phone.")
 
         return phone
 
     def patch(self, request, *args, **kwargs):
         phone = self.get_object()
+
+        if not phone.is_active:
+            raise PermissionDenied("Cannot update a deactivated phone.")
+
         serializer = UpdateBarrierPhoneSerializer(phone, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -171,12 +191,14 @@ class BaseBarrierPhoneDetailView(RetrieveUpdateDestroyAPIView):
     def delete(self, request, *args, **kwargs):
         phone = self.get_object()
 
+        if not phone.is_active:
+            raise PermissionDenied("Phone is already deactivated.")
         if phone.type == BarrierPhone.PhoneType.PRIMARY:
             raise PermissionDenied("Primary phone number cannot be deleted.")
 
-        phone.is_active = False
-        phone.save()
-        return success_response({"status": "Phone deleted."})
+        phone.remove()
+        phone.send_sms_to_delete()
+        return deleted_response()
 
 
 class UserBarrierPhoneDetailView(BaseBarrierPhoneDetailView):
@@ -201,13 +223,16 @@ class BaseBarrierPhoneScheduleView(RetrieveUpdateAPIView):
 
     def get_phone(self):
         phone_id = self.kwargs["id"]
-        phone = BarrierPhone.objects.filter(id=phone_id, is_active=True).first()
+        phone = BarrierPhone.objects.filter(id=phone_id).first()
         if not phone:
             raise NotFound("Phone not found.")
 
         user = self.request.user
         if self.as_admin and phone.barrier.owner != user or not self.as_admin and phone.user != user:
-            raise PermissionDenied("You don't have access to this phone.")
+            raise PermissionDenied("You do not have access to this phone.")
+
+        if phone.type != BarrierPhone.PhoneType.SCHEDULE:
+            raise PermissionDenied("Only schedule-type phones have a schedule.")
 
         return phone
 
@@ -219,6 +244,10 @@ class BaseBarrierPhoneScheduleView(RetrieveUpdateAPIView):
 
     def put(self, request, *args, **kwargs):
         phone = self.get_phone()
+
+        if not phone.is_active:
+            raise PermissionDenied("Cannot update a deactivated phone.")
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.update(phone, serializer.validated_data)

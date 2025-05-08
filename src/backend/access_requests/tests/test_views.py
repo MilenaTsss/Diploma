@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
@@ -6,6 +7,7 @@ from rest_framework import status
 
 from access_requests.models import AccessRequest
 from barriers.models import UserBarrier
+from phones.models import BarrierPhone
 
 
 @pytest.mark.django_db
@@ -19,15 +21,55 @@ class TestCreateAccessRequestView:
         assert response.status_code == status.HTTP_201_CREATED
         assert AccessRequest.objects.filter(user=user, barrier=barrier).exists()
 
+    def test_barrier_not_found(self, authenticated_client, user):
+        response = authenticated_client.post(self.url, data={"user": user.id, "barrier": 999999})
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Barrier not found."
+
     def test_user_cannot_create_for_another_user(self, authenticated_client, barrier, admin_user):
         response = authenticated_client.post(self.url, data={"user": admin_user.id, "barrier": barrier.id})
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You cannot create access request for other user."
+
+    def test_user_cannot_request_private_barrier(self, authenticated_client, private_barrier, user):
+        response = authenticated_client.post(self.url, data={"user": user.id, "barrier": private_barrier.id})
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "Barrier not found."
+
+    def test_cannot_create_duplicate_request(self, authenticated_client, barrier, user):
+        AccessRequest.objects.create(user=user, barrier=barrier, status=AccessRequest.Status.PENDING)
+        response = authenticated_client.post(self.url, data={"user": user.id, "barrier": barrier.id})
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert response.data["detail"] == "An active access request already exists for this user and barrier."
+
+    def test_cannot_create_if_user_has_access(self, authenticated_client, user, barrier, access_request):
+        UserBarrier.objects.create(user=user, barrier=barrier, access_request=access_request)
+        response = authenticated_client.post(self.url, data={"user": user.id, "barrier": barrier.id})
+
+        assert response.status_code == status.HTTP_409_CONFLICT
+        assert response.data["detail"] == "This user already has access to the barrier."
 
     def test_admin_creates_access_request(self, authenticated_admin_client, admin_user, user, barrier):
         response = authenticated_admin_client.post(self.admin_url, data={"user": user.id, "barrier": barrier.id})
 
         assert response.status_code == status.HTTP_201_CREATED
+
+    def test_user_not_found(self, authenticated_admin_client, barrier):
+        response = authenticated_admin_client.post(self.admin_url, data={"user": 999999, "barrier": barrier.id})
+
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert response.data["detail"] == "User not found."
+
+    def test_admin_cannot_create_request_for_foreign_barrier(self, authenticated_admin_client, other_barrier, user):
+        data = {"user": user.id, "barrier": other_barrier.id}
+        response = authenticated_admin_client.post(self.admin_url, data=data)
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You do not have access to this barrier."
 
 
 @pytest.mark.django_db
@@ -78,7 +120,7 @@ class TestAccessRequestDetailView:
         response = authenticated_client.get(reverse(self.base_url, args=[access_request.id]))
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["detail"] == "You don't have access to this access request."
+        assert response.data["detail"] == "You do not have access to this access request."
 
     def test_admin_cannot_access_request_for_foreign_barrier(
         self, authenticated_admin_client, another_admin, user, barrier, create_access_request
@@ -90,7 +132,7 @@ class TestAccessRequestDetailView:
         response = authenticated_admin_client.get(reverse(self.base_url_admin, args=[access_request.id]))
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["detail"] == "You don't have access to this access request."
+        assert response.data["detail"] == "You do not have access to this access request."
 
     def test_user_cannot_access_cancelled_request_created_by_admin(
         self, authenticated_client, user, barrier, create_access_request
@@ -101,7 +143,7 @@ class TestAccessRequestDetailView:
         response = authenticated_client.get(reverse(self.base_url, args=[access_request.id]))
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["detail"] == "You don't have access to this access request."
+        assert response.data["detail"] == "You do not have access to this access request."
 
     def test_admin_cannot_access_cancelled_request_created_by_user(
         self, authenticated_admin_client, user, barrier, create_access_request
@@ -110,7 +152,7 @@ class TestAccessRequestDetailView:
         response = authenticated_admin_client.get(reverse(self.base_url_admin, args=[access_request.id]))
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
-        assert response.data["detail"] == "You don't have access to this access request."
+        assert response.data["detail"] == "You do not have access to this access request."
 
     def test_user_can_cancel_own_request(self, authenticated_client, user_access_request):
         url = reverse(self.base_url, args=[user_access_request.id])
@@ -126,10 +168,13 @@ class TestAccessRequestDetailView:
         data = json.dumps({"status": AccessRequest.Status.CANCELLED})
         response = authenticated_client.patch(url, data=data, content_type="application/json")
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data["error"][0] == "You can only cancel your own requests."
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You are not allowed to cancel this request."
 
-    def test_user_can_accept_admin_request(self, authenticated_client, user, barrier, admin_access_request):
+    @patch.object(BarrierPhone, "send_sms_to_create")
+    def test_user_can_accept_admin_request(
+        self, mock_send_sms_to_create, authenticated_client, user, barrier, admin_access_request
+    ):
         url = reverse(self.base_url, args=[admin_access_request.id])
         data = json.dumps({"status": AccessRequest.Status.ACCEPTED})
         response = authenticated_client.patch(url, data=data, content_type="application/json")
@@ -138,14 +183,15 @@ class TestAccessRequestDetailView:
         admin_access_request.refresh_from_db()
         assert admin_access_request.status == AccessRequest.Status.ACCEPTED
         assert UserBarrier.objects.filter(user=user, barrier=barrier, is_active=True).exists()
+        mock_send_sms_to_create.assert_called_once()
 
     def test_user_cannot_reject_own_request(self, authenticated_client, user_access_request):
         url = reverse(self.base_url, args=[user_access_request.id])
         data = json.dumps({"status": AccessRequest.Status.REJECTED})
         response = authenticated_client.patch(url, data=data, content_type="application/json")
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data["error"][0] == "You are not allowed to accept or reject this request."
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You are not allowed to accept or reject this request."
 
     def test_admin_can_cancel_own_request(self, authenticated_admin_client, admin_access_request):
         url = reverse(self.base_url_admin, args=[admin_access_request.id])
@@ -161,10 +207,13 @@ class TestAccessRequestDetailView:
         data = json.dumps({"status": AccessRequest.Status.CANCELLED})
         response = authenticated_admin_client.patch(url, data=data, content_type="application/json")
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data["error"][0] == "You can only cancel your own requests."
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You are not allowed to cancel this request."
 
-    def test_admin_can_accept_user_request(self, authenticated_admin_client, user, barrier, user_access_request):
+    @patch.object(BarrierPhone, "send_sms_to_create")
+    def test_admin_can_accept_user_request(
+        self, mock_send_sms_to_create, authenticated_admin_client, user, barrier, user_access_request
+    ):
         url = reverse(self.base_url_admin, args=[user_access_request.id])
         data = json.dumps({"status": AccessRequest.Status.ACCEPTED})
         response = authenticated_admin_client.patch(url, data=data, content_type="application/json")
@@ -174,13 +223,15 @@ class TestAccessRequestDetailView:
         assert user_access_request.status == AccessRequest.Status.ACCEPTED
         assert UserBarrier.objects.filter(user=user, barrier=barrier, is_active=True).exists()
 
+        mock_send_sms_to_create.assert_called_once()
+
     def test_admin_cannot_accept_own_request(self, authenticated_admin_client, admin_access_request):
         url = reverse(self.base_url_admin, args=[admin_access_request.id])
         data = json.dumps({"status": AccessRequest.Status.ACCEPTED})
         response = authenticated_admin_client.patch(url, data=data, content_type="application/json")
 
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        assert response.data["error"][0] == "You are not allowed to accept or reject this request."
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        assert response.data["detail"] == "You are not allowed to accept or reject this request."
 
     def test_put_method_not_allowed(self, authenticated_client, user, barrier, access_request):
         url = reverse("access_request_view", args=[access_request.id])

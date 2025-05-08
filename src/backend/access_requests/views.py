@@ -1,10 +1,9 @@
 import logging
 
-from django.core.exceptions import ValidationError as DjangoValidationError
+from django.http import Http404
 from rest_framework import generics
 from rest_framework.decorators import permission_classes
-from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
-from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.exceptions import MethodNotAllowed, NotFound, PermissionDenied
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import IsAdminUser
 
@@ -105,7 +104,7 @@ class BaseAccessRequestListView(BasePaginatedListView):
             queryset = queryset.filter(barrier_id=int(barrier_id))
 
         # Filter by hidden flag
-        hidden_bool = request.query_params.get("hidden", "false").lower() == "true"
+        hidden_bool = request.query_params.get("hidden", "false").strip().lower() == "true"
         hidden_field = "hidden_for_admin" if self.as_admin else "hidden_for_user"
         queryset = queryset.filter(**{hidden_field: hidden_bool})
 
@@ -160,11 +159,14 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
         return context
 
     def get_object(self):
-        access_request = super().get_object()
+        try:
+            access_request = super().get_object()
+        except Http404:
+            raise NotFound("Access request not found.")
         user = self.request.user
 
         if self.as_admin and access_request.barrier.owner != user or not self.as_admin and access_request.user != user:
-            raise PermissionDenied("You don't have access to this access request.")
+            raise PermissionDenied("You do not have access to this access request.")
 
         if access_request.status == AccessRequest.Status.CANCELLED and (
             self.as_admin
@@ -172,7 +174,7 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
             or not self.as_admin
             and access_request.request_type == AccessRequest.RequestType.FROM_BARRIER
         ):
-            raise PermissionDenied("You don't have access to this access request.")
+            raise PermissionDenied("You do not have access to this access request.")
 
         return access_request
 
@@ -185,17 +187,16 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
         serializer.save()
 
         if access_request.status == AccessRequest.Status.ACCEPTED:
+            phone = BarrierPhone.create(
+                user=access_request.user,
+                barrier=access_request.barrier,
+                phone=access_request.user.phone,
+                type=BarrierPhone.PhoneType.PRIMARY,
+                name=access_request.user.full_name,
+            )
+            phone.send_sms_to_create()
+
             UserBarrier.create(user=access_request.user, barrier=access_request.barrier, access_request=access_request)
-            try:
-                BarrierPhone.create(
-                    user=access_request.user,
-                    barrier=access_request.barrier,
-                    phone=access_request.user.phone,
-                    type=BarrierPhone.PhoneType.PRIMARY,
-                    name=access_request.user.full_name,
-                )
-            except DjangoValidationError as e:
-                raise DRFValidationError(getattr(e, "message_dict", {"error": str(e)}))
 
         return success_response(AccessRequestSerializer(access_request, context=self.get_serializer_context()).data)
 

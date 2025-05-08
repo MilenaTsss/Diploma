@@ -8,11 +8,11 @@
   "servers": [
     {
       "url": "http://localhost/api",
-      "description": "Local docker prod server"
+      "description": "Local development server"
     },
     {
-      "url": "http://localhost:8000/api",
-      "description": "Local development server"
+      "url": "https://localhost/api",
+      "description": "Local docker prod server"
     },
     {
       "url": "http://46.8.225.185/api",
@@ -34,7 +34,7 @@
           "Auth"
         ],
         "summary": "Отправка кода подтверждения в SMS.",
-        "description": "Отправляет одноразовый код подтверждения на указанный номер телефона.\n\nКод будет действовать в течение 5 минут.",
+        "description": "Отправляет одноразовый код подтверждения на указанный номер телефона.\n\nКод будет действовать в течение 30 минут.",
         "requestBody": {
           "required": true,
           "content": {
@@ -74,6 +74,10 @@
                 "schema": {
                   "type": "object",
                   "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Verification code sent."
+                    },
                     "verification_token": {
                       "type": "string",
                       "description": "Токен верификации, который нужно передавать при подтверждении кода.",
@@ -85,13 +89,102 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат номера телефона."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ],
+                      "mode": [
+                        "Invalid mode. Valid modes are: ['login', 'change_phone_old', 'change_phone_new', 'reset_password', 'change_password', 'delete_account']"
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ],
+                      "mode": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Пользователь заблокирован."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "change phone": {
+                    "value": {
+                      "detail": "This new phone number already exists."
+                    }
+                  },
+                  "change password": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Пользователь не найден.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "429": {
-            "description": "Код уже отправлен. Попробуйте позже."
+            "description": "Превышен лимит. Попробуйте позже.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "too many attempts": {
+                    "value": {
+                      "detail": "Too many verification attempts. Try again later."
+                    }
+                  },
+                  "too many unverified codes": {
+                    "value": {
+                      "detail": "Too many unverified codes. Try again later."
+                    }
+                  },
+                  "verification code already sent": {
+                    "value": {
+                      "detail": "Verification code was already sent. Try again later."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -143,9 +236,9 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "status": {
+                    "message": {
                       "type": "string",
-                      "example": "verified"
+                      "example": "Code verified successfully."
                     }
                   }
                 }
@@ -153,19 +246,132 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат кода подтверждения."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ],
+                      "verification_token": [
+                        "Enter a valid 32-character verification token (letters and digits only)."
+                      ],
+                      "code": [
+                        "Enter a valid 6-digit verification code."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ],
+                      "verification_token": [
+                        "This field is required."
+                      ],
+                      "code": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ],
+                      "verification_token": [
+                        "This field may not be blank."
+                      ],
+                      "code": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  },
+                  "wrong phone number": {
+                    "value": {
+                      "detail": "Phone number does not match the verification record."
+                    }
+                  },
+                  "wrong code": {
+                    "value": {
+                      "detail": "Invalid code."
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Пользователь заблокирован."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Подтверждение не найдено",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "verification not found": {
+                    "value": {
+                      "detail": "Verification not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "409": {
-            "description": "Код уже был использован."
+            "description": "Код уже был использован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "code been used": {
+                    "value": {
+                      "detail": "This code has already been used. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
           },
           "410": {
-            "description": "Код истёк. Запросите новый."
+            "description": "Код истёк. Запросите новый.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "expired": {
+                    "value": {
+                      "detail": "This code has expired. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
           },
           "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Превышен лимит. Попробуйте позже.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "too many attempts": {
+                    "value": {
+                      "detail": "Too many verification attempts. Try again later."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -227,13 +433,114 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат номера телефона или токена подтверждения."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ],
+                      "verification_token": [
+                        "Enter a valid 32-character verification token (letters and digits only)."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ],
+                      "verification_token": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ],
+                      "verification_token": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  },
+                  "wrong phone number": {
+                    "value": {
+                      "detail": "Phone number does not match the verification record."
+                    }
+                  },
+                  "wrong mode": {
+                    "value": {
+                      "detail": "Invalid verification mode."
+                    }
+                  },
+                  "unverified": {
+                    "value": {
+                      "detail": "Phone number has not been verified."
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Пользователь заблокирован."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Токен подтверждения не был найден или неверный код подтверждения."
+            "description": "Подтверждение не найдено",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "verification not found": {
+                    "value": {
+                      "detail": "Verification not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Код уже был использован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "code been used": {
+                    "value": {
+                      "detail": "This code has already been used. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Код истёк. Запросите новый.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "expired": {
+                    "value": {
+                      "detail": "This code has expired. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -284,10 +591,42 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Требуется передать `refresh` токен."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "required fields": {
+                    "value": {
+                      "refresh": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "refresh": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Токен неверный или истёк."
+            "description": "Токен неверный или истёк.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid token": {
+                    "value": {
+                      "detail": "Token is invalid or expired",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -327,13 +666,94 @@
         },
         "responses": {
           "200": {
-            "description": "Пароль подтвержден."
+            "description": "Пароль подтвержден.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Password verified successfully."
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат номера телефона или пароля."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ],
+                      "password": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ],
+                      "password": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Неверный пароль."
+            "description": "Нет доступа.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "invalid": {
+                    "value": {
+                      "detail": "Invalid phone or password."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Пользователь не найден.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -385,7 +805,34 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат нового телефона."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -417,10 +864,38 @@
             }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Пользователь заблокирован."
+            "description": "Доступ запрещен. Пользователь заблокирован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -478,16 +953,54 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone_privacy": [
+                        "Invalid phone privacy. Valid options are: ['public', 'private', 'protected']"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Пользователь заблокирован."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Доступ запрещен. Пользователь заблокирован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -527,13 +1040,125 @@
             "description": "Аккаунт успешно удален."
           },
           "400": {
-            "description": "Номер телефона ещё не был подтверждён."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "verification_token": [
+                        "Enter a valid 32-character verification token (letters and digits only)."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "verification_token": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "verification_token": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  },
+                  "wrong phone number": {
+                    "value": {
+                      "detail": "Phone number does not match the verification record."
+                    }
+                  },
+                  "wrong mode": {
+                    "value": {
+                      "detail": "Invalid verification mode."
+                    }
+                  },
+                  "unverified": {
+                    "value": {
+                      "detail": "Phone number has not been verified."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен. Пользователь заблокирован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Неверный токен подтверждения."
+            "description": "Подтверждение не найдено",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "verification not found": {
+                    "value": {
+                      "detail": "Verification not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Код уже был использован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "code been used": {
+                    "value": {
+                      "detail": "This code has already been used. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Код истёк. Запросите новый.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "expired": {
+                    "value": {
+                      "detail": "This code has expired. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -593,16 +1218,150 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат номера телефона."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "new_phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ],
+                      "old_verification_token": [
+                        "Enter a valid 32-character verification token (letters and digits only)."
+                      ],
+                      "new_verification_token": [
+                        "Enter a valid 32-character verification token (letters and digits only)."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "new_phone": [
+                        "This field is required."
+                      ],
+                      "old_verification_token": [
+                        "This field is required."
+                      ],
+                      "new_verification_token": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "new_phone": [
+                        "This field may not be blank."
+                      ],
+                      "old_verification_token": [
+                        "This field may not be blank."
+                      ],
+                      "new_verification_token": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  },
+                  "wrong phone number": {
+                    "value": {
+                      "detail": "Phone number does not match the verification record."
+                    }
+                  },
+                  "wrong mode": {
+                    "value": {
+                      "detail": "Invalid verification mode."
+                    }
+                  },
+                  "unverified": {
+                    "value": {
+                      "detail": "Phone number has not been verified."
+                    }
+                  },
+                  "wrong new phone": {
+                    "value": {
+                      "new_phone": [
+                        "Given new phone number is already in use."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Номера телефона не подтверждены."
+            "description": "Доступ запрещен. Пользователь заблокирован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
           },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+          "404": {
+            "description": "Подтверждение не найдено",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "verification not found": {
+                    "value": {
+                      "detail": "Verification not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Код уже был использован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "code been used": {
+                    "value": {
+                      "detail": "This code has already been used. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Код истёк. Запросите новый.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "expired": {
+                    "value": {
+                      "detail": "This code has expired. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -663,16 +1422,154 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат нового пароля."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "new_password": [
+                        "This password is too short. It must contain at least 8 characters.",
+                        "This password is too common.",
+                        "This password is entirely numeric."
+                      ],
+                      "verification_token": [
+                        "Enter a valid 32-character verification token (letters and digits only)."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "old_password": [
+                        "This field is required."
+                      ],
+                      "new_password": [
+                        "This field is required."
+                      ],
+                      "verification_token": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "old_password": [
+                        "This field may not be blank."
+                      ],
+                      "new_password": [
+                        "This field may not be blank."
+                      ],
+                      "verification_token": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  },
+                  "wrong phone number": {
+                    "value": {
+                      "detail": "Phone number does not match the verification record."
+                    }
+                  },
+                  "wrong mode": {
+                    "value": {
+                      "detail": "Invalid verification mode."
+                    }
+                  },
+                  "unverified": {
+                    "value": {
+                      "detail": "Phone number has not been verified."
+                    }
+                  },
+                  "wrong current password": {
+                    "value": {
+                      "old_password": [
+                        "Current password is incorrect."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Действие не подтверждено."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
           },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+          "404": {
+            "description": "Подтверждение не найдено",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "verification not found": {
+                    "value": {
+                      "detail": "Verification not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Код уже был использован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "code been used": {
+                    "value": {
+                      "detail": "This code has already been used. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Код истёк. Запросите новый.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "expired": {
+                    "value": {
+                      "detail": "This code has expired. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -718,19 +1615,151 @@
         },
         "responses": {
           "200": {
-            "description": "Пароль успешно восстановлен."
+            "description": "Пароль успешно восстановлен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Password successfully reset."
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат нового пароля."
-          },
-          "401": {
-            "description": "Токен подтверждения недействителен или истек."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ],
+                      "new_password": [
+                        "This password is too short. It must contain at least 8 characters.",
+                        "This password is too common.",
+                        "This password is entirely numeric."
+                      ],
+                      "verification_token": [
+                        "Enter a valid 32-character verification token (letters and digits only)."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ],
+                      "new_password": [
+                        "This field is required."
+                      ],
+                      "verification_token": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ],
+                      "new_password": [
+                        "This field may not be blank."
+                      ],
+                      "verification_token": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  },
+                  "wrong phone number": {
+                    "value": {
+                      "detail": "Phone number does not match the verification record."
+                    }
+                  },
+                  "wrong mode": {
+                    "value": {
+                      "detail": "Invalid verification mode."
+                    }
+                  },
+                  "unverified": {
+                    "value": {
+                      "detail": "Phone number has not been verified."
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Действие не подтверждено."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
           },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+          "404": {
+            "description": "Подтверждение или пользователь не найдено.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "verification not found": {
+                    "value": {
+                      "detail": "Verification not found."
+                    }
+                  },
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Код уже был использован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "code been used": {
+                    "value": {
+                      "detail": "This code has already been used. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Код истёк. Запросите новый.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "expired": {
+                    "value": {
+                      "detail": "This code has expired. Please request a new one."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -773,17 +1802,58 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `user_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Пользователь с указанным `id` не найден."
+            "description": "Пользователь не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -844,16 +1914,81 @@
             }
           },
           "400": {
-            "description": "Некорректный параметр запроса - `user_id`."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "required reason": {
+                    "value": {
+                      "detail": "Reason is required for blocking a user."
+                    }
+                  },
+                  "already blocked": {
+                    "value": {
+                      "detail": "User is already blocked."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "cannot block admin": {
+                    "value": {
+                      "detail": "You cannot block an admin."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Пользователь с указанным `id` не найден."
+            "description": "Пользователь не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -897,16 +2032,76 @@
             }
           },
           "400": {
-            "description": "Некорректный параметр запроса - `user_id`."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "already not blocked": {
+                    "value": {
+                      "detail": "User is already active."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "cannot unblock admin": {
+                    "value": {
+                      "detail": "You cannot unblock an admin."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Пользователь с указанным `id` не найден."
+            "description": "Пользователь не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -956,16 +2151,87 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса. Некорректный формат номера телефона."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Пользователь с таким номером телефона не найден."
+            "description": "Пользователь не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1032,7 +2298,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Список шлагбаумов с фильтрацией и пагинацией.",
+            "description": "Список шлагбаумов с фильтрацией, пагинацией и сортировкой.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1061,14 +2327,53 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Неправильный номер страницы",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "wrong page number": {
+                    "value": {
+                      "detail": "Invalid page."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1125,7 +2430,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Список доступных шлагбаумов.",
+            "description": "Список своих шлагбаумов с пагинацией и сортировкой.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1154,14 +2459,53 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Неправильный номер страницы",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "wrong page number": {
+                    "value": {
+                      "detail": "Invalid page."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1204,17 +2548,58 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет доступа к данному шлагбауму."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1257,17 +2642,58 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет доступа к данному шлагбауму."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1317,14 +2743,53 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1409,16 +2874,99 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ],
+                      "device_model": [
+                        "Invalid device model. Valid models are: ['RTU5025', 'RTU5035', 'Telemetrica', 'Elfoc']"
+                      ],
+                      "device_phones_amount": [
+                        "The number of device phone slots must be greater than 0."
+                      ],
+                      "device_password": [
+                        "Enter a valid device password. Must be exactly 4 digits."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ],
+                      "device_password": [
+                        "Device password is required for this device model."
+                      ]
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
           },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+          "409": {
+            "description": "Номер телефона уже используется.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone is used": {
+                    "value": {
+                      "detail": "This phone is already taken by another barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1449,7 +2997,8 @@
                 "-address",
                 "created_at",
                 "-created_at",
-                "updated_at"
+                "updated_at",
+                "-updated_at"
               ]
             }
           },
@@ -1507,14 +3056,58 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Неправильный номер страницы",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "wrong page number": {
+                    "value": {
+                      "detail": "Invalid page."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1557,20 +3150,63 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1616,6 +3252,11 @@
                     "type": "boolean",
                     "description": "Определяет, можно ли найти шлагбаум через поиск в системе.",
                     "example": false
+                  },
+                  "device_password": {
+                    "type": "integer",
+                    "description": "Пароль от устройства, если устройство его требует. Обычно состоит из 4 цифр.",
+                    "example": 1234
                   }
                 }
               }
@@ -1634,19 +3275,78 @@
             }
           },
           "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "device_password": [
+                        "Enter a valid device password. Must be exactly 4 digits."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1677,23 +3377,66 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": "Шлагбаум успешно удален."
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -1747,19 +3490,92 @@
             }
           },
           "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "detail": [
+                        "Invalid limit. Valid limits are: ['global_schedule_phone_limit', 'global_temp_phone_limit', 'schedule_interval_limit', 'sms_weekly_limit', 'user_phone_limit', 'user_schedule_phone_limit', 'user_temp_phone_limit']."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "detail": [
+                        "At least one field must be provided."
+                      ]
+                    }
+                  },
+                  "too much": {
+                    "value": {
+                      "detail": [
+                        "Each limit must not exceed the amount of phones in device."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет прав на изменение лимитов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2007,10 +3823,110 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "required fields": {
+                    "value": {
+                      "barrier": [
+                        "This field is required."
+                      ],
+                      "user": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "null fields": {
+                    "value": {
+                      "barrier": [
+                        "This field may not be null."
+                      ],
+                      "user": [
+                        "This field may not be null."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "wrong user": {
+                    "value": {
+                      "detail": "You cannot create access request for other user."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  },
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ресурс уже существует",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "access request exists": {
+                    "value": {
+                      "detail": "An active access request already exists for this user and barrier."
+                    }
+                  },
+                  "user barrier exists": {
+                    "value": {
+                      "detail": "This user already has access to the barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2129,7 +4045,7 @@
                       "type": "integer",
                       "example": 10
                     },
-                    "requests": {
+                    "access_requests": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/AccessRequest"
@@ -2140,11 +4056,53 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Неправильный номер страницы",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "wrong page number": {
+                    "value": {
+                      "detail": "Invalid page."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2187,14 +4145,58 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "wrong request": {
+                    "value": {
+                      "detail": "You do not have access to this access request."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Запрос не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "access request not found": {
+                    "value": {
+                      "detail": "Access request not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2262,13 +4264,98 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid transition": {
+                    "value": {
+                      "status": [
+                        "Invalid status transition: 'cancelled' -> 'accepted'.",
+                        "Invalid status transition: 'cancelled' -> 'rejected'.",
+                        "Invalid status transition: 'cancelled' -> 'pending'.",
+                        "Invalid status transition: 'accepted' -> 'cancelled'.",
+                        "Invalid status transition: 'accepted' -> 'rejected'.",
+                        "Invalid status transition: 'accepted' -> 'pending'.",
+                        "Invalid status transition: 'rejected' -> 'accepted'.",
+                        "Invalid status transition: 'rejected' -> 'cancelled'.",
+                        "Invalid status transition: 'rejected' -> 'pending'."
+                      ]
+                    }
+                  },
+                  "invalid hidden": {
+                    "value": {
+                      "hidden_for_admin": [
+                        "Only admins can modify field 'hidden_for_admin'."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет прав на изменение."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "wrong request": {
+                    "value": {
+                      "detail": "You do not have access to this access request."
+                    }
+                  },
+                  "cannot cancel": {
+                    "value": {
+                      "detail": "You are not allowed to cancel this request."
+                    }
+                  },
+                  "cannot accept or reject": {
+                    "value": {
+                      "detail": "You are not allowed to accept or reject this request."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Запрос не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "access request not found": {
+                    "value": {
+                      "detail": "Access request not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2322,10 +4409,110 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "required fields": {
+                    "value": {
+                      "barrier": [
+                        "This field is required."
+                      ],
+                      "user": [
+                        "This field is required."
+                      ]
+                    }
+                  },
+                  "null fields": {
+                    "value": {
+                      "barrier": [
+                        "This field may not be null."
+                      ],
+                      "user": [
+                        "This field may not be null."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "wrong barrier": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ресурс не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  },
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ресурс уже существует",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "access request exists": {
+                    "value": {
+                      "detail": "An active access request already exists for this user and barrier."
+                    }
+                  },
+                  "user barrier exists": {
+                    "value": {
+                      "detail": "This user already has access to the barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2444,7 +4631,7 @@
                       "type": "integer",
                       "example": 10
                     },
-                    "requests": {
+                    "access_requests": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/AccessRequest"
@@ -2455,11 +4642,58 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Неправильный номер страницы",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "wrong page number": {
+                    "value": {
+                      "detail": "Invalid page."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2502,14 +4736,63 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "wrong request": {
+                    "value": {
+                      "detail": "You do not have access to this access request."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Запрос не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "access request not found": {
+                    "value": {
+                      "detail": "Access request not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2577,13 +4860,103 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid transition": {
+                    "value": {
+                      "status": [
+                        "Invalid status transition: 'cancelled' -> 'accepted'.",
+                        "Invalid status transition: 'cancelled' -> 'rejected'.",
+                        "Invalid status transition: 'cancelled' -> 'pending'.",
+                        "Invalid status transition: 'accepted' -> 'cancelled'.",
+                        "Invalid status transition: 'accepted' -> 'rejected'.",
+                        "Invalid status transition: 'accepted' -> 'pending'.",
+                        "Invalid status transition: 'rejected' -> 'accepted'.",
+                        "Invalid status transition: 'rejected' -> 'cancelled'.",
+                        "Invalid status transition: 'rejected' -> 'pending'."
+                      ]
+                    }
+                  },
+                  "invalid hidden": {
+                    "value": {
+                      "hidden_for_user": [
+                        "Only users can modify field 'hidden_for_user'."
+                      ]
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет прав на изменение."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "wrong request": {
+                    "value": {
+                      "detail": "You do not have access to this access request."
+                    }
+                  },
+                  "cannot cancel": {
+                    "value": {
+                      "detail": "You are not allowed to cancel this request."
+                    }
+                  },
+                  "cannot accept or reject": {
+                    "value": {
+                      "detail": "You are not allowed to accept or reject this request."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Запрос не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "access request not found": {
+                    "value": {
+                      "detail": "Access request not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2617,19 +4990,73 @@
         ],
         "responses": {
           "200": {
-            "description": "Пользователь успешно вышел из шлагбаума."
-          },
-          "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Пользователь успешно вышел из шлагбаума.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Left the barrier successfully."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Пользователь не имеет доступа к этому шлагбауму."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум не найден."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2725,17 +5152,63 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум не найден."
+            "description": "Шлагбаум не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2779,19 +5252,88 @@
         ],
         "responses": {
           "200": {
-            "description": "Пользователь успешно удален из шлагбаума."
-          },
-          "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Пользователь успешно удален из шлагбаума.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "User successfully removed from barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум или пользователь не найден."
+            "description": "Ресурс не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  },
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  },
+                  "user not in barrier": {
+                    "value": {
+                      "detail": "User not found in this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2883,16 +5425,225 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ],
+                      "start_time": [
+                        "Datetime has wrong format. Use one of these formats instead: YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HH:MM|-HH:MM|Z]."
+                      ],
+                      "end_time": [
+                        "Datetime has wrong format. Use one of these formats instead: YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HH:MM|-HH:MM|Z]."
+                      ],
+                      "schedule": {
+                        "monday": [
+                          {
+                            "start_time": [
+                              "Time has wrong format. Use one of these formats instead: hh:mm[:ss[.uuuuuu]]."
+                            ],
+                            "end_time": [
+                              "Time has wrong format. Use one of these formats instead: hh:mm[:ss[.uuuuuu]]."
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ],
+                      "user": [
+                        "This field is required."
+                      ],
+                      "time": "start_time and end_time are required for temporary phone.",
+                      "schedule": {
+                        "monday": [
+                          {
+                            "start_time": [
+                              "This field is required."
+                            ],
+                            "end_time": [
+                              "This field is required."
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required schedule": {
+                    "value": {
+                      "schedule": "Schedule is required for schedule phone type."
+                    }
+                  },
+                  "blank null fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ],
+                      "user": [
+                        "This field may not be null."
+                      ]
+                    }
+                  },
+                  "temporary interval": {
+                    "value": {
+                      "time": "Interval must be at least 30 minutes long."
+                    }
+                  },
+                  "invalid time": {
+                    "value": {
+                      "start_time": "start_time must be at least 30 minutes in the future.",
+                      "end_time": "end_time must be after start_time."
+                    }
+                  },
+                  "schedule interval limit": {
+                    "value": {
+                      "schedule": "Phone schedule exceeds allowed number of intervals (5 max)."
+                    }
+                  },
+                  "schedule minimum interval": {
+                    "value": {
+                      "schedule": "Schedule must contain at least one interval."
+                    }
+                  },
+                  "schedule intervals overlap": {
+                    "value": {
+                      "schedule": "Intervals on monday overlap: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
+                    }
+                  },
+                  "schedule intervals minimum minutes": {
+                    "value": {
+                      "schedule": "Intervals on monday must have at least 30 minutes between them: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
+                    }
+                  },
+                  "extra fields": {
+                    "value": {
+                      "time": "start_time and end_time are only allowed for temporary phone numbers.",
+                      "schedule": "Schedule is only allowed for schedule phone type."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  },
+                  "wrong primary": {
+                    "value": {
+                      "detail": "Wrong phone given as primary. Primary phone should be users main number."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум или пользователь не найден."
+            "description": "Ресурс не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  },
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ресурс уже существует",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone exists": {
+                    "value": {
+                      "detail": "Phone already exists for this user in the barrier."
+                    }
+                  },
+                  "other primary phone exists": {
+                    "value": {
+                      "detail": "User already has a primary phone number in this barrier."
+                    }
+                  },
+                  "barrier phones limit": {
+                    "value": {
+                      "detail": "Barrier has reached the maximum number of phone numbers."
+                    }
+                  },
+                  "user phones limit": {
+                    "value": {
+                      "detail": "User has reached the limit of X phone numbers."
+                    }
+                  },
+                  "temporary user limit": {
+                    "value": {
+                      "detail": "User has reached the limit of X temporary phone numbers."
+                    }
+                  },
+                  "temporary barrier limit": {
+                    "value": {
+                      "detail": "Barrier has reached the global limit of X temporary phone numbers."
+                    }
+                  },
+                  "schedule user limit": {
+                    "value": {
+                      "detail": "User has reached the limit of X schedule phone numbers."
+                    }
+                  },
+                  "schedule barrier limit": {
+                    "value": {
+                      "detail": "Barrier has reached the global limit of X schedule phone numbers."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -2969,6 +5720,14 @@
             "description": "Фильтр по типу номера."
           },
           {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Фильтр по активным и удалённым номерам (`true` - только активные, `false` - только удалённые). По умолчанию только активные. "
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -3020,17 +5779,58 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум или пользователь не найден."
+            "description": "Неправильный номер страницы",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "wrong page number": {
+                    "value": {
+                      "detail": "Invalid page."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3074,13 +5874,57 @@
             }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет доступа к номеру."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this phone."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Номер не найден."
+            "description": "Телефон не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone not found": {
+                    "value": {
+                      "detail": "Phone not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3148,16 +5992,97 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "start_time": [
+                        "Datetime has wrong format. Use one of these formats instead: YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HH:MM|-HH:MM|Z]."
+                      ],
+                      "end_time": [
+                        "Datetime has wrong format. Use one of these formats instead: YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HH:MM|-HH:MM|Z]."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "time": "Both start_time and end_time must be provided while updating temporary phones."
+                    }
+                  },
+                  "temporary interval": {
+                    "value": {
+                      "time": "Interval must be at least 30 minutes long."
+                    }
+                  },
+                  "invalid time": {
+                    "value": {
+                      "start_time": "start_time must be at least 30 minutes in the future.",
+                      "end_time": "end_time must be after start_time."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет доступа к номеру."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this phone."
+                    }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Cannot update a deactivated phone."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Номер не найден."
+            "description": "Телефон не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone not found": {
+                    "value": {
+                      "detail": "Phone not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3188,20 +6113,66 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": "Номер удален."
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет доступа к номеру."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Phone is already deactivated."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Номер не найден."
+            "description": "Телефон не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone not found": {
+                    "value": {
+                      "detail": "Phone not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3244,17 +6215,63 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this phone."
+                    }
+                  },
+                  "not schedule": {
+                    "value": {
+                      "detail": "Only schedule-type phones have a schedule."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Номер не найден."
+            "description": "Телефон не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone not found": {
+                    "value": {
+                      "detail": "Phone not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3306,16 +6323,129 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "monday": [
+                        {
+                          "start_time": [
+                            "Time has wrong format. Use one of these formats instead: hh:mm[:ss[.uuuuuu]]."
+                          ],
+                          "end_time": [
+                            "Time has wrong format. Use one of these formats instead: hh:mm[:ss[.uuuuuu]]."
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "monday": [
+                        {
+                          "start_time": [
+                            "This field is required."
+                          ],
+                          "end_time": [
+                            "This field is required."
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required schedule": {
+                    "value": {
+                      "schedule": "Schedule is required for schedule phone type."
+                    }
+                  },
+                  "schedule interval limit": {
+                    "value": {
+                      "schedule": "Phone schedule exceeds allowed number of intervals (5 max)."
+                    }
+                  },
+                  "schedule intervals overlap": {
+                    "value": {
+                      "schedule": "Intervals on monday overlap: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
+                    }
+                  },
+                  "schedule intervals minimum minutes": {
+                    "value": {
+                      "schedule": "Intervals on monday must have at least 30 minutes between them: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
+                    }
+                  },
+                  "schedule minimum interval": {
+                    "value": {
+                      "schedule": "Schedule must contain at least one interval."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Выбранные изменения невозможно применить."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this phone."
+                    }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Cannot update a deactivated phone."
+                    }
+                  },
+                  "not schedule": {
+                    "value": {
+                      "detail": "Only schedule-type phones have a schedule."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Номер не найден."
+            "description": "Телефон не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone not found": {
+                    "value": {
+                      "detail": "Phone not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3412,16 +6542,229 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "phone": [
+                        "Enter a valid phone number in the format +7XXXXXXXXXX."
+                      ],
+                      "start_time": [
+                        "Datetime has wrong format. Use one of these formats instead: YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HH:MM|-HH:MM|Z]."
+                      ],
+                      "end_time": [
+                        "Datetime has wrong format. Use one of these formats instead: YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HH:MM|-HH:MM|Z]."
+                      ],
+                      "schedule": {
+                        "monday": [
+                          {
+                            "start_time": [
+                              "Time has wrong format. Use one of these formats instead: hh:mm[:ss[.uuuuuu]]."
+                            ],
+                            "end_time": [
+                              "Time has wrong format. Use one of these formats instead: hh:mm[:ss[.uuuuuu]]."
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "phone": [
+                        "This field is required."
+                      ],
+                      "user": [
+                        "This field is required."
+                      ],
+                      "time": "start_time and end_time are required for temporary phone.",
+                      "schedule": {
+                        "monday": [
+                          {
+                            "start_time": [
+                              "This field is required."
+                            ],
+                            "end_time": [
+                              "This field is required."
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
+                  "required schedule": {
+                    "value": {
+                      "schedule": "Schedule is required for schedule phone type."
+                    }
+                  },
+                  "blank fields": {
+                    "value": {
+                      "phone": [
+                        "This field may not be blank."
+                      ]
+                    }
+                  },
+                  "null fields": {
+                    "value": {
+                      "user": [
+                        "This field may not be null."
+                      ]
+                    }
+                  },
+                  "temporary interval": {
+                    "value": {
+                      "time": "Interval must be at least 30 minutes long."
+                    }
+                  },
+                  "invalid time": {
+                    "value": {
+                      "start_time": "start_time must be at least 30 minutes in the future.",
+                      "end_time": "end_time must be after start_time."
+                    }
+                  },
+                  "schedule interval limit": {
+                    "value": {
+                      "schedule": "Phone schedule exceeds allowed number of intervals (5 max)."
+                    }
+                  },
+                  "schedule minimum interval": {
+                    "value": {
+                      "schedule": "Schedule must contain at least one interval."
+                    }
+                  },
+                  "schedule intervals overlap": {
+                    "value": {
+                      "schedule": "Intervals on monday overlap: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
+                    }
+                  },
+                  "schedule intervals minimum minutes": {
+                    "value": {
+                      "schedule": "Intervals on monday must have at least 30 minutes between them: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
+                    }
+                  },
+                  "extra fields": {
+                    "value": {
+                      "time": "start_time and end_time are only allowed for temporary phone numbers.",
+                      "schedule": "Schedule is only allowed for schedule phone type."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  },
+                  "not primary": {
+                    "value": {
+                      "detail": "Primary phone numbers cannot be created manually."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум или пользователь не найден."
+            "description": "Ресурс не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  },
+                  "user not found": {
+                    "value": {
+                      "detail": "User not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Ресурс уже существует",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone exists": {
+                    "value": {
+                      "detail": "Phone already exists for this user in the barrier."
+                    }
+                  },
+                  "other primary phone exists": {
+                    "value": {
+                      "detail": "User already has a primary phone number in this barrier."
+                    }
+                  },
+                  "barrier phones limit": {
+                    "value": {
+                      "detail": "Barrier has reached the maximum number of phone numbers."
+                    }
+                  },
+                  "user phones limit": {
+                    "value": {
+                      "detail": "User has reached the limit of X phone numbers."
+                    }
+                  },
+                  "temporary user limit": {
+                    "value": {
+                      "detail": "User has reached the limit of X temporary phone numbers."
+                    }
+                  },
+                  "temporary barrier limit": {
+                    "value": {
+                      "detail": "Barrier has reached the global limit of X temporary phone numbers."
+                    }
+                  },
+                  "schedule user limit": {
+                    "value": {
+                      "detail": "User has reached the limit of X schedule phone numbers."
+                    }
+                  },
+                  "schedule barrier limit": {
+                    "value": {
+                      "detail": "Barrier has reached the global limit of X schedule phone numbers."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3507,6 +6850,14 @@
             "description": "Фильтр по типу номера."
           },
           {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Фильтр по активным и удалённым номерам (`true` - только активные, `false` - только удалённые). По умолчанию только активные. "
+          },
+          {
             "name": "page",
             "in": "query",
             "schema": {
@@ -3558,17 +6909,63 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум или пользователь не найден."
+            "description": "Неправильный номер страницы",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "wrong page number": {
+                    "value": {
+                      "detail": "Invalid page."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3612,13 +7009,62 @@
             }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет доступа к номеру."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this phone."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Номер не найден."
+            "description": "Телефон не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone not found": {
+                    "value": {
+                      "detail": "Phone not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3686,16 +7132,102 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "start_time": [
+                        "Datetime has wrong format. Use one of these formats instead: YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HH:MM|-HH:MM|Z]."
+                      ],
+                      "end_time": [
+                        "Datetime has wrong format. Use one of these formats instead: YYYY-MM-DDThh:mm[:ss[.uuuuuu]][+HH:MM|-HH:MM|Z]."
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "time": "Both start_time and end_time must be provided while updating temporary phones."
+                    }
+                  },
+                  "temporary interval": {
+                    "value": {
+                      "time": "Interval must be at least 30 minutes long."
+                    }
+                  },
+                  "invalid time": {
+                    "value": {
+                      "start_time": "start_time must be at least 30 minutes in the future.",
+                      "end_time": "end_time must be after start_time."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет доступа к номеру."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this phone."
+                    }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Cannot update a deactivated phone."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Номер не найден."
+            "description": "Телефон не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone not found": {
+                    "value": {
+                      "detail": "Phone not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3726,20 +7258,71 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": "Номер удален."
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Нет доступа к номеру."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Phone is already deactivated."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Номер не найден."
+            "description": "Телефон не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone not found": {
+                    "value": {
+                      "detail": "Phone not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3782,17 +7365,68 @@
               }
             }
           },
-          "400": {
-            "description": "Некорректные параметры запроса."
-          },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this phone."
+                    }
+                  },
+                  "not schedule": {
+                    "value": {
+                      "detail": "Only schedule-type phones have a schedule."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Номер не найден."
+            "description": "Телефон не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone not found": {
+                    "value": {
+                      "detail": "Phone not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -3844,16 +7478,134 @@
             }
           },
           "400": {
-            "description": "Некорректные параметры запроса."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "monday": [
+                        {
+                          "start_time": [
+                            "Time has wrong format. Use one of these formats instead: hh:mm[:ss[.uuuuuu]]."
+                          ],
+                          "end_time": [
+                            "Time has wrong format. Use one of these formats instead: hh:mm[:ss[.uuuuuu]]."
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required fields": {
+                    "value": {
+                      "monday": [
+                        {
+                          "start_time": [
+                            "This field is required."
+                          ],
+                          "end_time": [
+                            "This field is required."
+                          ]
+                        }
+                      ]
+                    }
+                  },
+                  "required schedule": {
+                    "value": {
+                      "schedule": "Schedule is required for schedule phone type."
+                    }
+                  },
+                  "schedule interval limit": {
+                    "value": {
+                      "schedule": "Phone schedule exceeds allowed number of intervals (5 max)."
+                    }
+                  },
+                  "schedule intervals overlap": {
+                    "value": {
+                      "schedule": "Intervals on monday overlap: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
+                    }
+                  },
+                  "schedule intervals minimum minutes": {
+                    "value": {
+                      "schedule": "Intervals on monday must have at least 30 minutes between them: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
+                    }
+                  },
+                  "schedule minimum interval": {
+                    "value": {
+                      "schedule": "Schedule must contain at least one interval."
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Выбранные изменения невозможно применить."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this phone."
+                    }
+                  },
+                  "not active": {
+                    "value": {
+                      "detail": "Cannot update a deactivated phone."
+                    }
+                  },
+                  "not schedule": {
+                    "value": {
+                      "detail": "Only schedule-type phones have a schedule."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Номер не найден."
+            "description": "Телефон не найден",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "phone not found": {
+                    "value": {
+                      "detail": "Phone not found."
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
             "description": "Ошибка сервера. Попробуйте позже."
@@ -4211,6 +7963,10 @@
             "format": "date-time",
             "nullable": true,
             "example": "2025-08-01T18:00:00+03:00"
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
