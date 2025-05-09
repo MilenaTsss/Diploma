@@ -42,9 +42,15 @@ jobs:
       - name: Setup
         uses: ./.github/actions/setup
 
-      - name: Run pytest
+      - name: Run pytest with coverage
         working-directory: ./src/backend
-        run: pytest -v
+        run: |
+          pytest --cov=. --cov-report=xml
+          - name: Upload coverage report
+            uses: actions/upload-artifact@v4
+            with:
+              name: coverage-report
+              path: ./src/backend/coverage.xml
 
   validate-migrations:
     name: Check Django Migrations
