@@ -19,6 +19,8 @@ import AdminPage from "./pages/AdminPage";
 import MyBarrierPage from "./pages/MyBarrierPage";
 import AddPhonePage from "./pages/AddPhonePage";
 import EditPhonePage from "./pages/EditPhonePage";
+import DeleteAccount from "./pages/DeleteAccount";
+import AdminRequests from "./pages/AdminRequests";
 
 const App: React.FC = () => {
   return (
@@ -40,6 +42,8 @@ const App: React.FC = () => {
         <Route path="/mybarrier" element={<MyBarrierPage />} />
         <Route path="/add-phone" element={<AddPhonePage />} />
         <Route path="/edit-phone" element={<EditPhonePage />} />
+        <Route path="/delete-account" element={<DeleteAccount />} />
+        <Route path="/admin-requests" element={<AdminRequests />} />
       </Routes>
     </Router>
   );

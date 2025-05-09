@@ -53,7 +53,7 @@ const AdminPage: React.FC = () => {
         setPhone(data.phone || "");
         setPassword(""); // Пароль пустой при получении
       } else if (res.status === 401) {
-        const refreshRes = await fetch("/auth/token/refresh/", {
+        const refreshRes = await fetch("/api/auth/token/refresh/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh: refreshToken }),
@@ -137,7 +137,7 @@ const AdminPage: React.FC = () => {
         <button
           style={styles.navButton}
           onClick={() =>
-            navigate("/adminbarriers", {
+            navigate("/admin-barriers", {
               state: {
                 phone,
                 access_token: accessToken,
@@ -151,7 +151,7 @@ const AdminPage: React.FC = () => {
         <button
           style={styles.navButton}
           onClick={() =>
-            navigate("/adminrequests", {
+            navigate("/admin-requests", {
               state: {
                 phone,
                 access_token: accessToken,
