@@ -20,7 +20,6 @@ const UserRequests: React.FC = () => {
       const res = await fetch(`/api/access_requests/my/?type=${type}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (res.status === 401) {
         const refresh = await fetch("/api/auth/token/refresh/", {
           method: "POST",

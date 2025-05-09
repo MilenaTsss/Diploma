@@ -4,6 +4,7 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 
+from action_history.models import BarrierActionLog
 from barriers.models import BarrierLimit, UserBarrier
 from phones.models import BarrierPhone
 
@@ -198,8 +199,19 @@ class TestLeaveBarrierView:
         user_barrier = UserBarrier.objects.get(user=user, barrier=barrier)
         assert not user_barrier.is_active
 
-        for phone in BarrierPhone.objects.filter(user=user, barrier=barrier):
-            assert not phone.is_active
+        phones = BarrierPhone.objects.filter(user=user, barrier=barrier)
+        assert all(not phone.is_active for phone in phones)
+
+        for phone in phones:
+            log = BarrierActionLog.objects.get(
+                phone=phone,
+                barrier=barrier,
+                author=BarrierActionLog.Author.USER,
+                action_type=BarrierActionLog.ActionType.DELETE_PHONE,
+                reason=BarrierActionLog.Reason.BARRIER_EXIT,
+            )
+            assert log.old_value is None
+            assert log.new_value is None
 
         assert mock_send_sms.call_count == 2
 

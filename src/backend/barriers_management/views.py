@@ -10,6 +10,7 @@ from rest_framework.generics import DestroyAPIView
 from rest_framework.permissions import IsAdminUser
 
 from access_requests.models import AccessRequest
+from action_history.models import BarrierActionLog
 from barriers.models import Barrier, BarrierLimit, UserBarrier
 from barriers.serializers import BarrierLimitSerializer
 from barriers_management.serializers import (
@@ -58,15 +59,16 @@ class CreateBarrierView(generics.CreateAPIView):
             access_request=access_request,
         )
 
-        phone = BarrierPhone.create(
+        phone, log = BarrierPhone.create(
             user=self.request.user,
             barrier=barrier,
             phone=self.request.user.phone,
             type=BarrierPhone.PhoneType.PRIMARY,
             name=self.request.user.full_name,
+            author=BarrierActionLog.Author.SYSTEM,
+            reason=BarrierActionLog.Reason.ACCESS_GRANTED,
         )
-
-        phone.send_sms_to_create()
+        phone.send_sms_to_create(log)
 
     def create(self, request, *args, **kwargs):
         """Use a different serializer for the response"""
@@ -152,8 +154,8 @@ class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
 
         phones = BarrierPhone.objects.filter(barrier=barrier, is_active=True)
         for phone in phones:
-            phone.remove()
-            phone.send_sms_to_delete()
+            _, log = phone.remove(author=BarrierActionLog.Author.ADMIN, reason=BarrierActionLog.Reason.BARRIER_DELETED)
+            phone.send_sms_to_delete(log)
             logger.info(
                 f"Deleted phone '{phone.phone}' for user '{phone.user.id}' on barrier '{barrier.id}' "
                 f"while deleting barrier"
@@ -270,7 +272,7 @@ class AdminRemoveUserFromBarrierView(DestroyAPIView):
         logger.info(f"Deleting all phones for user '{user.id}' while leaving barrier '{barrier.id}'")
         phones = BarrierPhone.objects.filter(user=user, barrier=barrier, is_active=True)
         for phone in phones:
-            phone.remove()
-            phone.send_sms_to_delete()
+            _, log = phone.remove(author=BarrierActionLog.Author.ADMIN, reason=BarrierActionLog.Reason.BARRIER_EXIT)
+            phone.send_sms_to_delete(log)
 
         return success_response({"message": "User successfully removed from barrier."})

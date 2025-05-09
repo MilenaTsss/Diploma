@@ -185,6 +185,13 @@ class TestVerificationService:
             assert response.status_code == status.HTTP_403_FORBIDDEN
             assert response.data["detail"] == "This new phone number already exists."
 
+        def test_returns_error_for_superuser_on_delete_account(self, superuser):
+            """Should return 403 if superuser tries to use DELETE_ACCOUNT"""
+
+            response = VerificationService.check_verification_mode(superuser.phone, Verification.Mode.DELETE_ACCOUNT)
+            assert response.status_code == status.HTTP_403_FORBIDDEN
+            assert response.data["detail"] == "Superuser account cannot be deleted."
+
     class TestCheckVerificationObject:
         def test_returns_error_if_none(self):
             response = VerificationService._check_verification_object(None, USER_PHONE)

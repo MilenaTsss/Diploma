@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "corsheaders",
     "access_requests",
+    "action_history",
     "barriers",
     "barriers_management",
     "message_management",
@@ -195,6 +196,11 @@ LOGGING = {
             "propagate": False,
         },
         "access_requests": {
+            "handlers": ["console", "file"] if not DEBUG else ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "action_history": {
             "handlers": ["console", "file"] if not DEBUG else ["console"],
             "level": "INFO",
             "propagate": False,

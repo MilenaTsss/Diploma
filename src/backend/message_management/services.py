@@ -1,3 +1,4 @@
+from action_history.models import BarrierActionLog
 from barriers.models import Barrier
 from message_management.config_loader import build_message, get_phone_command, get_setting
 from message_management.enums import KafkaTopic, PhoneCommand
@@ -20,12 +21,12 @@ class SMSService:
         send_sms_to_kafka(KafkaTopic.SMS_VERIFICATION, message)
 
     @staticmethod
-    def send_add_phone_command(phone: BarrierPhone):
-        SMSService._send_phone_command(phone, PhoneCommand.ADD)
+    def send_add_phone_command(phone: BarrierPhone, log: BarrierActionLog):
+        SMSService._send_phone_command(phone, PhoneCommand.ADD, log)
 
     @staticmethod
-    def send_delete_phone_command(phone: BarrierPhone):
-        SMSService._send_phone_command(phone, PhoneCommand.DELETE)
+    def send_delete_phone_command(phone: BarrierPhone, log: BarrierActionLog):
+        SMSService._send_phone_command(phone, PhoneCommand.DELETE, log)
 
     @staticmethod
     def send_barrier_setting(barrier: Barrier, setting_key: str, params: dict):
@@ -43,7 +44,7 @@ class SMSService:
         send_sms_to_kafka(KafkaTopic.SMS_CONFIGURATION, message)
 
     @staticmethod
-    def _send_phone_command(phone: BarrierPhone, command: PhoneCommand):
+    def _send_phone_command(phone: BarrierPhone, command: PhoneCommand, log: BarrierActionLog):
         barrier = phone.barrier
 
         command_config = get_phone_command(barrier.device_model, command)
@@ -53,11 +54,16 @@ class SMSService:
             "index": phone.device_serial_number,
         }
         content = build_message(command_config["template"], params)
+        phone_command_type = (
+            SMSMessage.PhoneCommandType.OPEN if command == PhoneCommand.ADD else SMSMessage.PhoneCommandType.CLOSE
+        )
 
         message = SMSMessage.objects.create(
             message_type=SMSMessage.MessageType.PHONE_COMMAND,
             content=content,
             phone=barrier.device_phone,
             metadata=params,
+            phone_command_type=phone_command_type,
+            log=log,
         )
         send_sms_to_kafka(KafkaTopic.SMS_CONFIGURATION, message)
