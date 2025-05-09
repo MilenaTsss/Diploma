@@ -2711,7 +2711,7 @@
         }
       }
     },
-    "/barriers/{id}/check_access/": {
+    "/barriers/{barrier_id}/check_access/": {
       "get": {
         "tags": [
           "Barriers"
