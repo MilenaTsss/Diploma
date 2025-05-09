@@ -176,14 +176,14 @@ class TestLeaveBarrierView:
         barrier = private_barrier_with_access
         url = reverse("leave_barrier", args=[barrier.id])
 
-        phone1 = BarrierPhone.objects.create(
+        BarrierPhone.objects.create(
             user=user,
             barrier=barrier,
             phone=user.phone,
             type=BarrierPhone.PhoneType.PRIMARY,
             device_serial_number=1,
         )
-        phone2 = BarrierPhone.objects.create(
+        BarrierPhone.objects.create(
             user=user,
             barrier=barrier,
             phone="+79998887766",
@@ -201,9 +201,8 @@ class TestLeaveBarrierView:
 
         phones = BarrierPhone.objects.filter(user=user, barrier=barrier)
         assert all(not phone.is_active for phone in phones)
-        assert mock_send_sms.call_count == 2
 
-        for phone in [phone1, phone2]:
+        for phone in phones:
             log = BarrierActionLog.objects.get(
                 phone=phone,
                 barrier=barrier,
@@ -213,6 +212,8 @@ class TestLeaveBarrierView:
             )
             assert log.old_value is None
             assert log.new_value is None
+
+        assert mock_send_sms.call_count == 2
 
 
 @pytest.mark.django_db

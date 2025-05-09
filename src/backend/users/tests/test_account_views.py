@@ -108,6 +108,47 @@ class TestUserAccountView:
         assert response.status_code == status.HTTP_403_FORBIDDEN
         assert response.data["detail"] == "Superuser account cannot be deleted."
 
+    @patch.object(BarrierPhone, "send_sms_to_delete")
+    def test_delete_admin_account_deactivates_owned_barriers(
+        self,
+        mock_send_sms,
+        authenticated_admin_client,
+        barrier,
+        admin_user,
+        create_verification,
+        create_barrier_phone,
+        create_access_request,
+    ):
+        """Test deleting admin also deactivates their barriers"""
+
+        access_request = create_access_request(user=admin_user, barrier=barrier, status="accepted")
+        UserBarrier.objects.create(user=admin_user, barrier=barrier, access_request=access_request)
+        phone, _ = create_barrier_phone(admin_user, barrier)
+        verification = create_verification(
+            admin_user.phone, Verification.Status.VERIFIED, Verification.Mode.DELETE_ACCOUNT
+        )
+
+        url = reverse("user_account")
+        data = {"verification_token": verification.verification_token}
+        response = authenticated_admin_client.delete(url, data)
+
+        print(response.data)
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+
+        admin_user.refresh_from_db()
+        assert not admin_user.is_active
+
+        barrier.refresh_from_db()
+        assert not barrier.is_active
+
+        phone.refresh_from_db()
+        assert not phone.is_active
+
+        mock_send_sms.assert_called_once()
+        log = mock_send_sms.call_args.args[0]
+        assert log.phone == phone
+        assert log.reason == BarrierActionLog.Reason.USER_DELETED
+
     def test_put_method_not_allowed(self, authenticated_client):
         """Test that PUT method is not allowed on user account view"""
 
@@ -154,14 +195,13 @@ class TestChangePhoneView:
             mock_send_delete,
             authenticated_client,
             user,
-            barrier,
+            private_barrier_with_access,
             create_access_request,
             old_phone_verification,
             new_phone_verification,
             create_barrier_phone,
         ):
-            access_request = create_access_request(user=user, barrier=barrier, status="accepted")
-            UserBarrier.objects.create(user=user, barrier=barrier, access_request=access_request)
+            barrier = private_barrier_with_access
 
             old_phone = user.phone
             new_phone = OTHER_PHONE
@@ -175,7 +215,7 @@ class TestChangePhoneView:
             }
 
             response = authenticated_client.patch(reverse("change_phone"), data)
-            assert response.status_code == 200
+            assert response.status_code == status.HTTP_200_OK
 
             user.refresh_from_db()
             assert user.phone == new_phone

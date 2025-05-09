@@ -37,6 +37,8 @@ class TestSendAddPhoneCommand:
         mock_get_command.assert_called_once_with(phone.barrier.device_model, PhoneCommand.ADD)
         mock_build_message.assert_called_once()
         assert message.content == "ADD_COMMAND"
+        assert message.phone_command_type == SMSMessage.PhoneCommandType.OPEN
+        assert message.log == log
 
 
 @pytest.mark.django_db
@@ -58,6 +60,8 @@ class TestSendDeletePhoneCommand:
         mock_get_command.assert_called_once_with(phone.barrier.device_model, PhoneCommand.DELETE)
         mock_build_message.assert_called_once()
         assert message.content == "DEL_COMMAND"
+        assert message.phone_command_type == SMSMessage.PhoneCommandType.CLOSE
+        assert message.log == log
 
 
 @pytest.mark.django_db
@@ -76,3 +80,5 @@ class TestSendBarrierSetting:
         mock_get_setting.assert_called_once_with(barrier.device_model, "start")
         mock_build_message.assert_called_once()
         assert message.content == "SETTING_COMMAND"
+        assert message.phone_command_type is None
+        assert message.log is None

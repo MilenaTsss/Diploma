@@ -49,6 +49,21 @@ class PhoneTaskManager:
             if job_meta["phone_id"] == self.phone.id:
                 self.scheduler.remove_job(job.id)
 
+    def _is_in_active_interval(self, current_dt: datetime) -> bool:
+        adjusted_dt = current_dt + ACCESS_OPENING_SHIFT
+        adjusted_time = adjusted_dt.time()
+        current_time = current_dt.replace(second=0, microsecond=0).time()
+        current_weekday = current_dt.strftime("%A").lower()
+
+        if self.phone.type == BarrierPhone.PhoneType.TEMPORARY:
+            return self.phone.start_time <= adjusted_dt and current_dt <= self.phone.end_time
+
+        return self.phone.schedule_intervals.filter(
+            day=current_weekday,
+            start_time__lte=adjusted_time,
+            end_time__gte=current_time,
+        ).exists()
+
     def sync_access(self, mode: str):
         from message_management.services import SMSService
 
@@ -56,29 +71,14 @@ class PhoneTaskManager:
             return
 
         current_dt = localtime(now())
-        adjusted_dt = current_dt + ACCESS_OPENING_SHIFT
-        current_time = current_dt.replace(second=0, microsecond=0).time()
-        adjusted_time = adjusted_dt.replace(second=0, microsecond=0).time()
-        current_weekday = current_dt.strftime("%A").lower()
+        in_interval = self._is_in_active_interval(current_dt)
+        logger.debug(f"In active interval: {in_interval}")
 
-        if self.phone.type == BarrierPhone.PhoneType.TEMPORARY:
-            logger.info(f"Syncing access state for temporary phone: {self.phone.id}")
-            in_active_interval = self.phone.start_time <= adjusted_dt and current_dt <= self.phone.end_time
-        else:
-            logger.info(f"Syncing access state for schedule phone: {self.phone.id}")
-            in_active_interval = self.phone.schedule_intervals.filter(
-                day=current_weekday,
-                start_time__lte=adjusted_time,
-                end_time__gte=current_time,
-            ).exists()
-        # TODO - remove this log
-        logger.debug(f"In active interval: {in_active_interval}")
-
-        if in_active_interval and mode in ["add", "edit"]:
+        if in_interval and mode in ["add", "edit"]:
             logger.info(f"Access should be OPEN — sending open command for phone {self.phone.id}")
             SMSService.send_add_phone_command(self.phone, self.log)
 
-        if (in_active_interval and mode == "delete") or (not in_active_interval and mode == "edit"):
+        if (in_interval and mode == "delete") or (not in_interval and mode == "edit"):
             logger.info(f"Access should be CLOSED — sending close command for phone {self.phone.id}")
             SMSService.send_delete_phone_command(self.phone, self.log)
 

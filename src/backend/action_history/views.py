@@ -47,7 +47,7 @@ class BaseBarrierActionLogListView(BasePaginatedListView):
         ordering_fields = [f.strip() for f in ordering.split(",") if f.strip()]
         safe_ordering = [f for f in ordering_fields if f.lstrip("-") in self.ALLOWED_ORDERING_FIELDS]
         if not safe_ordering:
-            safe_ordering = [self.DEFAULT_ORDERING]
+            safe_ordering = self.DEFAULT_ORDERING
 
         queryset = BarrierActionLog.objects.filter(barrier=barrier)
 
@@ -113,15 +113,22 @@ class BaseBarrierActionLogDetailView(RetrieveAPIView):
     as_admin = False
 
     def get_queryset(self):
+        return BarrierActionLog.objects.all()
+
+    def get_object(self):
+        action_log = super().get_object()
         user = self.request.user
-        barrier = get_barrier(user, self.kwargs["id"], self.as_admin)
+        barrier = action_log.barrier
+        phone = action_log.phone
 
-        queryset = BarrierActionLog.objects.filter(barrier=barrier)
+        if self.as_admin and barrier.owner != user:
+            raise PermissionDenied("You do not have access to this log entry.")
+        if not self.as_admin and not UserBarrier.user_has_access_to_barrier(user, barrier):
+            raise PermissionDenied("You do not have access to this log entry.")
+        if not self.as_admin and (phone is None or phone.user != user):
+            raise PermissionDenied("You do not have access to this log entry.")
 
-        if not self.as_admin:
-            queryset = queryset.filter(phone__user=user)
-
-        return queryset
+        return action_log
 
 
 class UserBarrierActionLogDetailView(BaseBarrierActionLogDetailView):

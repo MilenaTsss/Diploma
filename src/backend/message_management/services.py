@@ -54,7 +54,7 @@ class SMSService:
             "index": phone.device_serial_number,
         }
         content = build_message(command_config["template"], params)
-        command_type = (
+        phone_command_type = (
             SMSMessage.PhoneCommandType.OPEN if command == PhoneCommand.ADD else SMSMessage.PhoneCommandType.CLOSE
         )
 
@@ -63,7 +63,7 @@ class SMSService:
             content=content,
             phone=barrier.device_phone,
             metadata=params,
+            phone_command_type=phone_command_type,
             log=log,
-            command_type=command_type,
         )
         send_sms_to_kafka(KafkaTopic.SMS_CONFIGURATION, message)

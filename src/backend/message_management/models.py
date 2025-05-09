@@ -1,7 +1,7 @@
 from django.db import models
 
 from action_history.models import BarrierActionLog
-from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH
+from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH, STRING_MAX_LENGTH
 from core.validators import PhoneNumberValidator
 
 
@@ -31,20 +31,20 @@ class SMSMessage(models.Model):
         help_text="Enter a phone number in the format +7XXXXXXXXXX.",
     )
     message_type = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=MessageType.choices)
-    command_type = models.CharField(
+    phone_command_type = models.CharField(
         max_length=CHOICE_MAX_LENGTH, choices=PhoneCommandType.choices, null=True, blank=True
     )
     status = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Status.choices, default=Status.CREATED)
 
     content = models.TextField()
     metadata = models.JSONField(null=True, blank=True)
-    # TODO - maybe to have different response fields? for content and for error status code? instead of json
-    response_payload = models.JSONField(null=True, blank=True)
+    response_content = models.TextField(null=True, blank=True)
+    failure_reason = models.TextField(max_length=STRING_MAX_LENGTH, null=True, blank=True)
 
     sent_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Optional reverse link to ActionHistory
+    # Reverse link to ActionHistory
     log = models.ForeignKey(
         BarrierActionLog,
         null=True,

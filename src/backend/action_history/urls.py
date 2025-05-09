@@ -9,22 +9,22 @@ from action_history.views import (
 
 urlpatterns = [
     path(
-        "barriers/<int:barrier_id>/actions/",
+        "barriers/<int:id>/actions/",
         UserBarrierActionLogListView.as_view(),
         name="user_action_history_list_view",
     ),
     path(
-        "barriers/<int:barrier_id>/actions/<int:id>/",
+        "actions/<int:id>/",
         UserBarrierActionLogDetailView.as_view(),
         name="user_action_history_detail_view",
     ),
     path(
-        "admin/barriers/<int:barrier_id>/actions/",
+        "admin/barriers/<int:id>/actions/",
         AdminBarrierActionLogListView.as_view(),
         name="admin_action_history_list_view",
     ),
     path(
-        "admin/barriers/<int:barrier_id>/actions/<int:id>/",
+        "admin/actions/<int:id>/",
         AdminBarrierActionLogDetailView.as_view(),
         name="admin_action_history_detail_view",
     ),

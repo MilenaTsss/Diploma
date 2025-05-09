@@ -33,6 +33,7 @@ urlpatterns = [
     path("admin_panel/password_change/", admin_block_password_change_view),
     path("admin_panel/", admin.site.urls),
     path("api/", include("access_requests.urls")),
+    path("api/", include("action_history.urls")),
     path("api/", include("barriers.urls")),
     path("api/", include("barriers_management.urls")),
     path("api/", include("phones.urls")),

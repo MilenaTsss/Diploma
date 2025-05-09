@@ -26,7 +26,7 @@ def test_send_close_sms_calls_delete_command(mock_send_delete, barrier_phone):
 
 @pytest.mark.django_db
 @patch("phones.models.BarrierPhone.remove")
-def test_send_delete_phone_deactivates_phone(mock_remove, barrier_phone):
+def test_send_delete_phone_calls_remove(mock_remove, barrier_phone):
     phone, log = barrier_phone
     send_delete_phone(phone, log)
 

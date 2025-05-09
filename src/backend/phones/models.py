@@ -102,28 +102,29 @@ class BarrierPhone(models.Model):
         return min(free_numbers) if free_numbers else None
 
     def describe_phone_params(self) -> str:
-        parts = [f"name={self.name}"]
+        import json
+
+        data = {"name": self.name, "type": self.type}
 
         if self.type == BarrierPhone.PhoneType.TEMPORARY:
-            if self.start_time:
-                parts.append(f"start_time={self.start_time.strftime('%Y-%m-%d %H:%M')}")
-            if self.end_time:
-                parts.append(f"end_time={self.end_time.strftime('%Y-%m-%d %H:%M')}")
+            data["start_time"] = self.start_time.isoformat(timespec="minutes")
+            data["end_time"] = self.end_time.isoformat(timespec="minutes")
 
         elif self.type == BarrierPhone.PhoneType.SCHEDULE:
             schedule = ScheduleTimeInterval.get_schedule_grouped_by_day(self)
-            readable_schedule = []
-            for day, intervals in schedule.items():
-                if not intervals:
-                    continue
-                formatted_intervals = [
-                    f"{i['start_time'].strftime('%H:%M')}–{i['end_time'].strftime('%H:%M')}" for i in intervals
+            data["schedule"] = {
+                day: [
+                    {
+                        "start_time": i["start_time"].strftime("%H:%M"),
+                        "end_time": i["end_time"].strftime("%H:%M"),
+                    }
+                    for i in intervals
                 ]
-                readable_schedule.append(f"{day}: {', '.join(formatted_intervals)}")
-            if readable_schedule:
-                parts.append("schedule={" + "; ".join(readable_schedule) + "}")
+                for day, intervals in schedule.items()
+                if intervals
+            }
 
-        return ", ".join(parts)
+        return json.dumps(data, ensure_ascii=False)
 
     @classmethod
     def create(

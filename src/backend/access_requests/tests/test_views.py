@@ -194,6 +194,7 @@ class TestAccessRequestDetailView:
             reason=BarrierActionLog.Reason.ACCESS_GRANTED,
         )
 
+        assert log is not None
         assert log.author == BarrierActionLog.Author.SYSTEM
         assert log.new_value == phone.describe_phone_params()
 
@@ -246,6 +247,7 @@ class TestAccessRequestDetailView:
             reason=BarrierActionLog.Reason.ACCESS_GRANTED,
         )
 
+        assert log is not None
         assert log.author == BarrierActionLog.Author.SYSTEM
         assert log.new_value == phone.describe_phone_params()
 

@@ -106,11 +106,6 @@ class ChangePhoneView(APIView):
             )
             old_phone_entry.send_sms_to_delete(log)
 
-            if BarrierPhone.objects.filter(
-                user=user, barrier=barrier, phone=new_phone, type=BarrierPhone.PhoneType.PRIMARY, is_active=True
-            ).exists():
-                continue
-
             new_phone_entry, log = BarrierPhone.create(
                 user=user,
                 barrier=barrier,

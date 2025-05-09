@@ -95,6 +95,7 @@ class TestCreateBarrierView:
             reason=BarrierActionLog.Reason.ACCESS_GRANTED,
             action_type=BarrierActionLog.ActionType.ADD_PHONE,
         )
+        assert log is not None
         assert log.new_value == phone.describe_phone_params()
         assert log.old_value is None
 
@@ -245,7 +246,6 @@ class TestAdminBarrierView:
 
         phones = BarrierPhone.objects.filter(barrier=barrier)
         for phone in phones:
-            phone.refresh_from_db()
             assert not phone.is_active
 
             log = BarrierActionLog.objects.get(
@@ -256,7 +256,7 @@ class TestAdminBarrierView:
                 reason=BarrierActionLog.Reason.BARRIER_DELETED,
             )
             assert log is not None
-            assert log.old_value is None or isinstance(log.old_value, str)
+            assert log.old_value is None
             assert log.new_value is None
 
         assert mock_send_sms.call_count == phones.count()
@@ -469,8 +469,8 @@ class TestAdminRemoveUserFromBarrierView:
         create_barrier_phone,
     ):
         barrier = private_barrier_with_access
-        phone1, log1 = create_barrier_phone(user, barrier, user.phone, BarrierPhone.PhoneType.PRIMARY)
-        phone2, log2 = create_barrier_phone(user, barrier, BARRIER_PERMANENT_PHONE, BarrierPhone.PhoneType.PERMANENT)
+        create_barrier_phone(user, barrier, user.phone, BarrierPhone.PhoneType.PRIMARY)
+        create_barrier_phone(user, barrier, BARRIER_PERMANENT_PHONE, BarrierPhone.PhoneType.PERMANENT)
 
         url = reverse("barrier_remove_user", kwargs={"barrier_id": barrier.id, "user_id": user.id})
         response = authenticated_admin_client.delete(url)
@@ -480,8 +480,8 @@ class TestAdminRemoveUserFromBarrierView:
         user_barrier = UserBarrier.objects.get(user=user, barrier=barrier)
         assert not user_barrier.is_active
 
-        for phone in [phone1, phone2]:
-            phone.refresh_from_db()
+        phones = BarrierPhone.objects.filter(barrier=barrier)
+        for phone in phones:
             assert not phone.is_active
 
             log = BarrierActionLog.objects.get(
@@ -492,7 +492,7 @@ class TestAdminRemoveUserFromBarrierView:
                 reason=BarrierActionLog.Reason.BARRIER_EXIT,
             )
             assert log is not None
-            assert log.old_value is None or isinstance(log.old_value, str)
+            assert log.old_value is None
             assert log.new_value is None
 
         assert mock_send_sms.call_count == 2
