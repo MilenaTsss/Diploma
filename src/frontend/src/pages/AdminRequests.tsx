@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-const UserRequests: React.FC = () => {
+const AdminRequests: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [type, setType] = useState<"outgoing" | "incoming">("outgoing");
+
+  const [type, setType] = useState<"incoming" | "outgoing">("incoming");
   const [requests, setRequests] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(
@@ -17,9 +18,10 @@ const UserRequests: React.FC = () => {
   const fetchRequests = async (token = accessToken) => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/access_requests/my/?type=${type}`, {
+      const res = await fetch(`/api/admin/access_requests/my/?type=${type}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       if (res.status === 401) {
         const refresh = await fetch("/api/auth/token/refresh/", {
           method: "POST",
@@ -37,19 +39,19 @@ const UserRequests: React.FC = () => {
 
       const data = await res.json();
       if (res.ok && data.access_requests) {
-        const requestsWithAddresses = await Promise.all(
-          data.access_requests.map(async (r: any) => {
-            const barrierRes = await fetch(`/api/barriers/${r.barrier}/`, {
+        const withBarriers = await Promise.all(
+          data.access_requests.map(async (req: any) => {
+            const resB = await fetch(`/api/barriers/${req.barrier}/`, {
               headers: { Authorization: `Bearer ${token}` },
             });
-            const barrierData = await barrierRes.json();
-            return { ...r, address: barrierData.address || "Неизвестно" };
+            const b = await resB.json();
+            return { ...req, address: b.address || "Без адреса" };
           }),
         );
-        setRequests(requestsWithAddresses);
+        setRequests(withBarriers);
       }
     } catch {
-      console.error("Ошибка загрузки заявок");
+      console.error("Ошибка загрузки");
     } finally {
       setIsLoading(false);
     }
@@ -60,12 +62,12 @@ const UserRequests: React.FC = () => {
   }, [type]);
 
   const updateRequestStatus = async (
-    requestId: number,
+    id: number,
     status: string,
     hide = false,
   ) => {
     try {
-      await fetch(`/api/access_requests/${requestId}/`, {
+      await fetch(`/api/access_requests/${id}/`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -84,17 +86,9 @@ const UserRequests: React.FC = () => {
 
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>Запросы</h2>
+      <h2 style={styles.title}>Заявки</h2>
+
       <div style={styles.tabs}>
-        <button
-          style={{
-            ...styles.tab,
-            borderBottom: type === "outgoing" ? "2px solid #5a4478" : "none",
-          }}
-          onClick={() => setType("outgoing")}
-        >
-          Исходящие
-        </button>
         <button
           style={{
             ...styles.tab,
@@ -104,49 +98,62 @@ const UserRequests: React.FC = () => {
         >
           Входящие
         </button>
+        <button
+          style={{
+            ...styles.tab,
+            borderBottom: type === "outgoing" ? "2px solid #5a4478" : "none",
+          }}
+          onClick={() => setType("outgoing")}
+        >
+          Исходящие
+        </button>
       </div>
+
       <div style={styles.requestList}>
         {isLoading ? (
           <p>Загрузка...</p>
+        ) : requests.length === 0 ? (
+          <p>Нет запросов</p>
         ) : (
-          requests.map((request) => (
-            <div key={request.id} style={styles.requestCard}>
-              <p style={styles.requestText}>{request.address}</p>
-              {type === "outgoing" && request.status === "pending" && (
-                <button
-                  style={styles.cancelButton}
-                  onClick={() =>
-                    updateRequestStatus(request.id, "cancelled", true)
-                  }
-                >
-                  Отменить
-                </button>
-              )}
-              {type === "incoming" && request.status === "pending" && (
+          requests.map((r) => (
+            <div key={r.id} style={styles.card}>
+              <p style={styles.text}>
+                <strong>
+                  {type === "incoming" ? r.requester_name : r.owner_name}
+                </strong>
+                <br />
+                Адрес: {r.address}
+              </p>
+
+              {r.status === "pending" && type === "incoming" && (
                 <div style={styles.actionRow}>
                   <button
-                    style={styles.acceptButton}
-                    onClick={() => updateRequestStatus(request.id, "accepted")}
+                    style={styles.accept}
+                    onClick={() => updateRequestStatus(r.id, "accepted")}
                   >
                     Принять
                   </button>
                   <button
-                    style={styles.declineButton}
-                    onClick={() => updateRequestStatus(request.id, "rejected")}
+                    style={styles.decline}
+                    onClick={() => updateRequestStatus(r.id, "rejected")}
                   >
                     Отклонить
                   </button>
                 </div>
               )}
-              {request.status === "accepted" && (
-                <p style={styles.approvedText}>Принят</p>
+
+              {r.status === "pending" && type === "outgoing" && (
+                <button
+                  style={styles.cancel}
+                  onClick={() => updateRequestStatus(r.id, "cancelled", true)}
+                >
+                  Отменить
+                </button>
               )}
-              {request.status === "rejected" && (
-                <p style={styles.declinedText}>Отклонен</p>
-              )}
-              {request.status === "cancelled" && (
-                <p style={styles.declinedText}>Отменен</p>
-              )}
+
+              {r.status === "accepted" && <p style={styles.ok}>Принят</p>}
+              {r.status === "rejected" && <p style={styles.err}>Отклонён</p>}
+              {r.status === "cancelled" && <p style={styles.err}>Отменён</p>}
             </div>
           ))
         )}
@@ -154,22 +161,20 @@ const UserRequests: React.FC = () => {
 
       <div style={styles.navbar}>
         <button
-          style={styles.navButton}
+          style={styles.nav}
           onClick={() =>
-            navigate("/barriers", {
+            navigate("/admin-barriers", {
               state: { access_token: accessToken, refresh_token: refreshToken },
             })
           }
         >
           Шлагбаумы
         </button>
-        <button style={{ ...styles.navButton, ...styles.navButtonActive }}>
-          Запросы
-        </button>
+        <button style={{ ...styles.nav, ...styles.navActive }}>Запросы</button>
         <button
-          style={styles.navButton}
+          style={styles.nav}
           onClick={() =>
-            navigate("/user", {
+            navigate("/admin", {
               state: { access_token: accessToken, refresh_token: refreshToken },
             })
           }
@@ -194,98 +199,102 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: "20px",
   },
   title: {
-    fontSize: "24px",
+    textAlign: "center",
     color: "#5a4478",
+    fontSize: "24px",
     fontWeight: "bold",
     marginBottom: "20px",
-    textAlign: "center",
   },
   tabs: {
     display: "flex",
     justifyContent: "center",
-    marginBottom: "20px",
     gap: "10px",
+    marginBottom: "20px",
   },
   tab: {
-    padding: "10px 20px",
-    backgroundColor: "#f8f3fb",
+    background: "none",
     border: "none",
+    fontSize: "16px",
     cursor: "pointer",
-    color: "#5a4478",
     fontWeight: "bold",
+    color: "#5a4478",
+    padding: "8px 16px",
   },
   requestList: {
     display: "flex",
     flexDirection: "column",
-    gap: "10px",
+    gap: "14px",
+    maxWidth: "500px",
+    margin: "0 auto",
   },
-  requestCard: {
+  card: {
     backgroundColor: "#fff",
-    padding: "15px",
+    padding: "16px",
     borderRadius: "10px",
-    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.05)",
+    boxShadow: "0 4px 10px rgba(0,0,0,0.05)",
   },
-  requestText: {
+  text: {
     fontSize: "16px",
-    color: "#333",
     marginBottom: "10px",
-  },
-  cancelButton: {
-    backgroundColor: "#d9534f",
-    color: "#fff",
-    padding: "8px 12px",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-  },
-  acceptButton: {
-    backgroundColor: "#5cb85c",
-    color: "#fff",
-    padding: "8px 12px",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-    marginRight: "10px",
-  },
-  declineButton: {
-    backgroundColor: "#f0ad4e",
-    color: "#fff",
-    padding: "8px 12px",
-    border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-  },
-  approvedText: {
-    color: "green",
-    fontWeight: "bold",
-  },
-  declinedText: {
-    color: "red",
-    fontWeight: "bold",
   },
   actionRow: {
     display: "flex",
-    justifyContent: "center",
     gap: "10px",
+    justifyContent: "center",
+  },
+  accept: {
+    backgroundColor: "#5cb85c",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    padding: "8px 12px",
+    cursor: "pointer",
+  },
+  decline: {
+    backgroundColor: "#f0ad4e",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    padding: "8px 12px",
+    cursor: "pointer",
+  },
+  cancel: {
+    backgroundColor: "#d9534f",
+    color: "#fff",
+    border: "none",
+    borderRadius: "8px",
+    padding: "8px 12px",
+    cursor: "pointer",
+  },
+  ok: {
+    color: "green",
+    fontWeight: "bold",
+  },
+  err: {
+    color: "red",
+    fontWeight: "bold",
   },
   navbar: {
-    display: "flex",
-    justifyContent: "space-around",
     position: "fixed",
     bottom: 0,
     left: 0,
     width: "100%",
     backgroundColor: "#f8f3fb",
     padding: "10px 0",
+    display: "flex",
+    justifyContent: "space-around",
   },
-  navButton: {
+  nav: {
     background: "none",
     border: "none",
-    fontSize: "14px",
     color: "#5a4478",
+    fontSize: "14px",
     cursor: "pointer",
   },
-  navButtonActive: { borderBottom: "2px solid #5a4478", paddingBottom: "4px" },
+  navActive: {
+    borderBottom: "2px solid #5a4478",
+    paddingBottom: "4px",
+  },
 };
 
-export default UserRequests;
+export default AdminRequests;

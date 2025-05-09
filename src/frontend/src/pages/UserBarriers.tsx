@@ -58,7 +58,7 @@ const UserBarriers: React.FC = () => {
 
   const refreshTokenAndRetry = async () => {
     try {
-      const refreshRes = await fetch("/auth/token/refresh/", {
+      const refreshRes = await fetch("/api/auth/token/refresh/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refresh: refreshToken }),

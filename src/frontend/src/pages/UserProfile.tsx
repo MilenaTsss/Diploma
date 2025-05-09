@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { FaSignOutAlt } from "react-icons/fa";
 
 const UserProfile: React.FC = () => {
   const navigate = useNavigate();
@@ -46,7 +47,7 @@ const UserProfile: React.FC = () => {
 
     const refreshTokenAndRetry = async () => {
       try {
-        const refreshResponse = await fetch("/auth/token/refresh/", {
+        const refreshResponse = await fetch("/api/auth/token/refresh/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh: refreshToken }),
@@ -82,7 +83,6 @@ const UserProfile: React.FC = () => {
         console.error("Ошибка проверки админа", error);
       }
     };
-
     fetchUserProfile();
   }, [accessToken, refreshToken, navigate]);
 
@@ -139,8 +139,25 @@ const UserProfile: React.FC = () => {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    localStorage.removeItem("phone");
+    navigate("/login");
+  };
+
   return (
     <div style={styles.container}>
+      <div style={styles.logoutContainer}>
+        <button
+          onClick={handleLogout}
+          style={styles.logoutButton}
+          title="Выйти"
+        >
+          <FaSignOutAlt />
+        </button>
+      </div>
+
       <h2 style={styles.title}>Профиль</h2>
 
       <div style={styles.card}>
@@ -212,7 +229,24 @@ const UserProfile: React.FC = () => {
           </span>
         </div>
       )}
-
+      <button
+        style={{
+          ...styles.deleteButton,
+          backgroundColor: "#d9534f",
+          marginTop: "10px",
+        }}
+        onClick={() =>
+          navigate("/delete-account", {
+            state: {
+              phone,
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            },
+          })
+        }
+      >
+        Удалить профиль
+      </button>
       <div style={styles.navbar}>
         <button
           style={styles.navButton}
@@ -261,6 +295,32 @@ const styles: { [key: string]: React.CSSProperties } = {
     backgroundColor: "#fef7fb",
     color: "#333",
     padding: "20px",
+  },
+  logoutContainer: {
+    alignSelf: "flex-end",
+    marginBottom: "20px",
+  },
+  logoutButton: {
+    background: "none",
+    border: "none",
+    fontSize: "25px",
+    color: "#5a4478",
+    cursor: "pointer",
+    maxWidth: "100px",
+  },
+  deleteButton: {
+    width: "100%",
+    maxWidth: "420px",
+    margin: "20px auto",
+    backgroundColor: "#d9534f",
+    color: "#fff",
+    padding: "14px",
+    borderRadius: "24px",
+    border: "none",
+    cursor: "pointer",
+    fontWeight: "bold",
+    fontSize: "16px",
+    display: "block",
   },
   title: {
     fontSize: "24px",
@@ -363,8 +423,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontWeight: "bold",
     cursor: "pointer",
   },
-  activeNavButton: {
+  navButtonActive: {
     borderBottom: "2px solid #5a4478",
+    paddingBottom: "4px",
   },
   activeText: {
     color: "#5a4478",
@@ -373,7 +434,6 @@ const styles: { [key: string]: React.CSSProperties } = {
   inactiveText: {
     color: "#999",
   },
-  navButtonActive: { borderBottom: "2px solid #5a4478", paddingBottom: "4px" },
 };
 
 export default UserProfile;

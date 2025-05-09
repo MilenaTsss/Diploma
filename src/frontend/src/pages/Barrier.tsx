@@ -22,7 +22,7 @@ const Barrier: React.FC = () => {
   // универсальное обновление токена
   const refreshAndRetry = async (retryFn: (token: string) => void) => {
     try {
-      const res = await fetch("/auth/token/refresh/", {
+      const res = await fetch("/api/auth/token/refresh/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refresh: refreshToken }),
