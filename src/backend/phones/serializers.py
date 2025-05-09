@@ -189,5 +189,5 @@ class UpdatePhoneScheduleSerializer(ScheduleSerializer):
     def update(self, phone: BarrierPhone, validated_data):
         validate_schedule_phone(phone.type, validated_data, phone.barrier)
         ScheduleTimeInterval.replace_schedule(phone, validated_data)
-#         PhoneTaskManager(phone).edit_tasks()
+        PhoneTaskManager(phone).edit_tasks()
         return phone
