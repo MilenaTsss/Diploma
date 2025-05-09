@@ -137,7 +137,7 @@ const AdminPage: React.FC = () => {
         <button
           style={styles.navButton}
           onClick={() =>
-            navigate("/barriers", {
+            navigate("/adminbarriers", {
               state: {
                 phone,
                 access_token: accessToken,
@@ -151,7 +151,7 @@ const AdminPage: React.FC = () => {
         <button
           style={styles.navButton}
           onClick={() =>
-            navigate("/requests", {
+            navigate("/adminrequests", {
               state: {
                 phone,
                 access_token: accessToken,

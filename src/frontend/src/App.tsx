@@ -17,6 +17,8 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ChangePhonePage from "./pages/ChangePhonePage";
 import AdminPage from "./pages/AdminPage";
 import MyBarrierPage from "./pages/MyBarrierPage";
+import AddPhonePage from "./pages/AddPhonePage";
+import EditPhonePage from "./pages/EditPhonePage";
 
 const App: React.FC = () => {
   return (
@@ -36,6 +38,8 @@ const App: React.FC = () => {
         <Route path="/barrier-details" element={<Barrier />} />
         <Route path="/admin" element={<AdminPage />} />
         <Route path="/mybarrier" element={<MyBarrierPage />} />
+        <Route path="/add-phone" element={<AddPhonePage />} />
+        <Route path="/edit-phone" element={<EditPhonePage />} />
       </Routes>
     </Router>
   );

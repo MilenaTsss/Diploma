@@ -284,6 +284,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: "#5a4478",
     cursor: "pointer",
   },
+  navButtonActive: { borderBottom: "2px solid #5a4478", paddingBottom: "4px" },
 };
 
 export default UserRequests;
