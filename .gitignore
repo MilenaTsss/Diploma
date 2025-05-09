@@ -4,6 +4,7 @@
 .DS_Store
 *.sqlite3
 __pycache__
+.coverage
 node_modules
 dist
 logs

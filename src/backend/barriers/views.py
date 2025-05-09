@@ -7,6 +7,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.generics import DestroyAPIView, RetrieveAPIView
 from rest_framework.views import APIView
 
+from action_history.models import BarrierActionLog
 from barriers.models import Barrier, BarrierLimit, UserBarrier
 from barriers.serializers import BarrierLimitSerializer, BarrierSerializer
 from core.pagination import BasePaginatedListView
@@ -133,8 +134,8 @@ class LeaveBarrierView(DestroyAPIView):
         logger.info(f"Deleting all phones for user '{user.id}' while leaving barrier '{barrier.id}'")
         phones = BarrierPhone.objects.filter(user=user, barrier=barrier, is_active=True)
         for phone in phones:
-            phone.remove()
-            phone.send_sms_to_delete()
+            _, log = phone.remove(author=BarrierActionLog.Author.USER, reason=BarrierActionLog.Reason.BARRIER_EXIT)
+            phone.send_sms_to_delete(log)
 
         return success_response({"message": "Left the barrier successfully."})
 

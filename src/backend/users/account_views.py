@@ -1,14 +1,16 @@
 import logging
 
 from rest_framework.decorators import permission_classes
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.exceptions import MethodNotAllowed, PermissionDenied
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.permissions import IsAdminUser
 from rest_framework.views import APIView
 
-from barriers.models import UserBarrier
+from action_history.models import BarrierActionLog
+from barriers.models import Barrier, UserBarrier
 from core.utils import deleted_response, success_response
 from phones.models import BarrierPhone
+from users.models import User
 from users.serializers import (
     ChangePasswordSerializer,
     ChangePhoneSerializer,
@@ -50,6 +52,9 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
         user = self.get_object()
         verification_token = request.data.get("verification_token")
 
+        if user.role == User.Role.SUPERUSER:
+            raise PermissionDenied("Superuser account cannot be deleted.")
+
         verification, error = VerificationService.get_verified_verification_or_error(
             user.phone, verification_token, Verification.Mode.DELETE_ACCOUNT
         )
@@ -67,12 +72,16 @@ class UserAccountView(RetrieveUpdateDestroyAPIView):
 
         phones = BarrierPhone.objects.filter(user=user, is_active=True)
         for phone in phones:
-            phone.remove()
-            phone.send_sms_to_delete()
+            _, log = phone.remove(author=BarrierActionLog.Author.USER, reason=BarrierActionLog.Reason.USER_DELETED)
+            phone.send_sms_to_delete(log)
             logger.info(
                 f"Deleted phone {phone.phone} for user '{user.id}' from barrier '{phone.barrier.id}' "
                 f"while deleting user"
             )
+
+        if user.role == User.Role.ADMIN:
+            logger.info(f"Deleting all barriers creating by admin '{user.id}' while deleting user")
+            Barrier.objects.filter(owner=user, is_active=True).update(is_active=False)
 
         return deleted_response()
 
@@ -92,22 +101,21 @@ class ChangePhoneView(APIView):
         for old_phone_entry in old_phones:
             barrier = old_phone_entry.barrier
 
-            old_phone_entry.remove()
-            old_phone_entry.send_sms_to_delete()
+            _, log = old_phone_entry.remove(
+                author=BarrierActionLog.Author.SYSTEM, reason=BarrierActionLog.Reason.PRIMARY_PHONE_CHANGE
+            )
+            old_phone_entry.send_sms_to_delete(log)
 
-            if BarrierPhone.objects.filter(
-                user=user, barrier=barrier, phone=new_phone, type=BarrierPhone.PhoneType.PRIMARY, is_active=True
-            ).exists():
-                continue
-
-            new_phone_entry = BarrierPhone.create(
+            new_phone_entry, log = BarrierPhone.create(
                 user=user,
                 barrier=barrier,
                 phone=new_phone,
                 type=BarrierPhone.PhoneType.PRIMARY,
                 name=user.get_full_name(),
+                author=BarrierActionLog.Author.SYSTEM,
+                reason=BarrierActionLog.Reason.PRIMARY_PHONE_CHANGE,
             )
-            new_phone_entry.send_sms_to_create()
+            new_phone_entry.send_sms_to_create(log)
 
     def patch(self, request):
         serializer = ChangePhoneSerializer(data=request.data)

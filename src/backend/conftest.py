@@ -5,6 +5,7 @@ from django.utils.timezone import now
 from rest_framework.test import APIClient
 
 from access_requests.models import AccessRequest
+from action_history.models import BarrierActionLog
 from barriers.models import Barrier, UserBarrier
 from phones.constants import MINIMUM_TIME_INTERVAL_MINUTES
 from phones.models import BarrierPhone
@@ -233,6 +234,8 @@ def create_barrier_phone():
         phone=BARRIER_PERMANENT_PHONE,
         type=BarrierPhone.PhoneType.PERMANENT,
         name=BARRIER_PERMANENT_PHONE_NAME,
+        author=BarrierActionLog.Author.SYSTEM,
+        reason=BarrierActionLog.Reason.MANUAL,
         start_time=None,
         end_time=None,
         schedule=None,
@@ -243,6 +246,8 @@ def create_barrier_phone():
             phone=phone,
             type=type,
             name=name,
+            author=author,
+            reason=reason,
             start_time=start_time,
             end_time=end_time,
             schedule=schedule,

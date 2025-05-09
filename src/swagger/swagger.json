@@ -143,6 +143,11 @@
                     "value": {
                       "detail": "You do not have permission to perform this action."
                     }
+                  },
+                  "delete account": {
+                    "value": {
+                      "detail": "Superuser account cannot be deleted."
+                    }
                   }
                 }
               }
@@ -1112,6 +1117,11 @@
                   "blocked": {
                     "value": {
                       "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "superuser": {
+                    "value": {
+                      "detail": "Superuser account cannot be deleted."
                     }
                   }
                 }

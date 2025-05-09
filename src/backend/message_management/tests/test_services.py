@@ -26,16 +26,19 @@ class TestSendAddPhoneCommand:
     @patch("message_management.services.build_message", return_value="ADD_COMMAND")
     @patch("message_management.services.get_phone_command")
     def test_send_add_phone_command_success(self, mock_get_command, mock_build_message, mock_send_sms, barrier_phone):
+        phone, log = barrier_phone
         mock_get_command.return_value = {"template": "{pwd}{index}{phone}"}
 
-        SMSService.send_add_phone_command(barrier_phone)
+        SMSService.send_add_phone_command(phone, log)
 
         message = SMSMessage.objects.get(message_type=SMSMessage.MessageType.PHONE_COMMAND)
 
         mock_send_sms.assert_called_once_with(KafkaTopic.SMS_CONFIGURATION, message)
-        mock_get_command.assert_called_once_with(barrier_phone.barrier.device_model, PhoneCommand.ADD)
+        mock_get_command.assert_called_once_with(phone.barrier.device_model, PhoneCommand.ADD)
         mock_build_message.assert_called_once()
         assert message.content == "ADD_COMMAND"
+        assert message.phone_command_type == SMSMessage.PhoneCommandType.OPEN
+        assert message.log == log
 
 
 @pytest.mark.django_db
@@ -46,16 +49,19 @@ class TestSendDeletePhoneCommand:
     def test_send_delete_phone_command_success(
         self, mock_get_command, mock_build_message, mock_send_sms, barrier_phone
     ):
+        phone, log = barrier_phone
         mock_get_command.return_value = {"template": "{pwd}{index}{phone}"}
 
-        SMSService.send_delete_phone_command(barrier_phone)
+        SMSService.send_delete_phone_command(phone, log)
 
         message = SMSMessage.objects.get(message_type=SMSMessage.MessageType.PHONE_COMMAND)
 
         mock_send_sms.assert_called_once_with(KafkaTopic.SMS_CONFIGURATION, message)
-        mock_get_command.assert_called_once_with(barrier_phone.barrier.device_model, PhoneCommand.DELETE)
+        mock_get_command.assert_called_once_with(phone.barrier.device_model, PhoneCommand.DELETE)
         mock_build_message.assert_called_once()
         assert message.content == "DEL_COMMAND"
+        assert message.phone_command_type == SMSMessage.PhoneCommandType.CLOSE
+        assert message.log == log
 
 
 @pytest.mark.django_db
@@ -74,3 +80,5 @@ class TestSendBarrierSetting:
         mock_get_setting.assert_called_once_with(barrier.device_model, "start")
         mock_build_message.assert_called_once()
         assert message.content == "SETTING_COMMAND"
+        assert message.phone_command_type is None
+        assert message.log is None

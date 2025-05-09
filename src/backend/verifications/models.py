@@ -103,6 +103,8 @@ class VerificationService:
                 return error_response("You do not have permission to perform this action.", status.HTTP_403_FORBIDDEN)
         if mode == Verification.Mode.CHANGE_PHONE_NEW and user and user.is_active:
             return error_response("This new phone number already exists.", status.HTTP_403_FORBIDDEN)
+        if mode == Verification.Mode.DELETE_ACCOUNT and user.role == User.Role.SUPERUSER:
+            return error_response("Superuser account cannot be deleted.", status.HTTP_403_FORBIDDEN)
 
     @staticmethod
     def _check_verification_object(verification, phone):
