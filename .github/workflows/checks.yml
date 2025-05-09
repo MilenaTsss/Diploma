@@ -54,6 +54,8 @@ jobs:
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: MilenaTsss/Diploma
           files: ./src/backend/coverage.xml
           flags: backend
           name: backend-coverage
