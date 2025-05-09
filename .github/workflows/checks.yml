@@ -78,20 +78,20 @@ jobs:
         working-directory: ./src/backend
         run: python manage.py migrate --noinput
 
-#  frontend-tests:
-#    name: Frontend Tests
-#    runs-on: ubuntu-latest
-#
-#    steps:
-#      - name: Checkout
-#        uses: actions/checkout@v4
-#
-#      - name: Setup
-#        uses: ./.github/actions/setup
-#
-#      - name: Run frontend tests
-#        working-directory: ./src/frontend
-#        run: npm test -- --ci --watchAll=false
+  frontend-tests:
+    name: Frontend Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Run frontend tests
+        working-directory: ./src/frontend
+        run: npm test -- --ci --watchAll=false
 
   frontend-format:
     name: Frontend Code Format
