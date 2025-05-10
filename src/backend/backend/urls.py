@@ -36,6 +36,7 @@ urlpatterns = [
     path("api/", include("action_history.urls")),
     path("api/", include("barriers.urls")),
     path("api/", include("barriers_management.urls")),
+    path("api/", include("message_management.urls")),
     path("api/", include("phones.urls")),
     path("api/", include("users.urls")),
     path("api/", include("verifications.urls")),
