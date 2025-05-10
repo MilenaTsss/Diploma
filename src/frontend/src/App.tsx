@@ -23,6 +23,10 @@ import DeleteAccount from "./pages/DeleteAccount";
 import AdminRequests from "./pages/AdminRequests";
 import ChangePhoneAdminPage from "./pages/ChangePhoneAdminPage";
 import ChangePasswordPage from "./pages/ChangePasswordPage";
+import AdminBarriersPage from "./pages/AdminBarriersPage";
+import AdminBarrierDetails from "./pages/AdminBarrierDetails";
+import BarrierUsersPage from "./pages/BarrierUsersPage";
+import AdminUserProfile from "./pages/AdminUserProfile";
 
 
 const App: React.FC = () => {
@@ -49,6 +53,10 @@ const App: React.FC = () => {
         <Route path="/admin-requests" element={<AdminRequests />} />
         <Route path="/change-phone-admin" element={<ChangePhoneAdminPage />} />
         <Route path="/change-password" element={<ChangePasswordPage />} />
+        <Route path="/admin-barriers" element={<AdminBarriersPage />} />
+        <Route path="/admin-barrier-page" element={<AdminBarrierDetails />} />
+        <Route path="/barrier-users" element={<BarrierUsersPage />} />
+        <Route path="/user-profile" element={<AdminUserProfile/>} />
       </Routes>
     </Router>
   );
