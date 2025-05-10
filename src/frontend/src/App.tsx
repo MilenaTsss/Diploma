@@ -21,6 +21,9 @@ import AddPhonePage from "./pages/AddPhonePage";
 import EditPhonePage from "./pages/EditPhonePage";
 import DeleteAccount from "./pages/DeleteAccount";
 import AdminRequests from "./pages/AdminRequests";
+import ChangePhoneAdminPage from "./pages/ChangePhoneAdminPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
+
 
 const App: React.FC = () => {
   return (
@@ -44,6 +47,8 @@ const App: React.FC = () => {
         <Route path="/edit-phone" element={<EditPhonePage />} />
         <Route path="/delete-account" element={<DeleteAccount />} />
         <Route path="/admin-requests" element={<AdminRequests />} />
+        <Route path="/change-phone-admin" element={<ChangePhoneAdminPage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
       </Routes>
     </Router>
   );
