@@ -69,8 +69,7 @@ class TestBarrierActionLogListViews:
 
             url = self.get_url(barrier.id, ordering="phone__phone")
             response = authenticated_client.get(url)
-            print(response.content)
-            assert response.status_code == 200
+            assert response.status_code == status.HTTP_200_OK
 
             ids = [entry["id"] for entry in response.data["actions"]]
             assert ids.index(log_a.id) < ids.index(log_z.id)
@@ -84,8 +83,7 @@ class TestBarrierActionLogListViews:
 
             url = self.get_url(barrier.id, ordering="non_existing_field")
             response = authenticated_client.get(url)
-            print(response.content)
-            assert response.status_code == 200
+            assert response.status_code == status.HTTP_200_OK
 
             returned_ids = [entry["id"] for entry in response.data["actions"]]
             assert set(returned_ids) >= {log1.id, log2.id}
@@ -185,7 +183,7 @@ class TestBarrierActionLogListViews:
         url = self.get_url(barrier.id)
         response = authenticated_client.get(url)
 
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         returned_ids = [item["id"] for item in response.data["actions"]]
         assert log_own.id in returned_ids
         assert all(log["id"] != phone_other.id for log in response.data["actions"])
@@ -200,7 +198,7 @@ class TestBarrierActionLogListViews:
         url = self.get_url(barrier.id, user=another_user.id)
         response = authenticated_client.get(url)
 
-        assert response.status_code == 200
+        assert response.status_code == status.HTTP_200_OK
         for log in response.data["actions"]:
             assert log["phone"] != phone_other.phone
 

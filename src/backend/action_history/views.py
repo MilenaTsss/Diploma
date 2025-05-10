@@ -60,7 +60,7 @@ class BaseBarrierActionLogListView(BasePaginatedListView):
         else:
             queryset = queryset.filter(phone__user=user)
 
-        phone_id = self.request.query_params.get("phone_id", "").strip()
+        phone_id = self.request.query_params.get("phone", "").strip()
         if phone_id and phone_id.isdigit():
             queryset = queryset.filter(phone_id=int(phone_id))
 
@@ -116,7 +116,10 @@ class BaseBarrierActionLogDetailView(RetrieveAPIView):
         return BarrierActionLog.objects.all()
 
     def get_object(self):
-        action_log = super().get_object()
+        try:
+            action_log = super().get_object()
+        except Http404:
+            raise NotFound("Barrier log not found.")
         user = self.request.user
         barrier = action_log.barrier
         phone = action_log.phone

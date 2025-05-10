@@ -55,7 +55,6 @@ class BarrierActionLog(models.Model):
     reason = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=Reason.choices)
 
     old_value = models.TextField(null=True, blank=True, help_text="String representation of the previous value/state.")
-
     new_value = models.TextField(null=True, blank=True, help_text="String representation of the new value/state.")
 
     created_at = models.DateTimeField(default=now)

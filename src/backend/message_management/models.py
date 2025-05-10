@@ -13,6 +13,7 @@ class SMSMessage(models.Model):
         VERIFICATION_CODE = "verification", "Verification Code"
         PHONE_COMMAND = "phone_command", "Phone Command"
         BARRIER_SETTING = "barrier_setting", "Barrier Setting"
+        BALANCE_CHECK = "balance_check", "Balance Check"
 
     class PhoneCommandType(models.TextChoices):
         OPEN = "open", "Open Access"
