@@ -30,6 +30,7 @@ import AdminUserProfile from "./pages/AdminUserProfile";
 import AdminAddPhonePage from "./pages/AdminAddPhonePage";
 import AdminEditPhonePage from "./pages/AdminEditPhonePage";
 import CreateBarrierPage from "./pages/CreateBarrierPage";
+import AdminBarrierSettingsPage from "./pages/AdminBarrierSettingsPage";
 
 
 const App: React.FC = () => {
@@ -63,6 +64,7 @@ const App: React.FC = () => {
         <Route path="/add-phone-admin" element={<AdminAddPhonePage/>} />
         <Route path="/edit-phone-admin" element={<AdminEditPhonePage />} />
         <Route path="/create-barrier" element={<CreateBarrierPage />} />
+        <Route path="/barrier-settings" element={<AdminBarrierSettingsPage />} />
       </Routes>
     </Router>
   );
