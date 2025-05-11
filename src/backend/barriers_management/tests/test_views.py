@@ -5,6 +5,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from access_requests.models import AccessRequest
+from action_history.models import BarrierActionLog
 from barriers.models import Barrier, BarrierLimit, UserBarrier
 from conftest import (
     BARRIER_ADDRESS,
@@ -14,6 +15,8 @@ from conftest import (
     OTHER_PHONE,
     USER_PHONE,
 )
+from message_management.models import SMSMessage
+from message_management.services import SMSService
 from phones.models import BarrierPhone
 from users.models import User
 
@@ -64,27 +67,39 @@ class TestCreateBarrierView:
         barrier_id = response.data["id"]
         barrier = Barrier.objects.get(id=barrier_id)
 
-        # Check BarrierLimit
+        # BarrierLimit
         assert BarrierLimit.objects.filter(barrier=barrier).exists()
 
-        # Check AccessRequest
+        # AccessRequest
         access_request = AccessRequest.objects.get(barrier=barrier, user=admin_user)
         assert access_request.status == AccessRequest.Status.ACCEPTED
         assert access_request.request_type == AccessRequest.RequestType.FROM_BARRIER
         assert access_request.finished_at is not None
 
-        # Check UserBarrier
+        # UserBarrier
         user_barrier = UserBarrier.objects.get(barrier=barrier, user=admin_user)
         assert user_barrier.is_active
         assert user_barrier.access_request == access_request
 
-        # Check Primary Phone
+        # Primary Phone
         phone = BarrierPhone.objects.get(barrier=barrier, user=admin_user)
         assert phone.type == BarrierPhone.PhoneType.PRIMARY
         assert phone.phone == admin_user.phone
 
-        # Check SMS call
+        # SMS
         mock_send_sms.assert_called_once()
+
+        # BarrierActionLog
+        log = BarrierActionLog.objects.get(
+            phone=phone,
+            barrier=barrier,
+            author=BarrierActionLog.Author.SYSTEM,
+            reason=BarrierActionLog.Reason.ACCESS_GRANTED,
+            action_type=BarrierActionLog.ActionType.ADD_PHONE,
+        )
+        assert log is not None
+        assert log.new_value == phone.describe_phone_params()
+        assert log.old_value is None
 
 
 @pytest.mark.django_db
@@ -234,6 +249,17 @@ class TestAdminBarrierView:
         phones = BarrierPhone.objects.filter(barrier=barrier)
         for phone in phones:
             assert not phone.is_active
+
+            log = BarrierActionLog.objects.get(
+                phone=phone,
+                barrier=barrier,
+                author=BarrierActionLog.Author.ADMIN,
+                action_type=BarrierActionLog.ActionType.DELETE_PHONE,
+                reason=BarrierActionLog.Reason.BARRIER_DELETED,
+            )
+            assert log is not None
+            assert log.old_value is None
+            assert log.new_value is None
 
         assert mock_send_sms.call_count == phones.count()
 
@@ -435,12 +461,10 @@ class TestAdminRemoveUserFromBarrierView:
         assert response.status_code == status.HTTP_404_NOT_FOUND
         assert response.data["detail"] == "User not found in this barrier."
 
-    @patch("phones.models.BarrierPhone.remove")
     @patch("phones.models.BarrierPhone.send_sms_to_delete")
-    def test_removes_user_phones_when_leaving_barrier(
+    def test_removes_user_phones_and_logs_created(
         self,
         mock_send_sms,
-        mock_remove,
         authenticated_admin_client,
         private_barrier_with_access,
         user,
@@ -458,5 +482,76 @@ class TestAdminRemoveUserFromBarrierView:
         user_barrier = UserBarrier.objects.get(user=user, barrier=barrier)
         assert not user_barrier.is_active
 
-        assert mock_remove.call_count == 2
+        phones = BarrierPhone.objects.filter(barrier=barrier)
+        for phone in phones:
+            assert not phone.is_active
+
+            log = BarrierActionLog.objects.get(
+                phone=phone,
+                barrier=barrier,
+                author=BarrierActionLog.Author.ADMIN,
+                action_type=BarrierActionLog.ActionType.DELETE_PHONE,
+                reason=BarrierActionLog.Reason.BARRIER_EXIT,
+            )
+            assert log is not None
+            assert log.old_value is None
+            assert log.new_value is None
+
         assert mock_send_sms.call_count == 2
+
+
+@pytest.mark.django_db
+class TestAdminBarrierSettingsView:
+    @patch.object(SMSService, "get_available_barrier_settings")
+    def test_get_settings_success(self, mock_get_settings, authenticated_admin_client, barrier):
+        mock_get_settings.return_value = {"settings": {"test": {"name": "Test", "template": "{pwd}", "params": []}}}
+
+        url = reverse("admin_barrier_settings", args=[barrier.id])
+        response = authenticated_admin_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "settings" in response.data
+        assert "test" in response.data["settings"]
+
+    @patch.object(SMSService, "send_barrier_setting")
+    def test_send_setting_success(self, mock_send_setting, authenticated_admin_client, barrier):
+        url = reverse("admin_barrier_settings", args=[barrier.id])
+        data = {"setting": "start", "params": {"pwd": "1234", "local_phone": "9991112233"}}
+        response = authenticated_admin_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["message"] == "Setting sent successfully."
+        assert "action" in response.data
+
+    def test_invalid_payload(self, authenticated_admin_client, barrier):
+        url = reverse("admin_barrier_settings", args=[barrier.id])
+        response = authenticated_admin_client.post(url, {"params": "not-a-dict"}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "params" in response.data
+
+
+@pytest.mark.django_db
+class TestAdminSendBalanceCheckView:
+    @patch.object(SMSService, "send_balance_check")
+    def test_balance_check_success(self, mock_send, authenticated_admin_client):
+        url = reverse("admin_send_balance_check")
+        response = authenticated_admin_client.post(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["message"] == "Balance check command sent."
+        mock_send.assert_called_once()
+
+    @patch.object(SMSService, "send_balance_check")
+    def test_balance_check_throttled(self, mock_send, authenticated_admin_client):
+        SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.BALANCE_CHECK, phone="+70000000000", content="*100#"
+        )
+
+        url = reverse("admin_send_balance_check")
+        response = authenticated_admin_client.post(url)
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert "retry_after_seconds" in response.data
+        assert "last_sms" in response.data
+        mock_send.assert_not_called()

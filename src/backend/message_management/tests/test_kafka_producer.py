@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 from confluent_kafka import KafkaException
 from django.utils import timezone
+from rest_framework.exceptions import APIException
 
 from message_management.enums import KafkaTopic
 from message_management.kafka_producer import send_sms_to_kafka
@@ -22,14 +23,9 @@ class TestKafkaProducer:
         )
 
     @patch("message_management.kafka_producer.get_producer")
-    def test_send_sms_to_kafka(self, mock_get_producer):
-        sms_message = SMSMessage.objects.create(
-            message_type=SMSMessage.MessageType.VERIFICATION_CODE,
-            content="Test SMS content",
-            phone="+71234567890",
-        )
-
+    def test_send_sms_success(self, mock_get_producer, sms_message):
         producer_mock = mock_get_producer.return_value
+        producer_mock.flush.return_value = 0
 
         send_sms_to_kafka(KafkaTopic.SMS_VERIFICATION, sms_message)
 
@@ -43,17 +39,31 @@ class TestKafkaProducer:
         assert kwargs["topic"] == KafkaTopic.SMS_VERIFICATION.value
         assert kwargs["key"] == sms_message.phone
         payload = json.loads(kwargs["value"])
-
-        assert payload["message_id"] == sms_message.id
-        assert payload["phone"] == sms_message.phone
-        assert payload["content"] == sms_message.content
-        assert payload["retries"] == 5
+        assert payload == {
+            "message_id": sms_message.id,
+            "phone": sms_message.phone,
+            "content": sms_message.content,
+            "retries": 5,
+        }
 
         producer_mock.flush.assert_called_once()
 
     @patch("message_management.kafka_producer.get_producer")
-    def test_producer_buffer_error(self, get_producer_mock, sms_message):
-        producer_mock = get_producer_mock.return_value
+    def test_send_sms_flush_fails(self, mock_get_producer, sms_message):
+        producer_mock = mock_get_producer.return_value
+        producer_mock.flush.return_value = 1  # Non-zero return triggers error
+
+        with pytest.raises(APIException) as exc_info:
+            send_sms_to_kafka(KafkaTopic.SMS_VERIFICATION, sms_message)
+
+        sms_message.refresh_from_db()
+        assert sms_message.status == SMSMessage.Status.FAILED
+        assert sms_message.failure_reason == "Cannot connect to Kafka"
+        assert "Cannot send SMS" in str(exc_info.value)
+
+    @patch("message_management.kafka_producer.get_producer")
+    def test_producer_buffer_error(self, mock_get_producer, sms_message):
+        producer_mock = mock_get_producer.return_value
         producer_mock.produce.side_effect = BufferError("Queue full")
 
         send_sms_to_kafka(KafkaTopic.SMS_VERIFICATION, sms_message)
@@ -61,18 +71,18 @@ class TestKafkaProducer:
         producer_mock.flush.assert_not_called()
 
     @patch("message_management.kafka_producer.get_producer")
-    def test_producer_kafka_exception(self, get_producer_mock, sms_message):
-        producer_mock = get_producer_mock.return_value
-        producer_mock.produce.side_effect = KafkaException("Connection lost")
+    def test_producer_kafka_exception(self, mock_get_producer, sms_message):
+        producer_mock = mock_get_producer.return_value
+        producer_mock.produce.side_effect = KafkaException("Kafka down")
 
         send_sms_to_kafka(KafkaTopic.SMS_VERIFICATION, sms_message)
 
         producer_mock.flush.assert_not_called()
 
     @patch("message_management.kafka_producer.get_producer")
-    def test_producer_unexpected_exception(self, get_producer_mock, sms_message):
-        producer_mock = get_producer_mock.return_value
-        producer_mock.produce.side_effect = RuntimeError("Unknown error")
+    def test_producer_unexpected_exception(self, mock_get_producer, sms_message):
+        producer_mock = mock_get_producer.return_value
+        producer_mock.produce.side_effect = RuntimeError("Unexpected error")
 
         send_sms_to_kafka(KafkaTopic.SMS_VERIFICATION, sms_message)
 

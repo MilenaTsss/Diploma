@@ -1,10 +1,13 @@
+import json
 from datetime import date, datetime, time, timedelta
 from unittest.mock import MagicMock, patch
 
 import pytest
-from django.utils.timezone import now
+from django.utils.timezone import localtime, now
+from rest_framework import serializers
 from rest_framework.exceptions import NotFound, PermissionDenied
 
+from action_history.models import BarrierActionLog
 from conftest import BARRIER_PERMANENT_PHONE
 from phones.constants import MINIMUM_TIME_INTERVAL_MINUTES
 from phones.models import BarrierPhone
@@ -30,7 +33,7 @@ class TestScheduleTimeIntervalSerializer:
         serializer = ScheduleTimeIntervalSerializer(data=data)
 
         assert not serializer.is_valid()
-        assert serializer.errors["time"][0] == "start_time must be earlier than end_time."
+        assert serializer.errors["time"][0] == "end_time must be after start_time."
 
     def test_interval_too_short(self):
         start = time(10, 0)
@@ -45,6 +48,12 @@ class TestScheduleTimeIntervalSerializer:
 
 @pytest.mark.django_db
 class TestScheduleSerializer:
+    def test_empty_day_with_no_intervals(self):
+        serializer = ScheduleSerializer(data={"thursday": []})
+
+        assert serializer.is_valid(), serializer.errors
+        assert serializer.validated_data["thursday"] == []
+
     def test_valid_schedule(self):
         data = {
             "monday": [
@@ -143,49 +152,75 @@ class TestCreateBarrierPhoneSerializer:
         with pytest.raises(NotFound):
             serializer.is_valid(raise_exception=True)
 
+    @pytest.mark.parametrize(
+        "as_admin,expected_author",
+        [
+            (True, BarrierActionLog.Author.ADMIN),
+            (False, BarrierActionLog.Author.USER),
+        ],
+    )
     @patch("phones.serializers.BarrierPhone.create")
-    def test_create_calls_model_create_and_sends_sms(self, mock_create, admin_user, user, barrier):
+    def test_create_calls_model_create_and_sends_sms(
+        self, mock_create, as_admin, expected_author, admin_user, user, barrier
+    ):
         mock_instance = MagicMock()
-        mock_create.return_value = mock_instance
+        mock_log = MagicMock()
+        mock_create.return_value = (mock_instance, mock_log)
 
-        context = {"request": type("Request", (), {"user": admin_user})(), "as_admin": True, "barrier": barrier}
-        data = {
-            "phone": BARRIER_PERMANENT_PHONE,
-            "type": BarrierPhone.PhoneType.PERMANENT,
-            "name": "Test",
-            "user": user.id,
-        }
+        context = {"request": type("Request", (), {"user": admin_user})(), "as_admin": as_admin, "barrier": barrier}
+        data = {"phone": BARRIER_PERMANENT_PHONE, "type": BarrierPhone.PhoneType.PERMANENT, "name": "Test"}
+        if as_admin:
+            data["user"] = user.id
 
         serializer = CreateBarrierPhoneSerializer(data=data, context=context)
         assert serializer.is_valid(), serializer.errors
         serializer.save()
 
-        mock_create.assert_called_once_with(
-            user=user,
-            barrier=barrier,
-            phone=data["phone"],
-            type=data["type"],
-            name=data["name"],
-            start_time=None,
-            end_time=None,
-            schedule=None,
-        )
-        mock_instance.send_sms_to_create.assert_called_once()
+        actual_kwargs = mock_create.call_args.kwargs
+        assert actual_kwargs["user"] == (user if as_admin else admin_user)
+        assert actual_kwargs["barrier"] == barrier
+        assert actual_kwargs["phone"] == data["phone"]
+        assert actual_kwargs["type"] == data["type"]
+        assert actual_kwargs["name"] == data["name"]
+        assert actual_kwargs["start_time"] is None
+        assert actual_kwargs["end_time"] is None
+        assert actual_kwargs["schedule"] is None
+        assert actual_kwargs["author"] == expected_author
+        assert actual_kwargs["reason"] == BarrierActionLog.Reason.MANUAL
+
+        mock_instance.send_sms_to_create.assert_called_once_with(mock_log)
+
+    def test_validation_error_other_than_not_found(self, admin_user, barrier):
+        context = {"request": type("Request", (), {"user": admin_user})(), "as_admin": True, "barrier": barrier}
+        data = {
+            "phone": "not-a-phone",
+            "type": BarrierPhone.PhoneType.PERMANENT,
+            "name": "Invalid",
+            "user": admin_user.id,
+        }
+
+        serializer = CreateBarrierPhoneSerializer(data=data, context=context)
+        with pytest.raises(serializers.ValidationError) as exc_info:
+            serializer.is_valid(raise_exception=True)
+
+        assert "phone" in str(exc_info.value)
 
 
 @pytest.mark.django_db
 class TestUpdateBarrierPhoneSerializer:
     def test_valid_update_with_name_only(self, temporary_barrier_phone):
+        phone, _ = temporary_barrier_phone
         serializer = UpdateBarrierPhoneSerializer(
-            instance=temporary_barrier_phone,
+            instance=phone,
             data={"name": "Just name"},
             partial=True,
         )
         assert serializer.is_valid(), serializer.errors
 
     def test_valid_update_with_time(self, temporary_barrier_phone):
+        phone, _ = temporary_barrier_phone
         serializer = UpdateBarrierPhoneSerializer(
-            instance=temporary_barrier_phone,
+            instance=phone,
             data={
                 "name": "Updated Name",
                 "start_time": now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES + 1),
@@ -196,8 +231,9 @@ class TestUpdateBarrierPhoneSerializer:
         assert serializer.is_valid(), serializer.errors
 
     def test_partial_time_update_start_only(self, temporary_barrier_phone):
+        phone, _ = temporary_barrier_phone
         serializer = UpdateBarrierPhoneSerializer(
-            instance=temporary_barrier_phone,
+            instance=phone,
             data={"start_time": now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES + 10)},
             partial=True,
         )
@@ -208,11 +244,12 @@ class TestUpdateBarrierPhoneSerializer:
         )
 
     def test_temporary_phone_update_too_late(self, temporary_barrier_phone):
-        temporary_barrier_phone.start_time = now()
-        temporary_barrier_phone.save()
+        phone, _ = temporary_barrier_phone
+        phone.start_time = now()
+        phone.save()
 
         serializer = UpdateBarrierPhoneSerializer(
-            instance=temporary_barrier_phone,
+            instance=phone,
             data={
                 "start_time": now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES + 1),
                 "end_time": now() + timedelta(hours=10),
@@ -229,10 +266,11 @@ class TestUpdateBarrierPhoneSerializer:
 
     @patch("phones.serializers.validate_temporary_phone")
     def test_validation_function_called_when_both_times_provided(self, mock_validate, temporary_barrier_phone):
+        phone, _ = temporary_barrier_phone
         start = now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES + 1)
         end = start + timedelta(hours=1)
         serializer = UpdateBarrierPhoneSerializer(
-            instance=temporary_barrier_phone,
+            instance=phone,
             data={"start_time": start, "end_time": end},
             partial=True,
         )
@@ -240,13 +278,15 @@ class TestUpdateBarrierPhoneSerializer:
         mock_validate.assert_called_once_with(BarrierPhone.PhoneType.TEMPORARY, start, end)
 
     @pytest.mark.django_db
-    def test_update_changes_fields_on_instance(self, temporary_barrier_phone):
+    @patch("phones.serializers.PhoneTaskManager.edit_tasks")
+    def test_update_changes_fields_on_instance(self, mock_edit_tasks, temporary_barrier_phone):
+        phone, _ = temporary_barrier_phone
         new_name = "New Title"
         new_start = now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES + 5)
         new_end = new_start + timedelta(hours=1)
 
         serializer = UpdateBarrierPhoneSerializer(
-            instance=temporary_barrier_phone,
+            instance=phone,
             data={"name": new_name, "start_time": new_start, "end_time": new_end},
             partial=True,
         )
@@ -259,16 +299,66 @@ class TestUpdateBarrierPhoneSerializer:
 
     @patch("phones.serializers.PhoneTaskManager.edit_tasks")
     def test_edit_tasks_called_for_temporary_phone(self, mock_edit_tasks, temporary_barrier_phone):
+        phone, _ = temporary_barrier_phone
         start = now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES + 10)
         end = start + timedelta(hours=2)
 
         serializer = UpdateBarrierPhoneSerializer(
-            instance=temporary_barrier_phone,
+            instance=phone,
             data={"start_time": start, "end_time": end},
             partial=True,
         )
         assert serializer.is_valid(), serializer.errors
         serializer.save()
+
+        mock_edit_tasks.assert_called_once()
+
+    @patch("phones.serializers.PhoneTaskManager.edit_tasks")
+    def test_update_creates_log_entry(self, mock_edit_tasks, temporary_barrier_phone):
+        phone, _ = temporary_barrier_phone
+
+        old_name = phone.name
+        old_start = phone.start_time.isoformat(timespec="minutes") if phone.start_time else None
+        old_end = phone.end_time.isoformat(timespec="minutes") if phone.end_time else None
+
+        new_name = "New Updated Name"
+        new_start_dt = now() + timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES + 10)
+        new_end_dt = new_start_dt + timedelta(hours=2)
+
+        serializer = UpdateBarrierPhoneSerializer(
+            instance=phone,
+            data={
+                "name": new_name,
+                "start_time": new_start_dt,
+                "end_time": new_end_dt,
+            },
+            partial=True,
+            context={"as_admin": True},
+        )
+        assert serializer.is_valid(), serializer.errors
+        serializer.save()
+
+        log = BarrierActionLog.objects.filter(
+            phone=phone,
+            action_type=BarrierActionLog.ActionType.UPDATE_PHONE,
+        ).latest("created_at")
+
+        assert log.author == BarrierActionLog.Author.ADMIN
+
+        old_data = json.loads(log.old_value)
+        new_data = json.loads(log.new_value)
+
+        assert old_data["name"] == old_name
+        assert old_data["type"] == "temporary"
+        if old_start:
+            assert old_data["start_time"] == old_start
+        if old_end:
+            assert old_data["end_time"] == old_end
+
+        assert new_data["name"] == new_name
+        assert new_data["type"] == "temporary"
+        assert new_data["start_time"] == localtime(new_start_dt).isoformat(timespec="minutes")
+        assert new_data["end_time"] == localtime(new_end_dt).isoformat(timespec="minutes")
 
         mock_edit_tasks.assert_called_once()
 
@@ -281,6 +371,7 @@ class TestUpdatePhoneScheduleSerializer:
     def test_schedule_update_triggers_all_steps(
         self, mock_validate, mock_replace, mock_edit_tasks, schedule_barrier_phone
     ):
+        phone, _ = schedule_barrier_phone
         data = {
             "monday": [{"start_time": time(9, 0), "end_time": time(10, 0)}],
             "tuesday": [{"start_time": time(11, 0), "end_time": time(12, 0)}],
@@ -288,11 +379,41 @@ class TestUpdatePhoneScheduleSerializer:
         serializer = UpdatePhoneScheduleSerializer(data=data)
         assert serializer.is_valid(), serializer.errors
 
-        result = serializer.update(schedule_barrier_phone, serializer.validated_data)
+        result = serializer.update(phone, serializer.validated_data)
 
-        mock_validate.assert_called_once_with(
-            schedule_barrier_phone.type, serializer.validated_data, schedule_barrier_phone.barrier
-        )
-        mock_replace.assert_called_once_with(schedule_barrier_phone, serializer.validated_data)
+        mock_validate.assert_called_once_with(phone.type, serializer.validated_data, phone.barrier)
+        mock_replace.assert_called_once_with(phone, serializer.validated_data)
         mock_edit_tasks.assert_called_once()
-        assert result == schedule_barrier_phone
+        assert result == phone
+
+    @patch("phones.serializers.PhoneTaskManager.edit_tasks")
+    def test_log_entry_contains_expected_data(self, mock_edit_tasks, schedule_barrier_phone):
+        phone, _ = schedule_barrier_phone
+        data = {
+            "monday": [{"start_time": time(9, 0), "end_time": time(10, 0)}],
+            "tuesday": [{"start_time": time(11, 0), "end_time": time(12, 0)}],
+        }
+
+        serializer = UpdatePhoneScheduleSerializer(data=data, context={"as_admin": True})
+        assert serializer.is_valid(), serializer.errors
+
+        serializer.update(phone, serializer.validated_data)
+
+        log = BarrierActionLog.objects.filter(
+            phone=phone,
+            action_type=BarrierActionLog.ActionType.UPDATE_PHONE,
+            reason=BarrierActionLog.Reason.SCHEDULE_UPDATE,
+        ).latest("created_at")
+
+        assert log.author == BarrierActionLog.Author.ADMIN
+        assert log.barrier == phone.barrier
+
+        old_data = json.loads(log.old_value)
+        new_data = json.loads(log.new_value)
+
+        assert old_data["name"] == phone.name
+        assert old_data["type"] == "schedule"
+        assert isinstance(old_data.get("schedule"), dict)
+
+        assert new_data["schedule"]["monday"][0]["start_time"] == "09:00"
+        assert new_data["schedule"]["tuesday"][0]["end_time"] == "12:00"

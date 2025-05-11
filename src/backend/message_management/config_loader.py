@@ -2,6 +2,8 @@ import json
 import logging
 import os
 
+from rest_framework.exceptions import NotFound, ValidationError
+
 from message_management.enums import PhoneCommand
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,11 +23,11 @@ def get_phone_command(device_model: str, command: PhoneCommand) -> dict:
     commands = load_phone_commands()
     model_commands = commands.get(device_model)
     if not model_commands:
-        raise ValueError(f"No phone commands defined for device model: {device_model}")
+        raise NotFound(f"No phone commands defined for device model: '{device_model}'")
 
     cmd = model_commands.get(command.value)
     if not cmd:
-        raise ValueError(f"Command '{command.value}' not found for model '{device_model}'")
+        raise NotFound(f"Command '{command.value}' not found for model '{device_model}'")
 
     return cmd
 
@@ -39,21 +41,24 @@ def get_setting(device_model: str, key: str) -> dict:
     settings = load_barrier_settings()
 
     if not settings:
-        raise ValueError("No settings defined.")
+        raise NotFound("No settings defined.")
     model_settings = settings.get(device_model)
     if not model_settings:
-        raise ValueError(f"No settings defined for device model: {device_model}.")
-    print(model_settings)
+        raise NotFound(f"No settings available for device model: '{device_model}'.")
 
     setting = model_settings.get(key)
     if not setting:
-        raise ValueError(f"Setting '{key}' not found for model '{device_model}'")
+        raise NotFound(f"Setting '{key}' not found for model '{device_model}'")
 
     return setting
 
 
 def build_message(template: str, params: dict) -> str:
     try:
-        return template.format(**params)
+        message = template.format(**params)
+        logger.debug(f"Built SMS message: {message}")
+        return message
     except KeyError as e:
-        raise ValueError(f"Missing parameter for template: {e}")
+        msg = f"Missing required parameter '{e.args[0]}' for template: {e.args[0]}"
+        logger.warning(msg)
+        raise ValidationError({"detail": msg})

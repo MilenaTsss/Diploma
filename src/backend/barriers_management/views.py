@@ -1,25 +1,33 @@
 import logging
+from datetime import timedelta
 
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
-from rest_framework import generics
+from rest_framework import generics, status
 from rest_framework.decorators import permission_classes
-from rest_framework.exceptions import MethodNotAllowed, NotFound, PermissionDenied
+from rest_framework.exceptions import APIException, MethodNotAllowed, NotFound, PermissionDenied, ValidationError
 from rest_framework.generics import DestroyAPIView
 from rest_framework.permissions import IsAdminUser
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from access_requests.models import AccessRequest
+from action_history.models import BarrierActionLog
 from barriers.models import Barrier, BarrierLimit, UserBarrier
 from barriers.serializers import BarrierLimitSerializer
 from barriers_management.serializers import (
     AdminBarrierSerializer,
+    BarrierSettingsSerializer,
     CreateBarrierSerializer,
+    SendBarrierSettingSerializer,
     UpdateBarrierLimitSerializer,
     UpdateBarrierSerializer,
 )
 from core.pagination import BasePaginatedListView
 from core.utils import created_response, deleted_response, success_response
+from message_management.models import SMSMessage
+from message_management.services import SMSService
 from phones.models import BarrierPhone
 from users.models import User
 from users.serializers import UserSerializer
@@ -58,15 +66,16 @@ class CreateBarrierView(generics.CreateAPIView):
             access_request=access_request,
         )
 
-        phone = BarrierPhone.create(
+        phone, log = BarrierPhone.create(
             user=self.request.user,
             barrier=barrier,
             phone=self.request.user.phone,
             type=BarrierPhone.PhoneType.PRIMARY,
             name=self.request.user.full_name,
+            author=BarrierActionLog.Author.SYSTEM,
+            reason=BarrierActionLog.Reason.ACCESS_GRANTED,
         )
-
-        phone.send_sms_to_create()
+        phone.send_sms_to_create(log)
 
     def create(self, request, *args, **kwargs):
         """Use a different serializer for the response"""
@@ -152,8 +161,8 @@ class AdminBarrierView(generics.RetrieveUpdateDestroyAPIView):
 
         phones = BarrierPhone.objects.filter(barrier=barrier, is_active=True)
         for phone in phones:
-            phone.remove()
-            phone.send_sms_to_delete()
+            _, log = phone.remove(author=BarrierActionLog.Author.ADMIN, reason=BarrierActionLog.Reason.BARRIER_DELETED)
+            phone.send_sms_to_delete(log)
             logger.info(
                 f"Deleted phone '{phone.phone}' for user '{phone.user.id}' on barrier '{barrier.id}' "
                 f"while deleting barrier"
@@ -270,7 +279,82 @@ class AdminRemoveUserFromBarrierView(DestroyAPIView):
         logger.info(f"Deleting all phones for user '{user.id}' while leaving barrier '{barrier.id}'")
         phones = BarrierPhone.objects.filter(user=user, barrier=barrier, is_active=True)
         for phone in phones:
-            phone.remove()
-            phone.send_sms_to_delete()
+            _, log = phone.remove(author=BarrierActionLog.Author.ADMIN, reason=BarrierActionLog.Reason.BARRIER_EXIT)
+            phone.send_sms_to_delete(log)
 
         return success_response({"message": "User successfully removed from barrier."})
+
+
+@permission_classes([IsAdminUser])
+class AdminBarrierSettingsView(APIView):
+    def get_barrier(self, barrier_id):
+        try:
+            barrier = get_object_or_404(Barrier, id=barrier_id, is_active=True)
+        except Http404:
+            raise NotFound("Barrier not found.")
+
+        if barrier.owner != self.request.user:
+            raise PermissionDenied("You do not have access to this barrier.")
+        return barrier
+
+    def get(self, request, id):
+        barrier = self.get_barrier(id)
+
+        data = SMSService.get_available_barrier_settings(barrier)
+        serializer = BarrierSettingsSerializer(data=data)
+        try:
+            serializer.is_valid(raise_exception=True)
+        except ValidationError:
+            raise APIException(
+                f"Invalid settings configuration for device model '{barrier.device_model}'. "
+                "Please check the server config format."
+            )
+        return Response(serializer.data)
+
+    def post(self, request, id):
+        barrier = self.get_barrier(id)
+
+        serializer = SendBarrierSettingSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        setting_key = serializer.validated_data["setting"]
+        params = serializer.validated_data["params"]
+
+        log = BarrierActionLog.objects.create(
+            barrier=barrier,
+            phone=None,
+            author=BarrierActionLog.Author.ADMIN,
+            action_type=BarrierActionLog.ActionType.BARRIER_SETTING,
+            old_value=None,
+        )
+
+        SMSService.send_barrier_setting(barrier, setting_key, params, log)
+
+        return Response({"message": "Setting sent successfully.", "action": log.id})
+
+
+@permission_classes([IsAdminUser])
+class AdminSendBalanceCheckView(APIView):
+    def post(self, request):
+        recent_sms = (
+            SMSMessage.objects.filter(message_type=SMSMessage.MessageType.BALANCE_CHECK).order_by("-sent_at").first()
+        )
+
+        if recent_sms and now() - recent_sms.sent_at < timedelta(minutes=5):
+            retry_after = int((timedelta(minutes=5) - (now() - recent_sms.sent_at)).total_seconds())
+
+            return Response(
+                {
+                    "detail": "Balance check was already requested recently. Try again later.",
+                    "retry_after_seconds": retry_after,
+                    "last_sms": {
+                        "id": recent_sms.id,
+                        "sent_at": recent_sms.sent_at.isoformat(),
+                        "status": recent_sms.status,
+                    },
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        SMSService.send_balance_check()
+        return Response({"message": "Balance check command sent."}, status=status.HTTP_200_OK)

@@ -1,11 +1,16 @@
 import os
+from enum import Enum
 
 KAFKA_SERVERS = os.getenv("KAFKA_SERVERS", "localhost:19092")
 
-KAFKA_SMS_VERIFICATION_TOPIC = "sms_verification"
-KAFKA_SMS_CONFIGURATION_TOPIC = "sms_configuration"
-KAFKA_SMS_RESPONSES_TOPIC = "sms_responses"
-KAFKA_FAILED_MESSAGES_TOPIC = "failed_messages"
+
+class KafkaTopic(Enum):
+    SMS_CONFIGURATION = "sms_configuration"
+    SMS_VERIFICATION = "sms_verification"
+    SMS_BALANCE = "sms_balance"
+    SMS_RESPONSES = "sms_responses"
+    FAILED_MESSAGES = "failed_messages"
+
 
 NUMBER_OF_PARTITIONS = int(os.getenv("NUMBER_OF_PARTITIONS", "3"))
 

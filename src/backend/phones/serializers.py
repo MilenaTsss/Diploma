@@ -5,6 +5,7 @@ from django.utils.timezone import now
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound, PermissionDenied
 
+from action_history.models import BarrierActionLog
 from phones.constants import MINIMUM_TIME_INTERVAL_MINUTES
 from phones.models import BarrierPhone, ScheduleTimeInterval
 from phones.validators import validate_schedule_phone, validate_temporary_phone
@@ -30,7 +31,7 @@ class ScheduleTimeIntervalSerializer(serializers.ModelSerializer):
         end = attrs["end_time"]
 
         if start >= end:
-            raise serializers.ValidationError({"time": "start_time must be earlier than end_time."})
+            raise serializers.ValidationError({"time": "end_time must be after start_time."})
 
         duration = datetime.combine(date.today(), end) - datetime.combine(date.today(), start)
         if duration < timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES):
@@ -129,18 +130,22 @@ class CreateBarrierPhoneSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
+        as_admin = self.context.get("as_admin", False)
+
         schedule_data = validated_data.pop("schedule", None)
-        phone = BarrierPhone.create(
+        phone, log = BarrierPhone.create(
             user=validated_data["user"],
             barrier=validated_data["barrier"],
             phone=validated_data["phone"],
             type=validated_data["type"],
             name=validated_data.get("name", ""),
+            author=BarrierActionLog.Author.ADMIN if as_admin else BarrierActionLog.Author.USER,
+            reason=BarrierActionLog.Reason.MANUAL,
             start_time=validated_data.get("start_time"),
             end_time=validated_data.get("end_time"),
             schedule=schedule_data,
         )
-        phone.send_sms_to_create()
+        phone.send_sms_to_create(log)
         return phone
 
 
@@ -174,11 +179,26 @@ class UpdateBarrierPhoneSerializer(serializers.ModelSerializer):
         return attrs
 
     def update(self, phone: BarrierPhone, validated_data):
+        as_admin = self.context.get("as_admin", False)
+        old_value = phone.describe_phone_params()
+
         for attr, value in validated_data.items():
             setattr(phone, attr, value)
         phone.save()
+
+        new_value = phone.describe_phone_params()
+
+        log = BarrierActionLog.objects.create(
+            phone=phone,
+            barrier=phone.barrier,
+            author=BarrierActionLog.Author.ADMIN if as_admin else BarrierActionLog.Author.USER,
+            action_type=BarrierActionLog.ActionType.UPDATE_PHONE,
+            old_value=old_value,
+            new_value=new_value,
+        )
+
         if phone.type == BarrierPhone.PhoneType.TEMPORARY:
-            PhoneTaskManager(phone).edit_tasks()
+            PhoneTaskManager(phone, log).edit_tasks()
 
         return phone
 
@@ -187,7 +207,23 @@ class UpdatePhoneScheduleSerializer(ScheduleSerializer):
     """Partial update of schedule: only update the days that were explicitly passed."""
 
     def update(self, phone: BarrierPhone, validated_data):
+        as_admin = self.context.get("as_admin", False)
+        old_value = phone.describe_phone_params()
+
         validate_schedule_phone(phone.type, validated_data, phone.barrier)
         ScheduleTimeInterval.replace_schedule(phone, validated_data)
-        PhoneTaskManager(phone).edit_tasks()
+
+        new_value = phone.describe_phone_params()
+        log = BarrierActionLog.objects.create(
+            phone=phone,
+            barrier=phone.barrier,
+            author=BarrierActionLog.Author.ADMIN if as_admin else BarrierActionLog.Author.USER,
+            action_type=BarrierActionLog.ActionType.UPDATE_PHONE,
+            reason=BarrierActionLog.Reason.SCHEDULE_UPDATE,
+            old_value=old_value,
+            new_value=new_value,
+        )
+
+        PhoneTaskManager(phone, log).edit_tasks()
+
         return phone

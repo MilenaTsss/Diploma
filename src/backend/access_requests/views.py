@@ -13,6 +13,7 @@ from access_requests.serializers import (
     CreateAccessRequestSerializer,
     UpdateAccessRequestSerializer,
 )
+from action_history.models import BarrierActionLog
 from barriers.models import UserBarrier
 from core.pagination import BasePaginatedListView
 from core.utils import created_response, success_response
@@ -187,14 +188,16 @@ class BaseAccessRequestView(RetrieveUpdateAPIView):
         serializer.save()
 
         if access_request.status == AccessRequest.Status.ACCEPTED:
-            phone = BarrierPhone.create(
+            phone, log = BarrierPhone.create(
                 user=access_request.user,
                 barrier=access_request.barrier,
                 phone=access_request.user.phone,
                 type=BarrierPhone.PhoneType.PRIMARY,
                 name=access_request.user.full_name,
+                author=BarrierActionLog.Author.SYSTEM,
+                reason=BarrierActionLog.Reason.ACCESS_GRANTED,
             )
-            phone.send_sms_to_create()
+            phone.send_sms_to_create(log)
 
             UserBarrier.create(user=access_request.user, barrier=access_request.barrier, access_request=access_request)
 
