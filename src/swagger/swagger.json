@@ -10022,7 +10022,7 @@
         "properties": {
           "settings": {
             "type": "object",
-            "someSetting1": {
+            "additionalProperties": {
               "type": "object",
               "properties": {
                 "name": {
