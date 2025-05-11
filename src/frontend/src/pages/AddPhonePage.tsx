@@ -100,6 +100,8 @@ const AddPhonePage: React.FC = () => {
             data.type ||
             data.detail ||
             data.schedule ||
+            data.start_time ||
+            data.end_time ||
             "Ошибка при сохранении номера.",
         );
       }

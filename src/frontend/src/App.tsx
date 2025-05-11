@@ -27,6 +27,8 @@ import AdminBarriersPage from "./pages/AdminBarriersPage";
 import AdminBarrierDetails from "./pages/AdminBarrierDetails";
 import BarrierUsersPage from "./pages/BarrierUsersPage";
 import AdminUserProfile from "./pages/AdminUserProfile";
+import AdminAddPhonePage from "./pages/AdminAddPhonePage";
+import AdminEditPhonePage from "./pages/AdminEditPhonePage";
 
 
 const App: React.FC = () => {
@@ -57,6 +59,8 @@ const App: React.FC = () => {
         <Route path="/admin-barrier-page" element={<AdminBarrierDetails />} />
         <Route path="/barrier-users" element={<BarrierUsersPage />} />
         <Route path="/user-profile" element={<AdminUserProfile/>} />
+        <Route path="/add-phone-admin" element={<AdminAddPhonePage/>} />
+        <Route path="/edit-phone-admin" element={<AdminEditPhonePage />} />
       </Routes>
     </Router>
   );

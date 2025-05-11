@@ -190,7 +190,7 @@ const MyBarrierPage: React.FC = () => {
             </button>
             <h1 style={styles.title}>{barrier.address}</h1>
             <button onClick={handleLeave} style={styles.leaveButton}>
-              Выйти
+              Выйти из шлагбаума
             </button>
           </div>
 
