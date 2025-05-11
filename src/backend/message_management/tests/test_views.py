@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.urls import reverse
@@ -246,3 +247,137 @@ class TestSMSMessageDetailViews:
         response = authenticated_admin_client.get(url)
 
         assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+class TestRetrySMSMessageView:
+    def get_url(self, sms_id, *, as_admin=False):
+        if as_admin:
+            return reverse("admin_sms_retry", kwargs={"id": sms_id})
+        return reverse("user_sms_retry", kwargs={"id": sms_id})
+
+    @patch("message_management.services.send_sms_to_kafka")
+    def test_retry_sms_success_for_admin(self, mock_send, authenticated_admin_client, barrier, create_barrier_phone):
+        from message_management.models import SMSMessage
+
+        phone, log = create_barrier_phone(barrier.owner, barrier)
+        sms = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.PHONE_COMMAND,
+            phone=phone.phone,
+            log=log,
+            status=SMSMessage.Status.FAILED,
+            sent_at=now(),
+        )
+        url = self.get_url(sms.id, as_admin=True)
+        response = authenticated_admin_client.post(url)
+        assert response.status_code == 200
+        assert response.data["new_sms_id"] != sms.id
+
+    def test_retry_sms_not_found(self, authenticated_admin_client):
+        url = reverse("admin_sms_retry", kwargs={"id": 999999})
+        response = authenticated_admin_client.post(url)
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+
+    def test_cannot_retry_non_failed_sms(self, authenticated_admin_client, barrier, create_barrier_phone):
+        from message_management.models import SMSMessage
+
+        phone, log = create_barrier_phone(barrier.owner, barrier)
+        sms = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.PHONE_COMMAND,
+            phone=phone.phone,
+            log=log,
+            status=SMSMessage.Status.SENT,
+            sent_at=now(),
+        )
+        url = self.get_url(sms.id, as_admin=True)
+        response = authenticated_admin_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_cannot_retry_old_sms(self, authenticated_admin_client, barrier, create_barrier_phone):
+        from message_management.models import SMSMessage
+
+        phone, log = create_barrier_phone(barrier.owner, barrier)
+        sms = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.PHONE_COMMAND,
+            phone=phone.phone,
+            log=log,
+            status=SMSMessage.Status.FAILED,
+        )
+        sms.sent_at = now() - timedelta(days=3)
+        sms.save(update_fields=["sent_at"])
+        url = self.get_url(sms.id, as_admin=True)
+        response = authenticated_admin_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_user_cannot_retry_foreign_sms(
+        self, authenticated_client, another_user, private_barrier_with_access, create_barrier_phone
+    ):
+        phone, log = create_barrier_phone(another_user, private_barrier_with_access)
+        sms = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.PHONE_COMMAND,
+            phone=phone.phone,
+            log=log,
+            status=SMSMessage.Status.FAILED,
+            sent_at=now(),
+        )
+        url = self.get_url(sms.id)
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_user_cannot_retry_barrier_setting_sms(
+        self, authenticated_client, user, private_barrier_with_access, create_barrier_phone
+    ):
+        phone, log = create_barrier_phone(user, private_barrier_with_access)
+        sms = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.BARRIER_SETTING,
+            phone=phone.phone,
+            log=log,
+            status=SMSMessage.Status.FAILED,
+            sent_at=now(),
+        )
+        url = self.get_url(sms.id)
+        response = authenticated_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_admin_cannot_retry_sms_on_foreign_barrier(
+        self, authenticated_admin_client, barrier, another_admin, create_barrier_phone
+    ):
+        barrier.owner = another_admin
+        barrier.save()
+        phone, log = create_barrier_phone(barrier.owner, barrier)
+        sms = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.PHONE_COMMAND,
+            phone=phone.phone,
+            log=log,
+            status=SMSMessage.Status.FAILED,
+            sent_at=now(),
+        )
+        url = self.get_url(sms.id, as_admin=True)
+        response = authenticated_admin_client.post(url)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_cannot_retry_sms_too_soon_after_previous(self, authenticated_admin_client, barrier, create_barrier_phone):
+        from message_management.models import SMSMessage
+
+        phone, log = create_barrier_phone(barrier.owner, barrier)
+
+        SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.PHONE_COMMAND,
+            phone=phone.phone,
+            log=log,
+            status=SMSMessage.Status.SENT,
+            sent_at=now() - timedelta(minutes=5),
+        )
+
+        failed_sms = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.PHONE_COMMAND,
+            phone=phone.phone,
+            log=log,
+            status=SMSMessage.Status.FAILED,
+            sent_at=now() - timedelta(minutes=20),
+        )
+
+        url = self.get_url(failed_sms.id, as_admin=True)
+        response = authenticated_admin_client.post(url)
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert "already sent recently" in response.data["detail"]

@@ -2920,6 +2920,15 @@
                         "This field may not be blank."
                       ]
                     }
+                  },
+                  "no phone commands for model (cannot create sms)": {
+                    "value": {
+                      "device_model": [
+                        "Device model '{model}' is not supported: No phone commands defined for device model: '{model}'",
+                        "Device model '{model}' is not supported: Command 'add_phone' not found for model '{model}'",
+                        "Device model '{model}' is not supported: Command 'delete_phone' not found for model '{model}'"
+                      ]
+                    }
                   }
                 }
               }
@@ -3228,7 +3237,7 @@
           "Admin. Barriers."
         ],
         "summary": "Редактирование шлагбаума (только для администраторов).",
-        "description": "Позволяет администратору обновить информацию о шлагбауме, включая адрес, телефон устройства, настройки приватности.",
+        "description": "Позволяет администратору обновить информацию о шлагбауме.",
         "security": [
           {
             "BearerAuth": []
@@ -3596,7 +3605,7 @@
     "/admin/barriers/{barrier_id}/settings/": {
       "get": {
         "tags": [
-          "Admin. Barriers."
+          "Barriers Settings"
         ],
         "summary": "Получение списка доступных настроек для шлагбаума (только для администраторов).",
         "description": "Возвращает список возможных настроек для данного шлагбаума в зависимости от его модели.",
@@ -3619,92 +3628,100 @@
         ],
         "responses": {
           "200": {
-            "description": "Список доступных настроек получен.",
+            "description": "Список доступных настроек.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "settings": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "name": {
-                            "type": "string",
-                            "description": "Название настройки.",
-                            "example": "Сколько времени держать закрытым после звонка от 000 до 999 в секундах"
-                          },
-                          "key": {
-                            "type": "string",
-                            "description": "Ключ настройки.",
-                            "example": "opening_duration"
-                          },
-                          "description": {
-                            "type": "string",
-                            "description": "Дополнительное описание настройки.",
-                            "example": "Задает время, в течение которого шлагбаум остается закрытым (в секундах)."
-                          },
-                          "params": {
-                            "type": "array",
-                            "description": "Список параметров, необходимых для этой настройки.",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "name": {
-                                  "type": "string",
-                                  "description": "Название параметра.",
-                                  "example": "Время (сек)"
-                                },
-                                "key": {
-                                  "type": "string",
-                                  "description": "Ключ параметра.",
-                                  "example": "duration"
-                                },
-                                "example": {
-                                  "type": "string",
-                                  "description": "Пример значения.",
-                                  "example": "15"
-                                },
-                                "description": {
-                                  "type": "string",
-                                  "description": "Дополнительное описание параметра.",
-                                  "example": "Задает длительность в секундах."
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
+                  "$ref": "#/components/schemas/BarrierSettings"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
                     }
                   }
                 }
               }
             }
           },
-          "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
-          },
-          "401": {
-            "description": "Пользователь не авторизован."
-          },
           "403": {
-            "description": "Нет доступа к данному шлагбауму."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
+            "description": "Не найдено",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  },
+                  "no settings for model": {
+                    "value": {
+                      "detail": "No settings available for device model: {model}"
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
-            "description": "Ошибка сервера. Попробуйте позже."
+            "description": "Ошибка сервера. Попробуйте позже.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Invalid settings for model": {
+                    "value": {
+                      "detail": "Invalid settings configuration for device model 'RTU5025'. Please check the server config format."
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       },
-      "patch": {
+      "post": {
         "tags": [
-          "Admin. Barriers."
+          "Barriers Settings"
         ],
-        "summary": "Изменение настроек шлагбаума (только для администраторов).",
-        "description": "Позволяет администратору изменить одну или несколько настроек шлагбаума. Сервер проверяет валидность переданных параметров перед отправкой команды.",
+        "summary": "Отправка настройки на шлагбаум",
+        "description": "Позволяет отправить конкретную настройку с параметрами на устройство шлагбаума.",
         "security": [
           {
             "BearerAuth": []
@@ -3727,34 +3744,19 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "array",
-                "description": "Список изменяемых настроек.",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "key": {
-                      "type": "string",
-                      "description": "Ключ настройки.",
-                      "example": "opening_duration"
-                    },
-                    "params": {
-                      "type": "array",
-                      "description": "Список параметров для изменения.",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "key": {
-                            "type": "string",
-                            "description": "Ключ параметра.",
-                            "example": "duration"
-                          },
-                          "value": {
-                            "type": "string",
-                            "description": "Новое значение параметра.",
-                            "example": "15"
-                          }
-                        }
-                      }
+                "type": "object",
+                "properties": {
+                  "setting": {
+                    "type": "string",
+                    "example": "start",
+                    "description": "Ключ настройки, например 'start' или 'restrict_access'"
+                  },
+                  "params": {
+                    "type": "object",
+                    "description": "Словарь параметров, требуемых для выбранной настройки. Ключ выставляется в соответствии с ключами полученными через метод `GET`.",
+                    "example": {
+                      "pwd": "1234",
+                      "local_phone": "9991234567"
                     }
                   }
                 }
@@ -3764,25 +3766,120 @@
         },
         "responses": {
           "200": {
-            "description": "Запрос на изменение настроек успешно отправлен."
+            "description": "Настройка успешно отправлена.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Setting sent successfully."
+                    },
+                    "action": {
+                      "type": "integer",
+                      "example": 42
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
-            "description": "Некорректный параметр запроса - `barrier_id`."
+            "description": "Некорректные параметры запроса.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "invalid format": {
+                    "value": {
+                      "detail": "Missing required parameters for barrier setting: local_phone, pwd"
+                    }
+                  }
+                }
+              }
+            }
           },
           "401": {
-            "description": "Пользователь не авторизован."
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
           },
           "403": {
-            "description": "Доступ запрещен. Только для администраторов."
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this barrier."
+                    }
+                  }
+                }
+              }
+            }
           },
           "404": {
-            "description": "Шлагбаум с указанным `id` не найден."
-          },
-          "429": {
-            "description": "Превышен лимит запросов. Попробуйте позже."
+            "description": "Не найдено.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "barrier not found": {
+                    "value": {
+                      "detail": "Barrier not found."
+                    }
+                  },
+                  "setting not found": {
+                    "value": {
+                      "detail": "Setting '{name}' not found for model '{model}'"
+                    }
+                  },
+                  "no settings for model": {
+                    "value": {
+                      "detail": "No settings available for device model: {model}"
+                    }
+                  }
+                }
+              }
+            }
           },
           "500": {
-            "description": "Ошибка сервера. Попробуйте позже."
+            "description": "Ошибка сервера. Попробуйте позже.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "Invalid settings for model": {
+                    "value": {
+                      "detail": "Invalid settings configuration for device model 'RTU5025'. Please check the server config format."
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -4507,7 +4604,7 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "example": 123
+              "example": 42
             },
             "description": "Фильтр по `ID` телефона."
           },
@@ -4516,7 +4613,7 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "example": 55
+              "example": 42
             },
             "description": "Фильтр по `ID` действия (лога)."
           },
@@ -4775,6 +4872,141 @@
         }
       }
     },
+    "/sms/{sms_id}/retry/": {
+      "post": {
+        "tags": [
+          "Barriers SMS"
+        ],
+        "summary": "Повторная отправка SMS-сообщения (пользователь)",
+        "description": "Позволяет пользователю повторно отправить сообщение типа `phone_command`, если оно завершилось неудачей.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sms_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` сообщения."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SMS успешно отправлено повторно.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "SMS resent successfully."
+                    },
+                    "new_sms_id": {
+                      "type": "integer",
+                      "example": 42
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this SMS."
+                    }
+                  },
+                  "cannot retry": {
+                    "value": {
+                      "detail": "Cannot retry this message."
+                    }
+                  },
+                  "not failed": {
+                    "value": {
+                      "detail": "Only failed messages can be retried."
+                    }
+                  },
+                  "too old": {
+                    "value": {
+                      "detail": "Message is too old to retry."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SMS не найдено",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "not found": {
+                    "value": {
+                      "detail": "Sms message not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many retry attempts. Retry later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "example": "Another SMS was already sent recently for this action. Expected available in {600} seconds."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
     "/admin/barriers/{barrier_id}/sms/": {
       "get": {
         "tags": [
@@ -4826,7 +5058,7 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "example": 123
+              "example": 42
             },
             "description": "Фильтр по `ID` телефона."
           },
@@ -4835,7 +5067,7 @@
             "in": "query",
             "schema": {
               "type": "integer",
-              "example": 55
+              "example": 42
             },
             "description": "Фильтр по `ID` действия (лога)."
           },
@@ -5101,16 +5333,244 @@
         }
       }
     },
+    "/admin/sms/{sms_id}/retry/": {
+      "post": {
+        "tags": [
+          "Barriers SMS"
+        ],
+        "summary": "Повторная отправка SMS-сообщения (админ)",
+        "description": "Позволяет администратору повторно отправить сообщение типа `phone_command` или `barrier_setting`, если оно завершилось неудачей и не старше 2 дней.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "sms_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "example": 42
+            },
+            "description": "`ID` сообщения."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "SMS успешно отправлено повторно.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "SMS resent successfully."
+                    },
+                    "new_sms_id": {
+                      "type": "integer",
+                      "example": 42
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  },
+                  "without access": {
+                    "value": {
+                      "detail": "You do not have access to this SMS."
+                    }
+                  },
+                  "cannot retry": {
+                    "value": {
+                      "detail": "Cannot retry this message."
+                    }
+                  },
+                  "not failed": {
+                    "value": {
+                      "detail": "Only failed messages can be retried."
+                    }
+                  },
+                  "too old": {
+                    "value": {
+                      "detail": "Message is too old to retry."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "SMS не найдено",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "not found": {
+                    "value": {
+                      "detail": "Sms message not found."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка сервера. Попробуйте позже."
+          }
+        }
+      }
+    },
     "/admin/balance/": {
-      "get": {
+      "post": {
         "tags": [
           "Admin"
         ],
-        "summary": "",
-        "description": "",
-        "security": [],
-        "parameters": [],
+        "summary": "Отправка команды запроса баланса.",
+        "description": "Отправляет команду для проверки баланса SIM-карты модема на сайте.",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
         "responses": {
+          "200": {
+            "description": "Команда успешно отправлена.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "Balance check command sent."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Пользователь не авторизован.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "unauthorized": {
+                    "value": {
+                      "detail": "Authentication credentials were not provided."
+                    }
+                  },
+                  "invalid token": {
+                    "value": {
+                      "detail": "Given token not valid for any token type",
+                      "code": "token_not_valid"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Доступ запрещен.",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "blocked": {
+                    "value": {
+                      "detail": "User is blocked. Reason: 'Spam'."
+                    }
+                  },
+                  "not admin": {
+                    "value": {
+                      "detail": "You do not have permission to perform this action."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Запрос баланса уже был недавно отправлен.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "detail": {
+                      "type": "string",
+                      "example": "Balance check was already requested recently. Try again later."
+                    },
+                    "retry_after_seconds": {
+                      "type": "integer",
+                      "example": 42
+                    },
+                    "last_sms": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer",
+                          "example": 42
+                        },
+                        "sent_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2025-05-10T18:50:00+03:00"
+                        },
+                        "status": {
+                          "type": "string",
+                          "enum": [
+                            "created",
+                            "sent",
+                            "success",
+                            "failed"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ошибка сервера при отправке команды."
+          }
         }
       }
     },
@@ -6860,6 +7320,19 @@
                       "schedule": "Intervals on monday must have at least 30 minutes between them: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
                     }
                   },
+                  "schedule interval error": {
+                    "value": {
+                      "schedule": {
+                        "monday": [
+                          {
+                            "time": [
+                              "end_time must be after start_time."
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
                   "extra fields": {
                     "value": {
                       "time": "start_time and end_time are only allowed for temporary phone numbers.",
@@ -7712,6 +8185,19 @@
                       "schedule": "Intervals on monday must have at least 30 minutes between them: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
                     }
                   },
+                  "schedule interval error": {
+                    "value": {
+                      "schedule": {
+                        "monday": [
+                          {
+                            "time": [
+                              "end_time must be after start_time."
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
                   "schedule minimum interval": {
                     "value": {
                       "schedule": "Schedule must contain at least one interval."
@@ -7979,6 +8465,19 @@
                   "schedule intervals minimum minutes": {
                     "value": {
                       "schedule": "Intervals on monday must have at least 30 minutes between them: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
+                    }
+                  },
+                  "schedule interval error": {
+                    "value": {
+                      "schedule": {
+                        "monday": [
+                          {
+                            "time": [
+                              "end_time must be after start_time."
+                            ]
+                          }
+                        ]
+                      }
                     }
                   },
                   "extra fields": {
@@ -8867,6 +9366,19 @@
                       "schedule": "Intervals on monday must have at least 30 minutes between them: '09:00:00-10:00:00 and 09:30:00-11:00:00'"
                     }
                   },
+                  "schedule interval error": {
+                    "value": {
+                      "schedule": {
+                        "monday": [
+                          {
+                            "time": [
+                              "end_time must be after start_time."
+                            ]
+                          }
+                        ]
+                      }
+                    }
+                  },
                   "schedule minimum interval": {
                     "value": {
                       "schedule": "Schedule must contain at least one interval."
@@ -9289,6 +9801,17 @@
             ],
             "example": "temporary"
           },
+          "access_state": {
+            "type": "string",
+            "enum": [
+              "unknown",
+              "open",
+              "closed",
+              "error_opening",
+              "error_closing"
+            ],
+            "example": "open"
+          },
           "start_time": {
             "type": "string",
             "format": "date-time",
@@ -9421,12 +9944,14 @@
           "old_value": {
             "type": "string",
             "nullable": true,
-            "description": "Previous value/state (as string or JSON)"
+            "description": "Previous value/state (as string or JSON)",
+            "example": "{\"name\": \"Гость\", \"type\": \"schedule\", \"schedule\": {\"monday\": [{\"start_time\": \"10:00\", \"end_time\": \"12:00\"}]}}"
           },
           "new_value": {
             "type": "string",
             "nullable": true,
-            "description": "New value/state (as string or JSON)"
+            "description": "New value/state (as string or JSON)",
+            "example": "{\"name\": \"Гость\", \"type\": \"temporary\", \"start_time\": \"2025-08-01T10:00+03:00\", \"end_time\": \"2025-08-01T18:00+03:00\"}"
           },
           "created_at": {
             "type": "string",
@@ -9489,6 +10014,59 @@
             "type": "integer",
             "nullable": true,
             "example": 42
+          }
+        }
+      },
+      "BarrierSettings": {
+        "type": "object",
+        "properties": {
+          "settings": {
+            "type": "object",
+            "someSetting1": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "example": "Смена пароля"
+                },
+                "description": {
+                  "type": "string",
+                  "example": "Команда для смены пароля доступа к устройству"
+                },
+                "template": {
+                  "type": "string",
+                  "example": "{pwd}P{newpwd}"
+                },
+                "params": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "example": "Пароль"
+                      },
+                      "key": {
+                        "type": "string",
+                        "example": "pwd"
+                      },
+                      "example": {
+                        "type": "string",
+                        "example": "1234"
+                      },
+                      "description": {
+                        "type": "string",
+                        "example": "Текущий пароль"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "type": "string",
+                  "example": "1234P5678"
+                }
+              }
+            }
           }
         }
       }

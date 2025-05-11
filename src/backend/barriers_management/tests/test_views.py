@@ -15,6 +15,8 @@ from conftest import (
     OTHER_PHONE,
     USER_PHONE,
 )
+from message_management.models import SMSMessage
+from message_management.services import SMSService
 from phones.models import BarrierPhone
 from users.models import User
 
@@ -496,3 +498,60 @@ class TestAdminRemoveUserFromBarrierView:
             assert log.new_value is None
 
         assert mock_send_sms.call_count == 2
+
+
+@pytest.mark.django_db
+class TestAdminBarrierSettingsView:
+    @patch.object(SMSService, "get_available_barrier_settings")
+    def test_get_settings_success(self, mock_get_settings, authenticated_admin_client, barrier):
+        mock_get_settings.return_value = {"settings": {"test": {"name": "Test", "template": "{pwd}", "params": []}}}
+
+        url = reverse("admin_barrier_settings", args=[barrier.id])
+        response = authenticated_admin_client.get(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert "settings" in response.data
+        assert "test" in response.data["settings"]
+
+    @patch.object(SMSService, "send_barrier_setting")
+    def test_send_setting_success(self, mock_send_setting, authenticated_admin_client, barrier):
+        url = reverse("admin_barrier_settings", args=[barrier.id])
+        data = {"setting": "start", "params": {"pwd": "1234", "local_phone": "9991112233"}}
+        response = authenticated_admin_client.post(url, data, format="json")
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["message"] == "Setting sent successfully."
+        assert "action" in response.data
+
+    def test_invalid_payload(self, authenticated_admin_client, barrier):
+        url = reverse("admin_barrier_settings", args=[barrier.id])
+        response = authenticated_admin_client.post(url, {"params": "not-a-dict"}, format="json")
+
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "params" in response.data
+
+
+@pytest.mark.django_db
+class TestAdminSendBalanceCheckView:
+    @patch.object(SMSService, "send_balance_check")
+    def test_balance_check_success(self, mock_send, authenticated_admin_client):
+        url = reverse("admin_send_balance_check")
+        response = authenticated_admin_client.post(url)
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["message"] == "Balance check command sent."
+        mock_send.assert_called_once()
+
+    @patch.object(SMSService, "send_balance_check")
+    def test_balance_check_throttled(self, mock_send, authenticated_admin_client):
+        SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.BALANCE_CHECK, phone="+70000000000", content="*100#"
+        )
+
+        url = reverse("admin_send_balance_check")
+        response = authenticated_admin_client.post(url)
+
+        assert response.status_code == status.HTTP_429_TOO_MANY_REQUESTS
+        assert "retry_after_seconds" in response.data
+        assert "last_sms" in response.data
+        mock_send.assert_not_called()

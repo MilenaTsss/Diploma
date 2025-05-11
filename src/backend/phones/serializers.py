@@ -31,7 +31,7 @@ class ScheduleTimeIntervalSerializer(serializers.ModelSerializer):
         end = attrs["end_time"]
 
         if start >= end:
-            raise serializers.ValidationError({"time": "start_time must be earlier than end_time."})
+            raise serializers.ValidationError({"time": "end_time must be after start_time."})
 
         duration = datetime.combine(date.today(), end) - datetime.combine(date.today(), start)
         if duration < timedelta(minutes=MINIMUM_TIME_INTERVAL_MINUTES):

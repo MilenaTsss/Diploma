@@ -29,10 +29,6 @@ def reset_producer():
 
 
 def send_sms_to_kafka(topic: KafkaTopic, message: SMSMessage):
-    message.status = SMSMessage.Status.SENT
-    message.updated_at = now()
-    message.save()
-
     payload = {
         "message_id": message.id,
         "phone": message.phone,
@@ -71,3 +67,7 @@ def send_sms_to_kafka(topic: KafkaTopic, message: SMSMessage):
     except Exception as e:
         logger.exception(f"Unexpected error while producing to Kafka: {e}")
         reset_producer()
+
+    message.status = SMSMessage.Status.SENT
+    message.updated_at = now()
+    message.save()

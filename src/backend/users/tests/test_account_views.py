@@ -132,7 +132,6 @@ class TestUserAccountView:
         data = {"verification_token": verification.verification_token}
         response = authenticated_admin_client.delete(url, data)
 
-        print(response.data)
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
         admin_user.refresh_from_db()

@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from rest_framework.exceptions import NotFound, ValidationError
 
 from barriers.models import Barrier
 from message_management.config_loader import (
@@ -37,6 +38,14 @@ class TestLoadPhoneCommands:
         assert PhoneCommand.ADD.value in commands[Barrier.Model.RTU5025]
         assert PhoneCommand.ADD.value in commands[Barrier.Model.TELEMETRICA]
 
+    def test_invalid_json(self, tmp_path, monkeypatch):
+        broken_file = tmp_path / "broken.json"
+        broken_file.write_text("{invalid json")
+        monkeypatch.setattr("message_management.config_loader.PHONE_COMMANDS_PATH", str(broken_file))
+
+        with pytest.raises(json.JSONDecodeError):
+            load_phone_commands()
+
 
 @pytest.mark.django_db
 class TestGetPhoneCommand:
@@ -50,12 +59,12 @@ class TestGetPhoneCommand:
 
     def test_command_not_found(self, wrong_command_phone_config):
         with pytest.raises(
-            ValueError, match=f"Command '{PhoneCommand.ADD.value}' not found for model '{Barrier.Model.RTU5025}'"
+            NotFound, match=f"Command '{PhoneCommand.ADD.value}' not found for model '{Barrier.Model.RTU5025}'"
         ):
             get_phone_command(Barrier.Model.RTU5025, PhoneCommand.ADD)
 
     def test_model_not_found(self):
-        with pytest.raises(ValueError, match="No phone commands defined for device model: UnknownModel"):
+        with pytest.raises(NotFound, match="No phone commands defined for device model: 'UnknownModel'"):
             get_phone_command("UnknownModel", PhoneCommand.ADD)
 
 
@@ -82,12 +91,26 @@ class TestGetSetting:
         assert setting["template"] == "#0#"
 
     def test_setting_not_found(self):
-        with pytest.raises(ValueError, match=f"Setting 'none' not found for model '{Barrier.Model.RTU5025}'"):
+        with pytest.raises(NotFound, match=f"Setting 'none' not found for model '{Barrier.Model.RTU5025}'"):
             get_setting(Barrier.Model.RTU5025, "none")
 
     def test_model_not_found(self):
-        with pytest.raises(ValueError, match="No settings defined for device model: UnknownModel."):
+        with pytest.raises(NotFound, match="No settings available for device model: 'UnknownModel'."):
             get_setting("UnknownModel", "open_time")
+
+    def test_get_setting_without_params(self, monkeypatch):
+        setting_data = {
+            Barrier.Model.RTU5025: {
+                "simple": {
+                    "template": "TEST",
+                }
+            }
+        }
+
+        monkeypatch.setattr("message_management.config_loader.load_barrier_settings", lambda: setting_data)
+
+        setting = get_setting(Barrier.Model.RTU5025, "simple")
+        assert setting["template"] == "TEST"
 
 
 class TestBuildMessage:
@@ -106,5 +129,5 @@ class TestBuildMessage:
     def test_missing_param(self):
         template = "Hello {name}"
         params = {}
-        with pytest.raises(ValueError, match="Missing parameter for template:"):
+        with pytest.raises(ValidationError, match="Missing required parameter 'name' for template:"):
             build_message(template, params)
