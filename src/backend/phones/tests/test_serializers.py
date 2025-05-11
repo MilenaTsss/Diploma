@@ -33,7 +33,7 @@ class TestScheduleTimeIntervalSerializer:
         serializer = ScheduleTimeIntervalSerializer(data=data)
 
         assert not serializer.is_valid()
-        assert serializer.errors["time"][0] == "start_time must be earlier than end_time."
+        assert serializer.errors["time"][0] == "end_time must be after start_time."
 
     def test_interval_too_short(self):
         start = time(10, 0)

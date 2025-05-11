@@ -6,12 +6,11 @@ import time
 
 from config import (
     DB_PATH,
-    KAFKA_SMS_CONFIGURATION_TOPIC,
-    KAFKA_SMS_VERIFICATION_TOPIC,
     MODEM_PASSWORD,
     MODEM_URL,
     MODEM_USERNAME,
     NUMBER_OF_PARTITIONS,
+    KafkaTopic,
 )
 from kafka.consumers import consume_loop
 from kafka.handlers.configuration_handler import handle_sms_configuration
@@ -23,8 +22,8 @@ logger = logging.getLogger(__name__)
 stop_event = threading.Event()
 
 TOPIC_HANDLER_MAP = {
-    KAFKA_SMS_VERIFICATION_TOPIC: handle_sms_verification,
-    KAFKA_SMS_CONFIGURATION_TOPIC: handle_sms_configuration,
+    KafkaTopic.SMS_VERIFICATION.value: handle_sms_verification,
+    KafkaTopic.SMS_CONFIGURATION.value: handle_sms_configuration,
 }
 
 

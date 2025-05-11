@@ -105,7 +105,7 @@ class TestIsInActiveInterval:
             )
             manager = PhoneTaskManager(phone, log)
 
-            assert manager._is_in_active_interval(current) is True
+            assert manager.is_in_active_interval(current) is True
 
         def test_outside_active_interval(self, create_barrier_phone, user, barrier):
             start = now() + timedelta(minutes=15)
@@ -117,7 +117,7 @@ class TestIsInActiveInterval:
             )
             manager = PhoneTaskManager(phone, log)
 
-            assert manager._is_in_active_interval(current) is False
+            assert manager.is_in_active_interval(current) is False
 
     class TestSchedulePhone:
         def test_inside_schedule_interval(self, create_barrier_phone, user, barrier):
@@ -134,7 +134,7 @@ class TestIsInActiveInterval:
             phone, log = create_barrier_phone(user, barrier, type="schedule", schedule=schedule)
             manager = PhoneTaskManager(phone, log)
 
-            assert manager._is_in_active_interval(current) is True
+            assert manager.is_in_active_interval(current) is True
 
         def test_outside_schedule_interval(self, create_barrier_phone, user, barrier):
             schedule = {
@@ -150,7 +150,7 @@ class TestIsInActiveInterval:
             phone, log = create_barrier_phone(user, barrier, type="schedule", schedule=schedule)
             manager = PhoneTaskManager(phone, log)
 
-            assert manager._is_in_active_interval(current) is False
+            assert manager.is_in_active_interval(current) is False
 
 
 @pytest.mark.django_db
@@ -186,7 +186,7 @@ class TestSyncAccess:
         phone, log = schedule_barrier_phone
         manager = PhoneTaskManager(phone, log)
 
-        manager._is_in_active_interval = MagicMock(return_value=in_interval)
+        manager.is_in_active_interval = MagicMock(return_value=in_interval)
 
         manager.sync_access(mode)
 

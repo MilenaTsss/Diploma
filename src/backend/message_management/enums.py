@@ -13,6 +13,7 @@ class PhoneCommand(Enum):
 class KafkaTopic(Enum):
     SMS_CONFIGURATION = "sms_configuration"
     SMS_VERIFICATION = "sms_verification"
+    SMS_BALANCE = "sms_balance"
     SMS_RESPONSES = "sms_responses"
     FAILED_MESSAGES = "failed_messages"
 

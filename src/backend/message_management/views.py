@@ -1,14 +1,21 @@
+from datetime import timedelta
+
 from django.http import Http404
 from django.utils.dateparse import parse_datetime
+from django.utils.timezone import localtime, now
 from rest_framework.decorators import permission_classes
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied, Throttled
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import IsAdminUser
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from barriers.models import Barrier, UserBarrier
 from core.pagination import BasePaginatedListView
 from message_management.models import SMSMessage
 from message_management.serializers import SMSMessageSerializer
+from message_management.services import SMSService
+from phones.models import BarrierPhone
 
 
 def get_barrier(user, barrier_id, as_admin):
@@ -156,4 +163,83 @@ class UserSMSMessageDetailView(BaseSMSMessageDetailView):
 
 @permission_classes([IsAdminUser])
 class AdminSMSMessageDetailView(BaseSMSMessageDetailView):
+    as_admin = True
+
+
+class BaseSMSMessageRetryView(APIView):
+    as_admin = False
+    MAX_AGE_DAYS = 2
+
+    def get_object(self, id, user):
+        try:
+            sms = SMSMessage.objects.get(id=id)
+        except SMSMessage.DoesNotExist:
+            raise NotFound("Sms message not found.")
+
+        if sms.message_type in [SMSMessage.MessageType.VERIFICATION_CODE, SMSMessage.MessageType.BALANCE_CHECK]:
+            raise PermissionDenied("Cannot retry this message.")
+
+        log = sms.log
+        if not log:
+            raise PermissionDenied("Cannot retry this message.")
+
+        barrier = log.barrier
+        phone = log.phone
+
+        if self.as_admin:
+            if barrier.owner != user:
+                raise PermissionDenied("You do not have access to this SMS.")
+        else:
+            if sms.message_type == SMSMessage.MessageType.BARRIER_SETTING:
+                raise PermissionDenied("You do not have access to this SMS.")
+            if not phone or phone.user != user:
+                raise PermissionDenied("You do not have access to this SMS.")
+
+        if sms.status != SMSMessage.Status.FAILED:
+            raise PermissionDenied("Only failed messages can be retried.")
+
+        if now() - sms.sent_at > timedelta(days=self.MAX_AGE_DAYS):
+            raise PermissionDenied("Message is too old to retry.")
+
+        recent_sms = (
+            SMSMessage.objects.filter(log=log, sent_at__gte=now() - timedelta(minutes=10))
+            .exclude(id=sms.id)
+            .order_by("-sent_at")
+            .first()
+        )
+
+        if recent_sms:
+            retry_after = int((recent_sms.sent_at + timedelta(minutes=10) - now()).total_seconds())
+            raise Throttled(wait=retry_after, detail="Another SMS was already sent recently for this action.")
+
+        return sms, phone, log
+
+    def post(self, request, id):
+        sms, phone, log = self.get_object(id, request.user)
+
+        if sms.message_type == SMSMessage.MessageType.PHONE_COMMAND:
+            command = sms.phone_command_type
+            phone_type = phone.type
+            now_dt = localtime(now())
+
+            if phone_type in [BarrierPhone.PhoneType.TEMPORARY, BarrierPhone.PhoneType.SCHEDULE]:
+                from scheduler.task_manager import PhoneTaskManager
+
+                in_interval = PhoneTaskManager(phone, log).is_in_active_interval(now_dt)
+
+                if in_interval and command == SMSMessage.PhoneCommandType.CLOSE:
+                    raise PermissionDenied("Cannot retry this message.")
+                if not in_interval and command == SMSMessage.PhoneCommandType.OPEN:
+                    raise PermissionDenied("Cannot retry this message.")
+
+        new_sms = SMSService.retry_sms(sms)
+        return Response({"message": "SMS resent successfully.", "new_sms_id": new_sms.id})
+
+
+class UserSMSMessageRetryView(BaseSMSMessageRetryView):
+    as_admin = False
+
+
+@permission_classes([IsAdminUser])
+class AdminSMSMessageRetryView(BaseSMSMessageRetryView):
     as_admin = True

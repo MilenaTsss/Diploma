@@ -49,7 +49,7 @@ class PhoneTaskManager:
             if job_meta["phone_id"] == self.phone.id:
                 self.scheduler.remove_job(job.id)
 
-    def _is_in_active_interval(self, current_dt: datetime) -> bool:
+    def is_in_active_interval(self, current_dt: datetime) -> bool:
         adjusted_dt = current_dt + ACCESS_OPENING_SHIFT
         adjusted_time = adjusted_dt.time()
         current_time = current_dt.replace(second=0, microsecond=0).time()
@@ -71,7 +71,7 @@ class PhoneTaskManager:
             return
 
         current_dt = localtime(now())
-        in_interval = self._is_in_active_interval(current_dt)
+        in_interval = self.is_in_active_interval(current_dt)
         logger.debug(f"In active interval: {in_interval}")
 
         if in_interval and mode in ["add", "edit"]:

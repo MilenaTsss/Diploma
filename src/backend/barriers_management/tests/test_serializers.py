@@ -1,11 +1,14 @@
 import copy
+from unittest.mock import patch
 
 import pytest
 
 from barriers.models import Barrier, BarrierLimit
 from barriers_management.serializers import (
     AdminBarrierSerializer,
+    BarrierSettingsSerializer,
     CreateBarrierSerializer,
+    SendBarrierSettingSerializer,
     UpdateBarrierLimitSerializer,
     UpdateBarrierSerializer,
 )
@@ -97,6 +100,27 @@ class TestCreateBarrierSerializer:
 
         assert serializer.is_valid()
 
+    @patch("barriers_management.serializers.get_phone_command")
+    def test_unsupported_device_model(self, mock_get_phone_command, admin_context):
+        mock_get_phone_command.side_effect = Exception("Command not supported")
+
+        data = {
+            "address": "Test address",
+            "device_phone": "+79990000001",
+            "device_model": "RTU5025",
+            "device_phones_amount": 1,
+            "device_password": "1234",
+            "additional_info": "info",
+            "is_public": True,
+        }
+
+        serializer = CreateBarrierSerializer(data=data, context=admin_context)
+
+        assert not serializer.is_valid()
+        assert "device_model" in serializer.errors
+        assert "Command not supported" in serializer.errors["device_model"][0]
+        assert mock_get_phone_command.call_count == 1
+
 
 @pytest.mark.django_db
 class TestUpdateBarrierSerializer:
@@ -182,3 +206,50 @@ class TestUpdateBarrierLimitSerializer:
         serializer = UpdateBarrierLimitSerializer(limit, data=data, partial=True)
         assert not serializer.is_valid()
         assert "Each limit must not exceed the amount of phones in device." in serializer.errors["detail"][0]
+
+
+class TestBarrierSettingsSerializer:
+    def test_valid_structure(self):
+        data = {
+            "settings": {
+                "start": {
+                    "name": "Начало",
+                    "description": "Описание",
+                    "template": "{pwd}CMD",
+                    "params": [{"name": "Пароль", "key": "pwd", "example": "1234", "description": "some text"}],
+                    "example": "1234CMD",
+                }
+            }
+        }
+
+        serializer = BarrierSettingsSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+
+
+class TestSendBarrierSettingSerializer:
+    def test_valid_data(self):
+        data = {"setting": "start", "params": {"pwd": "1234"}}
+
+        serializer = SendBarrierSettingSerializer(data=data)
+        assert serializer.is_valid(), serializer.errors
+
+    def test_params_is_not_dict(self):
+        data = {"setting": "start", "params": ["not", "a", "dict"]}
+
+        serializer = SendBarrierSettingSerializer(data=data)
+        assert not serializer.is_valid()
+        assert serializer.errors["params"][0].code == "not_a_dict"
+
+    def test_params_dict_wrong_value(self):
+        data = {"setting": "start", "params": {"key": ["array"]}}
+
+        serializer = SendBarrierSettingSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "params" in serializer.errors
+
+    def test_setting_is_required(self):
+        data = {"params": {"pwd": "1234"}}
+
+        serializer = SendBarrierSettingSerializer(data=data)
+        assert not serializer.is_valid()
+        assert "setting" in serializer.errors

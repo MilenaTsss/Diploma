@@ -4,6 +4,8 @@ from rest_framework import serializers
 from barriers.models import Barrier, BarrierLimit
 from barriers.validators import DevicePasswordValidator
 from core.utils import ConflictError
+from message_management.config_loader import get_phone_command
+from message_management.enums import PhoneCommand
 
 
 class AdminBarrierSerializer(serializers.ModelSerializer):
@@ -66,6 +68,13 @@ class CreateBarrierSerializer(serializers.ModelSerializer):
                 DevicePasswordValidator()(password)
             except DjangoValidationError as e:
                 raise serializers.ValidationError({"device_password": list(e.messages)})
+
+        try:
+            get_phone_command(model, PhoneCommand.ADD)
+            get_phone_command(model, PhoneCommand.DELETE)
+        except Exception as e:
+            msg = f"Device model '{model}' is not supported: {str(e)}"
+            raise serializers.ValidationError({"device_model": msg})
 
         return attrs
 
@@ -151,3 +160,27 @@ class UpdateBarrierLimitSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"detail": "Each limit must not exceed the amount of phones in device."})
 
         return super().validate(attrs)
+
+
+class BarrierSettingParamSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    key = serializers.CharField()
+    example = serializers.CharField(required=False)
+    description = serializers.CharField(required=False)
+
+
+class BarrierSettingSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    description = serializers.CharField(required=False)
+    template = serializers.CharField()
+    params = BarrierSettingParamSerializer(many=True)
+    example = serializers.CharField(required=False)
+
+
+class BarrierSettingsSerializer(serializers.Serializer):
+    settings = serializers.DictField(child=BarrierSettingSerializer())
+
+
+class SendBarrierSettingSerializer(serializers.Serializer):
+    setting = serializers.CharField(required=True)
+    params = serializers.DictField(child=serializers.CharField(), required=False, default=dict)
