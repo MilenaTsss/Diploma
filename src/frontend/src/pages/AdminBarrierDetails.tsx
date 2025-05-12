@@ -214,6 +214,12 @@ const AdminBarrierDetails: React.FC = () => {
                         ⚙️ Настроить устройство
                     </button>
                     <button
+                        style={styles.navButton}
+                        onClick={() => navigate("/barrier-history-admin", { state: { barrier_id, access_token, refresh_token } })}
+                    >
+                        📜 История изменений
+                    </button>
+                    <button
                         style={styles.deleteButton}
                         onClick={() => setShowConfirmModal(true)}
                     >

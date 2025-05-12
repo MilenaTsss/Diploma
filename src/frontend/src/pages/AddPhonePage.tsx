@@ -9,6 +9,22 @@ const AddPhonePage: React.FC = () => {
   const barrierId = location.state?.barrier_id;
   const accessToken = location.state?.access_token;
 
+  const logToLoki = (message: string, level: 'info' | 'warn' | 'error' = 'info') => {
+    fetch("http://loki:3100/loki/api/v1/push", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        streams: [
+          {
+            stream: { level, app: "react-ui", page: "add-phone" },
+            values: [[`${Date.now()}000000`, message]],
+          },
+        ],
+      }),
+    }).catch(console.error);
+  };
+
+
   const [phone, setPhone] = useState("+7");
   const [name, setName] = useState("");
   const [type, setType] = useState<"permanent" | "temporary" | "schedule">(
@@ -50,6 +66,7 @@ const AddPhonePage: React.FC = () => {
 
     if (!isPhoneValid()) {
       setError("Номер телефона должен быть в формате +7XXXXXXXXXX.");
+      logToLoki(`Введён неверный номер: ${phone}`, "warn");
       return;
     }
 
@@ -67,6 +84,7 @@ const AddPhonePage: React.FC = () => {
       }
       if (new Date(startTime) >= new Date(endTime)) {
         setError("Время начала должно быть раньше времени конца.");
+        logToLoki(`Некорректный интервал в расписании: ${startTime} >= ${endTime}`, "error");
         return;
       }
 
@@ -89,12 +107,14 @@ const AddPhonePage: React.FC = () => {
       });
 
       if (res.ok) {
+        logToLoki(`Номер ${phone} успешно добавлен (${type}) на шлагбаум ${barrierId}`, "info");
         navigate("/mybarrier", {
           state: { barrier_id: barrierId, access_token: accessToken },
         });
       } else {
         const data = await res.json();
         console.log(data);
+        logToLoki(`Ошибка при сохранении номера: ${JSON.stringify(data)}`, "error");
         setError(
           data.phone ||
             data.type ||
@@ -106,6 +126,7 @@ const AddPhonePage: React.FC = () => {
         );
       }
     } catch (e) {
+      logToLoki(`Сетевая ошибка при добавлении номера: ${phone}`, "error");
       setError("Ошибка сети.");
     }
   };
