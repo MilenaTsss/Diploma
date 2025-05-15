@@ -2264,6 +2264,7 @@
         "parameters": [
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -2406,6 +2407,7 @@
         "parameters": [
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -3008,6 +3010,7 @@
         "parameters": [
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -3909,6 +3912,7 @@
           },
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -4234,6 +4238,7 @@
           },
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -4578,6 +4583,7 @@
           },
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -4619,6 +4625,7 @@
           },
           {
             "name": "message_type",
+            "description": "Тип сообщения",
             "in": "query",
             "schema": {
               "type": "string",
@@ -4629,6 +4636,7 @@
           },
           {
             "name": "phone_command_type",
+            "description": "Тип команды для телефона",
             "in": "query",
             "schema": {
               "type": "string",
@@ -4640,6 +4648,7 @@
           },
           {
             "name": "status",
+            "description": "Статус",
             "in": "query",
             "schema": {
               "type": "string",
@@ -4653,6 +4662,7 @@
           },
           {
             "name": "sent_from",
+            "description": "Отправлено от времени",
             "in": "query",
             "schema": {
               "type": "string",
@@ -4662,6 +4672,7 @@
           },
           {
             "name": "sent_to",
+            "description": "Отправлено до времени",
             "in": "query",
             "schema": {
               "type": "string",
@@ -4671,6 +4682,7 @@
           },
           {
             "name": "updated_from",
+            "description": "Обновлено от времени",
             "in": "query",
             "schema": {
               "type": "string",
@@ -4680,6 +4692,7 @@
           },
           {
             "name": "updated_to",
+            "description": "Обновлено до времени",
             "in": "query",
             "schema": {
               "type": "string",
@@ -5032,6 +5045,7 @@
           },
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -5073,6 +5087,7 @@
           },
           {
             "name": "message_type",
+            "description": "Тип сообщения",
             "in": "query",
             "schema": {
               "type": "string",
@@ -5085,6 +5100,7 @@
           },
           {
             "name": "phone_command_type",
+            "description": "Тип команды для телефона",
             "in": "query",
             "schema": {
               "type": "string",
@@ -5096,6 +5112,7 @@
           },
           {
             "name": "status",
+            "description": "Статус",
             "in": "query",
             "schema": {
               "type": "string",
@@ -5109,6 +5126,7 @@
           },
           {
             "name": "sent_from",
+            "description": "Отправлено от времени",
             "in": "query",
             "schema": {
               "type": "string",
@@ -5118,6 +5136,7 @@
           },
           {
             "name": "sent_to",
+            "description": "Отправлено до времени",
             "in": "query",
             "schema": {
               "type": "string",
@@ -5127,6 +5146,7 @@
           },
           {
             "name": "updated_from",
+            "description": "Обновлено от времени",
             "in": "query",
             "schema": {
               "type": "string",
@@ -5136,6 +5156,7 @@
           },
           {
             "name": "updated_to",
+            "description": "Обновлено до времени",
             "in": "query",
             "schema": {
               "type": "string",
@@ -5746,6 +5767,7 @@
         "parameters": [
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -6332,6 +6354,7 @@
         "parameters": [
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -6886,6 +6909,7 @@
           },
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -7203,6 +7227,7 @@
                     "example": "2025-08-01T18:00:00+03:00"
                   },
                   "schedule": {
+                    "description": "Расписание номера телефона",
                     "$ref": "#/components/schemas/Schedule"
                   }
                 }
@@ -7486,6 +7511,7 @@
           },
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -7772,15 +7798,18 @@
                 "type": "object",
                 "properties": {
                   "name": {
+                    "description": "Имя владельца телефона",
                     "type": "string",
                     "example": "Друг Петр"
                   },
                   "start_time": {
+                    "description": "Время начала действия телефона",
                     "type": "string",
                     "format": "date-time",
                     "example": "2025-08-01T10:00:00+03:00"
                   },
                   "end_time": {
+                    "description": "Время окончания действия телефона",
                     "type": "string",
                     "format": "date-time",
                     "example": "2025-08-01T18:00:00+03:00"
@@ -8346,6 +8375,7 @@
                     "example": "2025-08-01T18:00:00+03:00"
                   },
                   "schedule": {
+                    "description": "Расписание номера телефона",
                     "$ref": "#/components/schemas/Schedule"
                   }
                 }
@@ -8642,6 +8672,7 @@
           },
           {
             "name": "ordering",
+            "description": "Сортировка по выбранным параметрам",
             "in": "query",
             "schema": {
               "type": "string",
@@ -8938,15 +8969,18 @@
                 "type": "object",
                 "properties": {
                   "name": {
+                    "description": "Имя владельца телефона",
                     "type": "string",
                     "example": "Друг Петр"
                   },
                   "start_time": {
+                    "description": "Время начала действия телефона",
                     "type": "string",
                     "format": "date-time",
                     "example": "2025-08-01T10:00:00+03:00"
                   },
                   "end_time": {
+                    "description": "Время окончания действия телефона",
                     "type": "string",
                     "format": "date-time",
                     "example": "2025-08-01T18:00:00+03:00"
@@ -9521,11 +9555,13 @@
         "properties": {
           "id": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле id, пример: 42."
           },
           "address": {
             "type": "string",
-            "example": "Манежная площадь, 1, Москва"
+            "example": "Манежная площадь, 1, Москва",
+            "description": "Поле address, пример: Манежная площадь, 1, Москва."
           },
           "owner": {
             "type": "object",
@@ -9542,19 +9578,23 @@
                 "type": "string",
                 "example": "+79991234567"
               }
-            }
+            },
+            "description": "Поле owner."
           },
           "device_phone": {
             "type": "string",
-            "example": "+79991234567"
+            "example": "+79991234567",
+            "description": "Поле device_phone, пример: +79991234567."
           },
           "additional_info": {
             "type": "string",
-            "example": "Время работы администратора: По будням с 10 до 18."
+            "example": "Время работы администратора: По будням с 10 до 18.",
+            "description": "Поле additional_info, пример: Время работы администратора: По будням с 10 до 18.."
           },
           "is_public": {
             "type": "boolean",
-            "default": true
+            "default": true,
+            "description": "Поле is_public."
           }
         }
       },
@@ -9563,19 +9603,23 @@
         "properties": {
           "id": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле id, пример: 42."
           },
           "address": {
             "type": "string",
-            "example": "Манежная площадь, 1, Москва"
+            "example": "Манежная площадь, 1, Москва",
+            "description": "Поле address, пример: Манежная площадь, 1, Москва."
           },
           "owner": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле owner, пример: 42."
           },
           "device_phone": {
             "type": "string",
-            "example": "+79991234567"
+            "example": "+79991234567",
+            "description": "Поле device_phone, пример: +79991234567."
           },
           "device_model": {
             "type": "string",
@@ -9585,23 +9629,28 @@
               "Telemetrica",
               "Elfoc"
             ],
-            "example": "RTU5025"
+            "example": "RTU5025",
+            "description": "Поле device_model, пример: RTU5025."
           },
           "device_phones_amount": {
             "type": "integer",
-            "example": 999
+            "example": 999,
+            "description": "Поле device_phones_amount, пример: 999."
           },
           "additional_info": {
             "type": "string",
-            "example": "Время работы администратора: По будням с 10 до 18."
+            "example": "Время работы администратора: По будням с 10 до 18.",
+            "description": "Поле additional_info, пример: Время работы администратора: По будням с 10 до 18.."
           },
           "is_public": {
             "type": "boolean",
-            "default": true
+            "default": true,
+            "description": "Поле is_public."
           },
           "is_active": {
             "type": "boolean",
-            "default": true
+            "default": true,
+            "description": "Поле is_active."
           }
         }
       },
@@ -9709,15 +9758,18 @@
         "properties": {
           "id": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле id, пример: 42."
           },
           "user": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле user, пример: 42."
           },
           "barrier": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле barrier, пример: 42."
           },
           "request_type": {
             "type": "string",
@@ -9725,7 +9777,8 @@
               "from_user",
               "from_barrier"
             ],
-            "example": "from_user"
+            "example": "from_user",
+            "description": "Поле request_type, пример: from_user."
           },
           "type": {
             "type": "string",
@@ -9733,7 +9786,8 @@
               "incoming",
               "outgoing"
             ],
-            "example": "incoming"
+            "example": "incoming",
+            "description": "Поле type, пример: incoming."
           },
           "status": {
             "type": "string",
@@ -9744,27 +9798,32 @@
               "cancelled"
             ],
             "example": "pending",
-            "default": "pending"
+            "default": "pending",
+            "description": "Поле status, пример: pending."
           },
           "hidden_for_user": {
             "type": "boolean",
             "default": false,
-            "example": false
+            "example": false,
+            "description": "Поле hidden_for_user."
           },
           "hidden_for_admin": {
             "type": "boolean",
             "default": false,
-            "example": false
+            "example": false,
+            "description": "Поле hidden_for_admin."
           },
           "created_at": {
             "type": "string",
             "format": "date-time",
-            "example": "2025-08-01T10:00:00+03:00"
+            "example": "2025-08-01T10:00:00+03:00",
+            "description": "Поле created_at, пример: 2025-08-01T10:00:00+03:00."
           },
           "finished_at": {
             "type": "string",
             "format": "date-time",
-            "example": "2025-08-01T10:00:00+03:00"
+            "example": "2025-08-01T10:00:00+03:00",
+            "description": "Поле finished_at, пример: 2025-08-01T10:00:00+03:00."
           }
         }
       },
@@ -9773,24 +9832,29 @@
         "properties": {
           "id": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле id, пример: 42."
           },
           "user": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле user, пример: 42."
           },
           "barrier": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле barrier, пример: 42."
           },
           "phone": {
             "type": "string",
             "format": "phone",
-            "example": "+79991234567"
+            "example": "+79991234567",
+            "description": "Поле phone, пример: +79991234567."
           },
           "name": {
             "type": "string",
-            "example": "Guest: Ivanov Ivan"
+            "example": "Guest: Ivanov Ivan",
+            "description": "Поле name, пример: Guest: Ivanov Ivan."
           },
           "type": {
             "type": "string",
@@ -9799,7 +9863,8 @@
               "temporary",
               "schedule"
             ],
-            "example": "temporary"
+            "example": "temporary",
+            "description": "Поле type, пример: temporary."
           },
           "access_state": {
             "type": "string",
@@ -9810,23 +9875,27 @@
               "error_opening",
               "error_closing"
             ],
-            "example": "open"
+            "example": "open",
+            "description": "Поле access_state, пример: open."
           },
           "start_time": {
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "example": "2025-08-01T10:00:00+03:00"
+            "example": "2025-08-01T10:00:00+03:00",
+            "description": "Поле start_time, пример: 2025-08-01T10:00:00+03:00."
           },
           "end_time": {
             "type": "string",
             "format": "date-time",
             "nullable": true,
-            "example": "2025-08-01T18:00:00+03:00"
+            "example": "2025-08-01T18:00:00+03:00",
+            "description": "Поле end_time, пример: 2025-08-01T18:00:00+03:00."
           },
           "is_active": {
             "type": "boolean",
-            "default": true
+            "default": true,
+            "description": "Поле is_active."
           }
         }
       },
@@ -9838,43 +9907,50 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ScheduleInterval"
-            }
+            },
+            "description": "Поле monday."
           },
           "tuesday": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ScheduleInterval"
-            }
+            },
+            "description": "Поле tuesday."
           },
           "wednesday": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ScheduleInterval"
-            }
+            },
+            "description": "Поле wednesday."
           },
           "thursday": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ScheduleInterval"
-            }
+            },
+            "description": "Поле thursday."
           },
           "friday": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ScheduleInterval"
-            }
+            },
+            "description": "Поле friday."
           },
           "saturday": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ScheduleInterval"
-            }
+            },
+            "description": "Поле saturday."
           },
           "sunday": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ScheduleInterval"
-            }
+            },
+            "description": "Поле sunday."
           }
         }
       },
@@ -9900,16 +9976,19 @@
         "properties": {
           "id": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле id, пример: 42."
           },
           "phone": {
             "type": "string",
             "format": "phone",
-            "example": "+79991234567"
+            "example": "+79991234567",
+            "description": "Поле phone, пример: +79991234567."
           },
           "barrier": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле barrier, пример: 42."
           },
           "author": {
             "type": "string",
@@ -9917,7 +9996,8 @@
               "user",
               "admin",
               "system"
-            ]
+            ],
+            "description": "Поле author."
           },
           "action_type": {
             "type": "string",
@@ -9926,7 +10006,8 @@
               "delete_phone",
               "update_phone",
               "barrier_setting"
-            ]
+            ],
+            "description": "Поле action_type."
           },
           "reason": {
             "type": "string",
@@ -9939,7 +10020,8 @@
               "end_time",
               "barrier_deleted",
               "user_deleted"
-            ]
+            ],
+            "description": "Поле reason."
           },
           "old_value": {
             "type": "string",
@@ -9956,7 +10038,8 @@
           "created_at": {
             "type": "string",
             "format": "date-time",
-            "example": "2025-08-01T10:00:00+03:00"
+            "example": "2025-08-01T10:00:00+03:00",
+            "description": "Поле created_at, пример: 2025-08-01T10:00:00+03:00."
           }
         }
       },
@@ -9965,7 +10048,8 @@
         "properties": {
           "id": {
             "type": "integer",
-            "example": 42
+            "example": 42,
+            "description": "Поле id, пример: 42."
           },
           "message_type": {
             "type": "string",
@@ -9974,7 +10058,8 @@
               "phone_command",
               "barrier_setting",
               "balance_check"
-            ]
+            ],
+            "description": "Поле message_type."
           },
           "phone_command_type": {
             "type": "string",
@@ -9982,7 +10067,8 @@
             "enum": [
               "open",
               "close"
-            ]
+            ],
+            "description": "Поле phone_command_type."
           },
           "status": {
             "type": "string",
@@ -9991,29 +10077,35 @@
               "sent",
               "success",
               "failed"
-            ]
+            ],
+            "description": "Поле status."
           },
           "response_content": {
-            "type": "string"
+            "type": "string",
+            "description": "Поле response_content."
           },
           "failure_reason": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "description": "Поле failure_reason."
           },
           "sent_at": {
             "type": "string",
             "format": "date-time",
-            "example": "2025-08-01T10:00:00+03:00"
+            "example": "2025-08-01T10:00:00+03:00",
+            "description": "Поле sent_at, пример: 2025-08-01T10:00:00+03:00."
           },
           "updated_at": {
             "type": "string",
             "format": "date-time",
-            "example": "2025-08-01T10:00:00+03:00"
+            "example": "2025-08-01T10:00:00+03:00",
+            "description": "Поле updated_at, пример: 2025-08-01T10:00:00+03:00."
           },
           "log": {
             "type": "integer",
             "nullable": true,
-            "example": 42
+            "example": 42,
+            "description": "Поле log, пример: 42."
           }
         }
       },
@@ -10022,7 +10114,7 @@
         "properties": {
           "settings": {
             "type": "object",
-            "someSetting1": {
+            "additionalProperties": {
               "type": "object",
               "properties": {
                 "name": {
@@ -10066,7 +10158,8 @@
                   "example": "1234P5678"
                 }
               }
-            }
+            },
+            "description": "Поле settings."
           }
         }
       }
