@@ -53,7 +53,7 @@ class SendVerificationCodeView(APIView):
 
         verification = VerificationService.create_new_verification(phone, mode)
 
-        # SMSService.send_verification(verification)
+        SMSService.send_verification(verification)
 
         return created_response(
             {
