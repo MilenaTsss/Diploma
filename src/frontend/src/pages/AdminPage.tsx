@@ -8,17 +8,19 @@ const AdminPage: React.FC = () => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [phonePrivacy, setPhonePrivacy] = useState<"public" | "private" | "protected">("public");
+  const [phonePrivacy, setPhonePrivacy] = useState<
+    "public" | "private" | "protected"
+  >("public");
   const [editingPhone, setEditingPhone] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [balance, setBalance] = useState(100);
   const [isAdmin, setIsAdmin] = useState(true);
 
   const [accessToken] = useState(
-      location.state?.access_token || localStorage.getItem("access_token")
+    location.state?.access_token || localStorage.getItem("access_token"),
   );
   const [refreshToken] = useState(
-      location.state?.refresh_token || localStorage.getItem("refresh_token")
+    location.state?.refresh_token || localStorage.getItem("refresh_token"),
   );
 
   const fetchUserData = async () => {
@@ -75,13 +77,15 @@ const AdminPage: React.FC = () => {
     if (data) setEditingPhone(false);
   };
 
-  const handlePrivacyChange = async (newPrivacy: "public" | "private" | "protected") => {
+  const handlePrivacyChange = async (
+    newPrivacy: "public" | "private" | "protected",
+  ) => {
     const data = await saveField("phone_privacy", newPrivacy);
     if (data) setPhonePrivacy(data.phone_privacy);
   };
 
   const handleBalanceCheck = () => {
-    const randomBalance = Math.floor(Math.random() * 500);
+    const randomBalance = 543;
     setBalance(randomBalance);
   };
 
@@ -116,133 +120,148 @@ const AdminPage: React.FC = () => {
   };
 
   return (
-      <div style={styles.page}>
-        <div style={styles.wrapper}>
-          <h1 style={styles.title}>Профиль администратора</h1>
+    <div style={styles.page}>
+      <div style={styles.wrapper}>
+        <h1 style={styles.title}>Профиль администратора</h1>
 
-          <div style={styles.card}>
-            {editingName ? (
-                <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    style={styles.input}
-                />
-            ) : (
-                <p style={styles.text}>{name || "—"}</p>
-            )}
-            <button
-                style={styles.mainButton}
-                onClick={() => (editingName ? handleSaveName() : setEditingName(true))}
-            >
-              {editingName ? "Сохранить" : "Изменить имя"}
-            </button>
-          </div>
+        <div style={styles.card}>
+          {editingName ? (
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={styles.input}
+            />
+          ) : (
+            <p style={styles.text}>{name || "—"}</p>
+          )}
+          <button
+            style={styles.mainButton}
+            onClick={() =>
+              editingName ? handleSaveName() : setEditingName(true)
+            }
+          >
+            {editingName ? "Сохранить" : "Изменить имя"}
+          </button>
+        </div>
 
-          <div style={styles.card}>
-            {editingPhone ? (
-                <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    style={styles.input}
-                />
-            ) : (
-                <p style={styles.text}>{phone || "—"}</p>
-            )}
+        <div style={styles.card}>
+          {editingPhone ? (
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              style={styles.input}
+            />
+          ) : (
+            <p style={styles.text}>{phone || "—"}</p>
+          )}
+          <button
+            style={styles.button}
+            onClick={() => navigateWithState("/change-phone-admin")}
+          >
+            Изменить телефон
+          </button>
+          <label style={styles.label}>Приватность номера</label>
+          <select
+              value={phonePrivacy}
+              onChange={(e) => handlePrivacyChange(e.target.value as any)}
+              style={styles.select}
+          >
+            <option value="public">Виден всем</option>
+            <option value="protected">
+              Виден пользователям ваших шлагбаумов
+            </option>
+            <option value="private">Не виден никому</option>
+          </select>
 
-            <label style={styles.label}>Приватность номера</label>
-            <select
-                value={phonePrivacy}
-                onChange={(e) => handlePrivacyChange(e.target.value as any)}
-                style={styles.select}
-            >
-              <option value="public">Виден всем</option>
-              <option value="protected">Виден пользователям ваших шлагбаумов</option>
-              <option value="private">Не виден никому</option>
-            </select>
+        </div>
 
-            <button
-                style={styles.button}
-                onClick={() => navigateWithState("/change-phone-admin")}
-            >
-              Изменить телефон
-            </button>
-          </div>
+        <div style={styles.card}>
+          <button
+            style={styles.mainButton}
+            onClick={() =>
+              navigate("/change-password", {
+                state: {
+                  phone,
+                  access_token: accessToken,
+                  refresh_token: refreshToken,
+                },
+              })
+            }
+          >
+            🔒 Поменять пароль
+          </button>
+        </div>
 
-          <div style={styles.card}>
-            <button
-                style={styles.mainButton}
-                onClick={() => navigate("/change-password", {
-                  state: { phone, access_token: accessToken, refresh_token: refreshToken },
-                })}
-            >
-              🔒 Поменять пароль
-            </button>
-          </div>
+        <div style={styles.card}>
+          <p style={styles.text}>Баланс: {balance} ₽</p>
+          <button style={styles.mainButton} onClick={handleBalanceCheck}>
+            Проверить баланс
+          </button>
+        </div>
 
-          <div style={styles.card}>
-            <p style={styles.text}>Баланс: {balance} ₽</p>
-            <button style={styles.mainButton} onClick={handleBalanceCheck}>
-              Проверить баланс
-            </button>
-          </div>
-
-          <div style={styles.card}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span>Пользователь</span>
-              <label style={styles.switch}>
-                <input
-                    type="checkbox"
-                    checked={isAdmin}
-                    onChange={handleToggleRole}
-                    style={styles.switchInput}
-                />
+        <div style={styles.card}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span>Пользователь</span>
+            <label style={styles.switch}>
+              <input
+                type="checkbox"
+                checked={isAdmin}
+                onChange={handleToggleRole}
+                style={styles.switchInput}
+              />
+              <span
+                style={{
+                  ...styles.slider,
+                  ...(isAdmin ? styles.switchChecked : {}),
+                }}
+              >
                 <span
-                    style={{
-                      ...styles.slider,
-                      ...(isAdmin ? styles.switchChecked : {}),
-                    }}
-                >
-                <span
-                    style={{
-                      ...styles.sliderBefore,
-                      ...(isAdmin ? styles.switchCheckedBefore : {}),
-                    }}
+                  style={{
+                    ...styles.sliderBefore,
+                    ...(isAdmin ? styles.switchCheckedBefore : {}),
+                  }}
                 />
               </span>
-              </label>
-              <span>Администратор</span>
-            </div>
+            </label>
+            <span>Администратор</span>
           </div>
         </div>
-
-        <div style={styles.navbar}>
-          <button
-              style={styles.navButton}
-              onClick={() =>
-                  navigate("/admin-barriers", {
-                    state: { access_token: accessToken, refresh_token: refreshToken },
-                  })
-              }
-          >
-            Шлагбаумы
-          </button>
-          <button
-              style={styles.navButton}
-              onClick={() =>
-                  navigate("/admin-requests", {
-                    state: { access_token: accessToken, refresh_token: refreshToken },
-                  })
-              }
-          >
-            Заявки
-          </button>
-          <button style={{ ...styles.navButton, ...styles.activeNavButton }}>
-            Профиль
-          </button>
-        </div>
       </div>
+
+      <div style={styles.navbar}>
+        <button
+          style={styles.navButton}
+          onClick={() =>
+            navigate("/admin-barriers", {
+              state: { access_token: accessToken, refresh_token: refreshToken },
+            })
+          }
+        >
+          Шлагбаумы
+        </button>
+        <button
+          style={styles.navButton}
+          onClick={() =>
+            navigate("/admin-requests", {
+              state: { access_token: accessToken, refresh_token: refreshToken },
+            })
+          }
+        >
+          Заявки
+        </button>
+        <button style={{ ...styles.navButton, ...styles.activeNavButton }}>
+          Профиль
+        </button>
+      </div>
+    </div>
   );
 };
 

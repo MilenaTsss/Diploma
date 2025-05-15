@@ -34,7 +34,6 @@ import AdminBarrierSettingsPage from "./pages/AdminBarrierSettingsPage";
 import UserBarrierActionsPage from "./pages/UserBarrierActionsPage";
 import AdminBarrierActionsPage from "./pages/AdminBarrierActionsPage";
 
-
 const App: React.FC = () => {
   return (
     <Router>
@@ -62,13 +61,19 @@ const App: React.FC = () => {
         <Route path="/admin-barriers" element={<AdminBarriersPage />} />
         <Route path="/admin-barrier-page" element={<AdminBarrierDetails />} />
         <Route path="/barrier-users" element={<BarrierUsersPage />} />
-        <Route path="/user-profile" element={<AdminUserProfile/>} />
-        <Route path="/add-phone-admin" element={<AdminAddPhonePage/>} />
+        <Route path="/user-profile" element={<AdminUserProfile />} />
+        <Route path="/add-phone-admin" element={<AdminAddPhonePage />} />
         <Route path="/edit-phone-admin" element={<AdminEditPhonePage />} />
         <Route path="/create-barrier" element={<CreateBarrierPage />} />
-        <Route path="/barrier-settings" element={<AdminBarrierSettingsPage />} />
+        <Route
+          path="/barrier-settings"
+          element={<AdminBarrierSettingsPage />}
+        />
         <Route path="/barrier-history" element={<UserBarrierActionsPage />} />
-        <Route path="/barrier-history-admin" element={<AdminBarrierActionsPage />} />
+        <Route
+          path="/barrier-history-admin"
+          element={<AdminBarrierActionsPage />}
+        />
       </Routes>
     </Router>
   );

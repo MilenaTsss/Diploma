@@ -25,9 +25,9 @@ const MyBarrierPage: React.FC = () => {
 
   const barrierId = location.state?.barrier_id;
   const accessTokenInit =
-      location.state?.access_token || localStorage.getItem("access_token");
+    location.state?.access_token || localStorage.getItem("access_token");
   const refreshToken =
-      location.state?.refresh_token || localStorage.getItem("refresh_token");
+    location.state?.refresh_token || localStorage.getItem("refresh_token");
 
   const [accessToken, setAccessToken] = useState(accessTokenInit);
   const [barrier, setBarrier] = useState<any>(null);
@@ -67,12 +67,12 @@ const MyBarrierPage: React.FC = () => {
     const fetchData = async () => {
       try {
         const [barrierData, userData, limitsData, phonesData] =
-            await Promise.all([
-              fetchWithAuth(`/api/barriers/${barrierId}/`, accessToken),
-              fetchWithAuth("/api/users/me/", accessToken),
-              fetchWithAuth(`/api/barriers/${barrierId}/limits/`, accessToken),
-              fetchWithAuth(`/api/barriers/${barrierId}/phones/my/`, accessToken),
-            ]);
+          await Promise.all([
+            fetchWithAuth(`/api/barriers/${barrierId}/`, accessToken),
+            fetchWithAuth("/api/users/me/", accessToken),
+            fetchWithAuth(`/api/barriers/${barrierId}/limits/`, accessToken),
+            fetchWithAuth(`/api/barriers/${barrierId}/phones/my/`, accessToken),
+          ]);
         setBarrier(barrierData);
         setUser(userData);
         setLimits(limitsData);
@@ -80,24 +80,24 @@ const MyBarrierPage: React.FC = () => {
         const rawPhones = phonesData.phones || [];
 
         const phonesWithSchedules = await Promise.all(
-            rawPhones.map(async (phone: any) => {
-              if (phone.type === "schedule") {
-                try {
-                  const res = await fetch(`/api/phones/${phone.id}/schedule/`, {
-                    headers: {
-                      Authorization: `Bearer ${accessToken}`,
-                      Accept: "application/json",
-                    },
-                  });
+          rawPhones.map(async (phone: any) => {
+            if (phone.type === "schedule") {
+              try {
+                const res = await fetch(`/api/phones/${phone.id}/schedule/`, {
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    Accept: "application/json",
+                  },
+                });
 
-                  if (res.ok) {
-                    const schedule = await res.json();
-                    return { ...phone, schedule };
-                  }
-                } catch {}
-              }
-              return phone;
-            }),
+                if (res.ok) {
+                  const schedule = await res.json();
+                  return { ...phone, schedule };
+                }
+              } catch {}
+            }
+            return phone;
+          }),
         );
 
         setPhones(phonesWithSchedules);
@@ -163,15 +163,16 @@ const MyBarrierPage: React.FC = () => {
   const renderSchedule = (schedule: any) => {
     if (!schedule) return null;
     return (
-        <div style={styles.timeInfo}>
-          {Object.entries(schedule).map(([day, intervals]: [string, any[]]) =>
-              intervals.map((interval, i) => (
-                  <div key={`${day}-${i}`}>
-                    {dayNames[day] || day}: {interval.start_time} – {interval.end_time}
-                  </div>
-              )),
-          )}
-        </div>
+      <div style={styles.timeInfo}>
+        {Object.entries(schedule).map(([day, intervals]: [string, any[]]) =>
+          intervals.map((interval, i) => (
+            <div key={`${day}-${i}`}>
+              {dayNames[day] || day}: {interval.start_time} –{" "}
+              {interval.end_time}
+            </div>
+          )),
+        )}
+      </div>
     );
   };
 
@@ -179,99 +180,170 @@ const MyBarrierPage: React.FC = () => {
   if (!barrier || !user) return <p style={{ padding: "5vw" }}>Загрузка...</p>;
 
   return (
-      <div style={styles.page}>
-        <div style={styles.inner}>
-          <div style={styles.contentWrapper}>
-            <div style={styles.header}>
-              <button onClick={() => navigate(-1)} style={styles.backButton}>
-                <FaArrowLeft />
-              </button>
-              <h1 style={styles.title}>{barrier.address}</h1>
-              <button onClick={handleLeave} style={styles.leaveButton}>
-                Выйти из шлагбаума
-              </button>
-            </div>
+    <div style={styles.page}>
+      <div style={styles.inner}>
+        <div style={styles.contentWrapper}>
+          <div style={styles.header}>
+            <button onClick={() => navigate(-1)} style={styles.backButton}>
+              <FaArrowLeft />
+            </button>
+            <h1 style={styles.title}>{barrier.address}</h1>
+            <button onClick={handleLeave} style={styles.leaveButton}>
+              Выйти из шлагбаума
+            </button>
+          </div>
 
-            <div style={styles.card}>
-              <p>
-                <strong>Администратор:</strong> {barrier.owner.full_name}
-              </p>
-              <p>
-                <strong>Телефон шлагбаума:</strong> {barrier.device_phone}
-              </p>
-              <p>
-                <strong>Телефон администратора:</strong> {barrier.owner.phone || "не указано"}
-              </p>
-            </div>
+          <div style={styles.card}>
+            <p>
+              <strong>Администратор:</strong> {barrier.owner.full_name}
+            </p>
+            <p>
+              <strong>Телефон шлагбаума:</strong> {barrier.device_phone}
+            </p>
+            <p>
+              <strong>Телефон администратора:</strong>{" "}
+              {barrier.owner.phone || "не указано"}
+            </p>
+          </div>
 
-            <div style={styles.card}>
-              <h3 style={styles.subtitle}>Лимиты шлагбаума:</h3>
-              {limits && (
-                  <>
-                    <p>Обычные номера: {limits.user_phone_limit}</p>
-                    <p>Временные номера (пользователь): {limits.user_temp_phone_limit}</p>
-                    <p>Временные номера (всего): {limits.global_temp_phone_limit}</p>
-                    <p>Номера по расписанию (пользователь): {limits.user_schedule_phone_limit}</p>
-                    <p>Номера по расписанию (всего): {limits.global_schedule_phone_limit}</p>
-                    <p>Ограничение интервалов расписания: {limits.schedule_interval_limit}</p>
-                    <p>СМС в неделю: {limits.sms_weekly_limit}</p>
-                  </>
-              )}
-            </div>
+          <div style={styles.card}>
+            <h3 style={styles.subtitle}>Лимиты шлагбаума:</h3>
+            {limits && (
+              <>
+                <p>Обычные номера: {limits.user_phone_limit}</p>
+                <p>
+                  Временные номера (пользователь):{" "}
+                  {limits.user_temp_phone_limit}
+                </p>
+                <p>
+                  Временные номера (всего): {limits.global_temp_phone_limit}
+                </p>
+                <p>
+                  Номера по расписанию (пользователь):{" "}
+                  {limits.user_schedule_phone_limit}
+                </p>
+                <p>
+                  Номера по расписанию (всего):{" "}
+                  {limits.global_schedule_phone_limit}
+                </p>
+                <p>
+                  Ограничение интервалов расписания:{" "}
+                  {limits.schedule_interval_limit}
+                </p>
+                <p>СМС в неделю: {limits.sms_weekly_limit}</p>
+              </>
+            )}
+          </div>
 
-            <div style={styles.card}>
-              <h3 style={styles.subtitle}>Основной номер:</h3>
-              <p>{user.full_name} — {user.phone}</p>
-            </div>
+          <div style={styles.card}>
+            <h3 style={styles.subtitle}>Основной номер:</h3>
+            <p>
+              {user.full_name} — {user.phone}
+            </p>
+          </div>
 
-            <div style={styles.card}>
-              <h3 style={styles.subtitle}>Дополнительные номера:</h3>
-              {phones.length === 0 ? (
-                  <p>Нет дополнительных номеров</p>
-              ) : (
-                  phones.map((item) => (
-                      <div key={item.id} style={styles.phoneRow}>
-                        <div style={styles.phoneHeader}>
-                          <p style={styles.phoneText}><strong>{item.name}</strong> — {item.phone}</p>
-                          <div style={styles.iconGroup}>
-                            <FaEdit style={styles.icon} onClick={() => navigate("/edit-phone", { state: { phone_id: item.id, phone_data: item, access_token: accessToken, barrier_id: barrier.id, refresh_token: refreshToken } })} />
-                            <FaTrash style={styles.icon} onClick={() => handleDelete(item.id)} />
-                            {item.type === "temporary" && <FaClock style={styles.icon} />}
-                            {item.type === "schedule" && <FaCalendarAlt style={styles.icon} />}
-                            {item.status === "error" && <FaExclamationCircle style={{ ...styles.icon, color: "#d9534f" }} />}
-                            {item.status === "ok" && <FaCheckCircle style={{ ...styles.icon, color: "green" }} />}
-                          </div>
-                        </div>
-                        {item.type === "temporary" && (
-                            <p style={styles.timeInfo}>
-                              Начало: {new Date(item.start_time).toLocaleString()}<br />
-                              Конец: {new Date(item.end_time).toLocaleString()}
-                            </p>
-                        )}
-                        {item.type === "schedule" && renderSchedule(item.schedule)}
-                      </div>
-                  ))
-              )}
-            </div>
+          <div style={styles.card}>
+            <h3 style={styles.subtitle}>Дополнительные номера:</h3>
+            {phones.length === 0 ? (
+              <p>Нет дополнительных номеров</p>
+            ) : (
+              phones.map((item) => (
+                <div key={item.id} style={styles.phoneRow}>
+                  <div style={styles.phoneHeader}>
+                    <p style={styles.phoneText}>
+                      <strong>{item.name}</strong> — {item.phone}
+                    </p>
+                    <div style={styles.iconGroup}>
+                      <FaEdit
+                        style={styles.icon}
+                        onClick={() =>
+                          navigate("/edit-phone", {
+                            state: {
+                              phone_id: item.id,
+                              phone_data: item,
+                              access_token: accessToken,
+                              barrier_id: barrier.id,
+                              refresh_token: refreshToken,
+                            },
+                          })
+                        }
+                      />
+                      <FaTrash
+                        style={styles.icon}
+                        onClick={() => handleDelete(item.id)}
+                      />
+                      {item.type === "temporary" && (
+                        <FaClock style={styles.icon} />
+                      )}
+                      {item.type === "schedule" && (
+                        <FaCalendarAlt style={styles.icon} />
+                      )}
+                      {item.status === "error" && (
+                        <FaExclamationCircle
+                          style={{ ...styles.icon, color: "#d9534f" }}
+                        />
+                      )}
+                      {item.status === "ok" && (
+                        <FaCheckCircle
+                          style={{ ...styles.icon, color: "green" }}
+                        />
+                      )}
+                    </div>
+                  </div>
+                  {item.type === "temporary" && (
+                    <p style={styles.timeInfo}>
+                      Начало: {new Date(item.start_time).toLocaleString()}
+                      <br />
+                      Конец: {new Date(item.end_time).toLocaleString()}
+                    </p>
+                  )}
+                  {item.type === "schedule" && renderSchedule(item.schedule)}
+                </div>
+              ))
+            )}
+          </div>
 
-            <div style={{ display: "flex", gap: "10px", marginTop: "20px", flexDirection: "column" }}>
-              <button
-                  style={styles.button}
-                  onClick={() => navigate("/add-phone", { state: { barrier_id: barrier.id, access_token: accessToken, refresh_token: refreshToken } })}
-              >
-                Добавить номер
-              </button>
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              marginTop: "20px",
+              flexDirection: "column",
+            }}
+          >
+            <button
+              style={styles.button}
+              onClick={() =>
+                navigate("/add-phone", {
+                  state: {
+                    barrier_id: barrier.id,
+                    access_token: accessToken,
+                    refresh_token: refreshToken,
+                  },
+                })
+              }
+            >
+              Добавить номер
+            </button>
 
-              <button
-                  style={styles.button}
-                  onClick={() => navigate("/barrier-history", { state: { barrier_id: barrier.id, access_token: accessToken, refresh_token: refreshToken } })}
-              >
-                История изменений
-              </button>
-            </div>
+            <button
+              style={styles.button}
+              onClick={() =>
+                navigate("/barrier-history", {
+                  state: {
+                    barrier_id: barrier.id,
+                    access_token: accessToken,
+                    refresh_token: refreshToken,
+                  },
+                })
+              }
+            >
+              История изменений
+            </button>
           </div>
         </div>
       </div>
+    </div>
   );
 };
 

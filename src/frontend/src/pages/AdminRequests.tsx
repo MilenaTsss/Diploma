@@ -12,20 +12,20 @@ const AdminRequests: React.FC = () => {
   const [page, setPage] = useState(1);
 
   const [accessToken, setAccessToken] = useState(
-      location.state?.access_token || localStorage.getItem("access_token")
+    location.state?.access_token || localStorage.getItem("access_token"),
   );
   const [refreshToken] = useState(
-      location.state?.refresh_token || localStorage.getItem("refresh_token")
+    location.state?.refresh_token || localStorage.getItem("refresh_token"),
   );
 
   const fetchRequests = async (token = accessToken, pageNum = page) => {
     setIsLoading(true);
     try {
       const res = await fetch(
-          `/api/admin/access_requests/my/?type=${type}&page=${pageNum}&page_size=10`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+        `/api/admin/access_requests/my/?type=${type}&page=${pageNum}&page_size=10`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
       );
 
       if (res.status === 401) {
@@ -46,25 +46,25 @@ const AdminRequests: React.FC = () => {
       const data = await res.json();
       if (res.ok && data.access_requests) {
         const withDetails = await Promise.all(
-            data.access_requests.map(async (req: any) => {
-              const [barrierRes, userRes] = await Promise.all([
-                fetch(`/api/barriers/${req.barrier}/`, {
-                  headers: { Authorization: `Bearer ${token}` },
-                }),
-                fetch(`/api/admin/users/${req.user}/`, {
-                  headers: { Authorization: `Bearer ${token}` },
-                }),
-              ]);
-              const barrier = await barrierRes.json();
-              const user = await userRes.json();
+          data.access_requests.map(async (req: any) => {
+            const [barrierRes, userRes] = await Promise.all([
+              fetch(`/api/barriers/${req.barrier}/`, {
+                headers: { Authorization: `Bearer ${token}` },
+              }),
+              fetch(`/api/admin/users/${req.user}/`, {
+                headers: { Authorization: `Bearer ${token}` },
+              }),
+            ]);
+            const barrier = await barrierRes.json();
+            const user = await userRes.json();
 
-              return {
-                ...req,
-                address: barrier.address || "Без адреса",
-                full_name: user.full_name || "—",
-                phone: user.phone || "—",
-              };
-            })
+            return {
+              ...req,
+              address: barrier.address || "Без адреса",
+              full_name: user.full_name || "—",
+              phone: user.phone || "—",
+            };
+          }),
         );
 
         setRequests((prev) => [...prev, ...withDetails]);
@@ -89,7 +89,6 @@ const AdminRequests: React.FC = () => {
     resetAndFetch();
   }, [type]);
 
-
   useEffect(() => {
     fetchRequests(undefined, page);
   }, [page]);
@@ -97,10 +96,10 @@ const AdminRequests: React.FC = () => {
   useEffect(() => {
     const handleScroll = () => {
       if (
-          window.innerHeight + document.documentElement.scrollTop >=
+        window.innerHeight + document.documentElement.scrollTop >=
           document.documentElement.offsetHeight - 100 &&
-          !isLoading &&
-          hasMore
+        !isLoading &&
+        hasMore
       ) {
         setPage((prev) => prev + 1);
       }
@@ -110,9 +109,9 @@ const AdminRequests: React.FC = () => {
   }, [isLoading, hasMore]);
 
   const updateRequestStatus = async (
-      id: number,
-      status: string,
-      hide = false
+    id: number,
+    status: string,
+    hide = false,
   ) => {
     try {
       await fetch(`/api/admin/access_requests/${id}/`, {
@@ -144,100 +143,100 @@ const AdminRequests: React.FC = () => {
   };
 
   return (
-      <div style={styles.container}>
-        <h2 style={styles.title}>Заявки</h2>
+    <div style={styles.container}>
+      <h2 style={styles.title}>Заявки</h2>
 
-        <div style={styles.tabs}>
-          <button
-              style={{
-                ...styles.tab,
-                borderBottom: type === "incoming" ? "2px solid #5a4478" : "none",
-              }}
-              onClick={() => setType("incoming")}
-          >
-            Входящие
-          </button>
-          <button
-              style={{
-                ...styles.tab,
-                borderBottom: type === "outgoing" ? "2px solid #5a4478" : "none",
-              }}
-              onClick={() => setType("outgoing")}
-          >
-            Исходящие
-          </button>
-        </div>
-
-        <div style={styles.requestList}>
-          {requests.map((r) => (
-              <div key={r.id} style={styles.card}>
-                <p style={styles.text}>
-                  👤 <strong>{r.full_name}</strong>
-                  <br />
-                  📞 {r.phone}
-                  <br />
-                  📍 {r.address}
-                </p>
-
-                {r.status === "pending" && type === "incoming" && (
-                    <div style={styles.actionRow}>
-                      <button
-                          style={styles.accept}
-                          onClick={() => updateRequestStatus(r.id, "accepted")}
-                      >
-                        Принять
-                      </button>
-                      <button
-                          style={styles.decline}
-                          onClick={() => updateRequestStatus(r.id, "rejected")}
-                      >
-                        Отклонить
-                      </button>
-                    </div>
-                )}
-
-                {r.status === "pending" && type === "outgoing" && (
-                    <button
-                        style={styles.cancel}
-                        onClick={() => updateRequestStatus(r.id, "cancelled", true)}
-                    >
-                      Отменить
-                    </button>
-                )}
-
-                {r.status === "accepted" && <p style={styles.ok}>Принят</p>}
-                {r.status === "rejected" && <p style={styles.err}>Отклонён</p>}
-                {r.status === "cancelled" && <p style={styles.err}>Отменён</p>}
-              </div>
-          ))}
-          {isLoading && <p>Загрузка...</p>}
-          {!hasMore && !isLoading && <p>Все заявки загружены</p>}
-        </div>
-
-        <div style={styles.navbar}>
-          <button
-              style={styles.nav}
-              onClick={() =>
-                  navigate("/admin-barriers", {
-                    state: { access_token: accessToken, refresh_token: refreshToken },
-                  })
-              }
-          >
-            Шлагбаумы
-          </button>
-          <button style={{ ...styles.nav, ...styles.navActive }}>Запросы</button>
-          <button
-              style={styles.nav}
-              onClick={() =>
-                  navigate("/admin", {
-                    state: { access_token: accessToken, refresh_token: refreshToken },
-                  })
-              }
-          >
-            Профиль
-          </button>
-        </div>
+      <div style={styles.tabs}>
+        <button
+          style={{
+            ...styles.tab,
+            borderBottom: type === "incoming" ? "2px solid #5a4478" : "none",
+          }}
+          onClick={() => setType("incoming")}
+        >
+          Входящие
+        </button>
+        <button
+          style={{
+            ...styles.tab,
+            borderBottom: type === "outgoing" ? "2px solid #5a4478" : "none",
+          }}
+          onClick={() => setType("outgoing")}
+        >
+          Исходящие
+        </button>
       </div>
+
+      <div style={styles.requestList}>
+        {requests.map((r) => (
+          <div key={r.id} style={styles.card}>
+            <p style={styles.text}>
+              👤 <strong>{r.full_name}</strong>
+              <br />
+              📞 {r.phone}
+              <br />
+              📍 {r.address}
+            </p>
+
+            {r.status === "pending" && type === "incoming" && (
+              <div style={styles.actionRow}>
+                <button
+                  style={styles.accept}
+                  onClick={() => updateRequestStatus(r.id, "accepted")}
+                >
+                  Принять
+                </button>
+                <button
+                  style={styles.decline}
+                  onClick={() => updateRequestStatus(r.id, "rejected")}
+                >
+                  Отклонить
+                </button>
+              </div>
+            )}
+
+            {r.status === "pending" && type === "outgoing" && (
+              <button
+                style={styles.cancel}
+                onClick={() => updateRequestStatus(r.id, "cancelled", true)}
+              >
+                Отменить
+              </button>
+            )}
+
+            {r.status === "accepted" && <p style={styles.ok}>Принят</p>}
+            {r.status === "rejected" && <p style={styles.err}>Отклонён</p>}
+            {r.status === "cancelled" && <p style={styles.err}>Отменён</p>}
+          </div>
+        ))}
+        {isLoading && <p>Загрузка...</p>}
+        {!hasMore && !isLoading && <p>Все заявки загружены</p>}
+      </div>
+
+      <div style={styles.navbar}>
+        <button
+          style={styles.nav}
+          onClick={() =>
+            navigate("/admin-barriers", {
+              state: { access_token: accessToken, refresh_token: refreshToken },
+            })
+          }
+        >
+          Шлагбаумы
+        </button>
+        <button style={{ ...styles.nav, ...styles.navActive }}>Запросы</button>
+        <button
+          style={styles.nav}
+          onClick={() =>
+            navigate("/admin", {
+              state: { access_token: accessToken, refresh_token: refreshToken },
+            })
+          }
+        >
+          Профиль
+        </button>
+      </div>
+    </div>
   );
 };
 

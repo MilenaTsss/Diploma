@@ -9,7 +9,10 @@ const AddPhonePage: React.FC = () => {
   const barrierId = location.state?.barrier_id;
   const accessToken = location.state?.access_token;
 
-  const logToLoki = (message: string, level: 'info' | 'warn' | 'error' = 'info') => {
+  const logToLoki = (
+    message: string,
+    level: "info" | "warn" | "error" = "info",
+  ) => {
     fetch("http://loki:3100/loki/api/v1/push", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -23,7 +26,6 @@ const AddPhonePage: React.FC = () => {
       }),
     }).catch(console.error);
   };
-
 
   const [phone, setPhone] = useState("+7");
   const [name, setName] = useState("");
@@ -84,7 +86,10 @@ const AddPhonePage: React.FC = () => {
       }
       if (new Date(startTime) >= new Date(endTime)) {
         setError("Время начала должно быть раньше времени конца.");
-        logToLoki(`Некорректный интервал в расписании: ${startTime} >= ${endTime}`, "error");
+        logToLoki(
+          `Некорректный интервал в расписании: ${startTime} >= ${endTime}`,
+          "error",
+        );
         return;
       }
 
@@ -107,14 +112,20 @@ const AddPhonePage: React.FC = () => {
       });
 
       if (res.ok) {
-        logToLoki(`Номер ${phone} успешно добавлен (${type}) на шлагбаум ${barrierId}`, "info");
+        logToLoki(
+          `Номер ${phone} успешно добавлен (${type}) на шлагбаум ${barrierId}`,
+          "info",
+        );
         navigate("/mybarrier", {
           state: { barrier_id: barrierId, access_token: accessToken },
         });
       } else {
         const data = await res.json();
         console.log(data);
-        logToLoki(`Ошибка при сохранении номера: ${JSON.stringify(data)}`, "error");
+        logToLoki(
+          `Ошибка при сохранении номера: ${JSON.stringify(data)}`,
+          "error",
+        );
         setError(
           data.phone ||
             data.type ||
