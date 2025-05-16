@@ -164,9 +164,9 @@ const AdminPage: React.FC = () => {
           </button>
           <label style={styles.label}>Приватность номера</label>
           <select
-              value={phonePrivacy}
-              onChange={(e) => handlePrivacyChange(e.target.value as any)}
-              style={styles.select}
+            value={phonePrivacy}
+            onChange={(e) => handlePrivacyChange(e.target.value as any)}
+            style={styles.select}
           >
             <option value="public">Виден всем</option>
             <option value="protected">
@@ -174,7 +174,6 @@ const AdminPage: React.FC = () => {
             </option>
             <option value="private">Не виден никому</option>
           </select>
-
         </div>
 
         <div style={styles.card}>
@@ -305,8 +304,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: "clamp(14px, 4vw, 16px)",
     marginBottom: "10px",
     backgroundColor: "#ffffff", // белый фон
-    color: "#000000",           // чёрный текст
-    boxSizing: "border-box",    // чтобы padding не ломал ширину
+    color: "#000000", // чёрный текст
+    boxSizing: "border-box", // чтобы padding не ломал ширину
   },
   label: {
     display: "block",

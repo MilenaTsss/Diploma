@@ -302,14 +302,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "block",
     boxSizing: "border-box",
     backgroundColor: "#ffffff", // 👈 всегда белый фон
-    color: "#000000",           // 👈 всегда чёрный текст
+    color: "#000000", // 👈 всегда чёрный текст
   },
   timeInput: {
     padding: "6px",
     borderRadius: "6px",
     border: "1px solid #ccc",
     backgroundColor: "#ffffff", // 👈 белый фон
-    color: "#000000",           // 👈 чёрный текст
+    color: "#000000", // 👈 чёрный текст
   },
   saveButton: {
     width: "60%",

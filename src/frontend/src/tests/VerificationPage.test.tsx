@@ -23,11 +23,11 @@ describe("VerificationPage", () => {
 
   const renderWithRouter = (state = {}) => {
     return render(
-        <MemoryRouter initialEntries={[{ pathname: "/verifyuser", state }]}>
-          <Routes>
-            <Route path="/verifyuser" element={<VerificationPage />} />
-          </Routes>
-        </MemoryRouter>
+      <MemoryRouter initialEntries={[{ pathname: "/verifyuser", state }]}>
+        <Routes>
+          <Route path="/verifyuser" element={<VerificationPage />} />
+        </Routes>
+      </MemoryRouter>,
     );
   };
 
@@ -35,7 +35,7 @@ describe("VerificationPage", () => {
     renderWithRouter({ phone: "+79991234567", verification_token: "token123" });
     expect(screen.getByLabelText(/код/i)).toBeInTheDocument();
     expect(
-        screen.getByRole("button", { name: /подтвердить/i })
+      screen.getByRole("button", { name: /подтвердить/i }),
     ).toBeInTheDocument();
   });
 
@@ -48,17 +48,20 @@ describe("VerificationPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /подтвердить/i }));
 
     expect(
-        await screen.findByText(/код должен содержать 6 цифр/i)
+      await screen.findByText(/код должен содержать 6 цифр/i),
     ).toBeInTheDocument();
   });
 
   it("handles successful verification and login", async () => {
     fetchMock.mockResponses(
-        [JSON.stringify({ message: "Code verified successfully." }), { status: 200 }],
-        [
-          JSON.stringify({ access_token: "access", refresh_token: "refresh" }),
-          { status: 200 },
-        ]
+      [
+        JSON.stringify({ message: "Code verified successfully." }),
+        { status: 200 },
+      ],
+      [
+        JSON.stringify({ access_token: "access", refresh_token: "refresh" }),
+        { status: 200 },
+      ],
     );
 
     renderWithRouter({ phone: "+79991234567", verification_token: "token123" });

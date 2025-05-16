@@ -17,6 +17,30 @@ const AdminBarrierDetails: React.FC = () => {
     device_password: "",
   });
 
+  // ─── НОВОЕ: состояния для лимитов ─────────────────────────────────────
+  const [limits, setLimits] = useState<any>(null);
+  const [limitsForm, setLimitsForm] = useState<{
+    user_phone_limit: number | null;
+    user_temp_phone_limit: number | null;
+    global_temp_phone_limit: number | null;
+    user_schedule_phone_limit: number | null;
+    global_schedule_phone_limit: number | null;
+    schedule_interval_limit: number | null;
+    sms_weekly_limit: number | null;
+  }>({
+    user_phone_limit: null,
+    user_temp_phone_limit: null,
+    global_temp_phone_limit: null,
+    user_schedule_phone_limit: null,
+    global_schedule_phone_limit: null,
+    schedule_interval_limit: null,
+    sms_weekly_limit: null,
+  });
+  const [limitsLoading, setLimitsLoading] = useState(false);
+  const [limitsSaving, setLimitsSaving] = useState(false);
+  const [limitsError, setLimitsError] = useState("");
+  const [limitsMessage, setLimitsMessage] = useState("");
+
   const fetchBarrier = async (token = access_token) => {
     try {
       const res = await fetch(`/api/admin/barriers/${barrier_id}/`, {
@@ -47,6 +71,43 @@ const AdminBarrierDetails: React.FC = () => {
     }
   };
 
+  // ─── НОВОЕ: загрузка лимитов ───────────────────────────────────────────
+  const fetchLimits = async (token = access_token) => {
+    setLimitsLoading(true);
+    setLimitsError("");
+    try {
+      const res = await fetch(`/api/barriers/${barrier_id}/limits/`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      if (res.status === 401) {
+        await refreshAndRetry();
+        return;
+      }
+      const data = await res.json();
+      if (res.ok) {
+        setLimits(data);
+        setLimitsForm({
+          user_phone_limit: data.user_phone_limit,
+          user_temp_phone_limit: data.user_temp_phone_limit,
+          global_temp_phone_limit: data.global_temp_phone_limit,
+          user_schedule_phone_limit: data.user_schedule_phone_limit,
+          global_schedule_phone_limit: data.global_schedule_phone_limit,
+          schedule_interval_limit: data.schedule_interval_limit,
+          sms_weekly_limit: data.sms_weekly_limit,
+        });
+      } else {
+        setLimitsError("Ошибка загрузки лимитов");
+      }
+    } catch {
+      setLimitsError("Ошибка сети при загрузке лимитов");
+    } finally {
+      setLimitsLoading(false);
+    }
+  };
+
   const refreshAndRetry = async () => {
     try {
       const res = await fetch("/api/auth/token/refresh/", {
@@ -58,6 +119,7 @@ const AdminBarrierDetails: React.FC = () => {
       if (res.ok && data.access) {
         localStorage.setItem("access_token", data.access);
         fetchBarrier(data.access);
+        fetchLimits(data.access);
       } else {
         navigate("/login");
       }
@@ -119,6 +181,48 @@ const AdminBarrierDetails: React.FC = () => {
     }
   };
 
+  // ─── НОВОЕ: изменение полей лимитов ────────────────────────────────────
+  const handleLimitsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const num = value === "" ? null : parseInt(value, 10);
+    setLimitsForm((prev) => ({
+      ...prev,
+      [name]: isNaN(num as number) ? null : num,
+    }));
+  };
+
+  // ─── НОВОЕ: сохранение лимитов ─────────────────────────────────────────
+  const handleLimitsSubmit = async () => {
+    setLimitsError("");
+    setLimitsMessage("");
+    setLimitsSaving(true);
+    try {
+      const body: any = {};
+      Object.entries(limitsForm).forEach(([key, val]) => {
+        body[key] = val === null ? null : val;
+      });
+      const res = await fetch(`/api/admin/barriers/${barrier_id}/limits/`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setLimits(data);
+        setLimitsMessage("Лимиты успешно обновлены.");
+      } else {
+        setLimitsError(data.detail || "Ошибка при обновлении лимитов");
+      }
+    } catch {
+      setLimitsError("Ошибка сети при обновлении лимитов");
+    } finally {
+      setLimitsSaving(false);
+    }
+  };
+
   const handleDelete = async () => {
     setError("");
     setMessage("");
@@ -142,6 +246,7 @@ const AdminBarrierDetails: React.FC = () => {
   useEffect(() => {
     if (barrier_id && access_token) {
       fetchBarrier();
+      fetchLimits();
     }
   }, [barrier_id, access_token]);
 
@@ -216,6 +321,68 @@ const AdminBarrierDetails: React.FC = () => {
             {error || message}
           </p>
         )}
+
+        {/* ─── Блок редактирования лимитов ─────────────────────────────────── */}
+        <hr style={{ margin: "20px 0" }} />
+        <h3 style={{ marginBottom: 10 }}>Лимиты шлагбаума</h3>
+        {limitsLoading ? (
+          <p style={styles.loading}>Загрузка лимитов…</p>
+        ) : (
+          <>
+            {[
+              {
+                label: "Лимит телефонов (пользователь)",
+                name: "user_phone_limit",
+              },
+              {
+                label: "Лимит временных телефонов (пользователь)",
+                name: "user_temp_phone_limit",
+              },
+              {
+                label: "Глобальный лимит временных телефонов",
+                name: "global_temp_phone_limit",
+              },
+              {
+                label: "Лимит расписанных телефонов (пользователь)",
+                name: "user_schedule_phone_limit",
+              },
+              {
+                label: "Глобальный лимит расписанных телефонов",
+                name: "global_schedule_phone_limit",
+              },
+              {
+                label: "Интервал расписания (мин)",
+                name: "schedule_interval_limit",
+              },
+              { label: "СМС в неделю", name: "sms_weekly_limit" },
+            ].map(({ label, name }) => (
+              <div key={name}>
+                <label style={styles.label}>{label}</label>
+                <input
+                  type="number"
+                  name={name}
+                  value={limitsForm[name] ?? ""}
+                  onChange={handleLimitsChange}
+                  style={styles.input}
+                  min={0}
+                />
+              </div>
+            ))}
+            <button
+              style={styles.saveButton}
+              onClick={handleLimitsSubmit}
+              disabled={limitsSaving}
+            >
+              {limitsSaving ? "Сохранение лимитов…" : "Сохранить лимиты"}
+            </button>
+            {(limitsError || limitsMessage) && (
+              <p style={limitsError ? styles.error : styles.success}>
+                {limitsError || limitsMessage}
+              </p>
+            )}
+          </>
+        )}
+        {/* ──────────────────────────────────────────────────────────────── */}
 
         <div style={styles.footerButtons}>
           <button

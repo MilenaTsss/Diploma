@@ -15,10 +15,10 @@ const BarrierUsersPage: React.FC = () => {
   const navigate = useNavigate();
   const { barrier_id } = location.state || {};
   const [accessToken, setAccessToken] = useState<string>(
-      location.state?.access_token || localStorage.getItem("access_token")!
+    location.state?.access_token || localStorage.getItem("access_token")!,
   );
   const refreshToken =
-      location.state?.refresh_token || localStorage.getItem("refresh_token");
+    location.state?.refresh_token || localStorage.getItem("refresh_token");
 
   // existing states
   const [barrierName, setBarrierName] = useState("Загрузка...");
@@ -32,7 +32,9 @@ const BarrierUsersPage: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [blockErrors, setBlockErrors] = useState<Record<number, string>>({});
   const [deleteErrors, setDeleteErrors] = useState<Record<number, string>>({});
-  const [showReasonInput, setShowReasonInput] = useState<Record<number, boolean>>({});
+  const [showReasonInput, setShowReasonInput] = useState<
+    Record<number, boolean>
+  >({});
 
   // new states for phone search / invite
   const [phoneQuery, setPhoneQuery] = useState("");
@@ -67,13 +69,13 @@ const BarrierUsersPage: React.FC = () => {
 
     try {
       const res = await fetch(
-          `/api/admin/barriers/${barrier_id}/users/?${params.toString()}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: "application/json",
-            },
-          }
+        `/api/admin/barriers/${barrier_id}/users/?${params.toString()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        },
       );
 
       if (res.status === 401) return await refreshAndRetry();
@@ -120,11 +122,11 @@ const BarrierUsersPage: React.FC = () => {
     if (!window.confirm("Удалить пользователя из шлагбаума?")) return;
     try {
       const res = await fetch(
-          `/api/admin/barriers/${barrier_id}/users/${userId}/`,
-          {
-            method: "DELETE",
-            headers: { Authorization: `Bearer ${accessToken}` },
-          }
+        `/api/admin/barriers/${barrier_id}/users/${userId}/`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
       );
       if (res.ok) {
         setUsers((prev) => prev.filter((u) => u.id !== userId));
@@ -267,191 +269,231 @@ const BarrierUsersPage: React.FC = () => {
   }, [ordering, page, search]);
 
   return (
-      <div style={styles.container}>
+    <div style={styles.container}>
+      <button
+        style={styles.backButton}
+        onClick={() =>
+          navigate("/admin-barrier-page", {
+            state: {
+              barrier_id,
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            },
+          })
+        }
+      >
+        ← Назад к шлагбауму
+      </button>
+
+      <h2 style={styles.title}>Пользователи: {barrierName}</h2>
+
+      {/* phone search / invite block */}
+      <div style={{ marginBottom: 20, textAlign: "center" }}>
+        <input
+          type="text"
+          placeholder="+7XXXXXXXXXX"
+          value={phoneQuery}
+          onChange={(e) => setPhoneQuery(e.target.value)}
+          style={{
+            ...styles.input,
+            maxWidth: 200,
+            display: "inline-block",
+            marginRight: 8,
+          }}
+        />
         <button
-            style={styles.backButton}
-            onClick={() =>
-                navigate("/admin-barrier-page", {
-                  state: { barrier_id, access_token: accessToken, refresh_token: refreshToken },
-                })
-            }
+          style={styles.button}
+          onClick={handleSearchByPhone}
+          disabled={searching || !phoneQuery.trim()}
         >
-          ← Назад к шлагбауму
+          {searching ? "Идёт поиск…" : "Найти пользователя"}
+        </button>
+        {searchError && <p style={styles.error}>{searchError}</p>}
+        {foundUser && (
+          <div
+            style={{ ...styles.userCard, margin: "16px auto", maxWidth: 300 }}
+          >
+            <p>
+              <strong>{foundUser.full_name}</strong>
+            </p>
+            <p>{foundUser.phone}</p>
+            <p>Роль: {foundUser.role}</p>
+            <p style={{ color: foundUser.is_active ? "#388e3c" : "#999999" }}>
+              {foundUser.is_active ? "Активен" : "Заблокирован"}
+            </p>
+
+            {!foundUser.is_active && (
+              <>
+                <button
+                  style={{
+                    ...styles.button,
+                    backgroundColor: "#f0d9ff",
+                    color: "#5a4478",
+                  }}
+                  onClick={handleUnblockFoundUser}
+                  disabled={unblocking}
+                >
+                  {unblocking ? "Разблокировка…" : "Разблокировать"}
+                </button>
+                {unblockError && <p style={styles.error}>{unblockError}</p>}
+              </>
+            )}
+
+            {foundUser.is_active && (
+              <>
+                <button
+                  style={styles.button}
+                  onClick={handleInviteFoundUser}
+                  disabled={inviting}
+                >
+                  {inviting ? "Отправка…" : "Пригласить в шлагбаум"}
+                </button>
+                {inviteError && <p style={styles.error}>{inviteError}</p>}
+                {inviteSuccess && (
+                  <p style={{ color: "#388e3c" }}>{inviteSuccess}</p>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      <div style={styles.controls}>
+        <button style={styles.orderButton} onClick={handleOrdering}>
+          Сортировка{" "}
+          {ordering === "full_name"
+            ? "↑"
+            : ordering === "-full_name"
+              ? "↓"
+              : ""}
+        </button>
+      </div>
+
+      {users.length > 0 ? (
+        <ul style={styles.list}>
+          {users.map((user) => (
+            <li key={user.id} style={styles.userCard}>
+              <p>
+                <strong>{user.full_name}</strong>
+              </p>
+              <p>{user.phone}</p>
+              <p>Роль: {user.role}</p>
+              <p style={{ color: user.is_active ? "#388e3c" : "#999999" }}>
+                {user.is_active ? "Активен" : "Заблокирован"}
+              </p>
+
+              <button
+                style={styles.button}
+                onClick={() =>
+                  navigate("/user-profile", {
+                    state: {
+                      user_id: user.id,
+                      access_token: accessToken,
+                      refresh_token: refreshToken,
+                      barrier_id,
+                    },
+                  })
+                }
+              >
+                Перейти к пользователю
+              </button>
+
+              <button
+                style={{
+                  ...styles.button,
+                  backgroundColor: "#ffe3e3",
+                  color: "#d9534f",
+                }}
+                onClick={() => handleDeleteUser(user.id)}
+              >
+                Удалить из шлагбаума
+              </button>
+              {deleteErrors[user.id] && (
+                <p style={styles.error}>{deleteErrors[user.id]}</p>
+              )}
+
+              {!showReasonInput[user.id] ? (
+                <button
+                  style={{
+                    ...styles.button,
+                    backgroundColor: "#f0d9ff",
+                    color: "#5a4478",
+                  }}
+                  onClick={() => {
+                    setShowReasonInput((prev) => ({
+                      ...prev,
+                      [user.id]: true,
+                    }));
+                    setSelectedUserId(user.id);
+                  }}
+                >
+                  Заблокировать пользователя
+                </button>
+              ) : (
+                <div>
+                  <input
+                    placeholder="Причина блокировки"
+                    value={selectedUserId === user.id ? blockReason : ""}
+                    onChange={(e) => {
+                      setSelectedUserId(user.id);
+                      setBlockReason(e.target.value);
+                    }}
+                    style={styles.input}
+                  />
+                  <button
+                    style={{
+                      ...styles.button,
+                      backgroundColor: "#d9534f",
+                      color: "white",
+                    }}
+                    onClick={() => handleBlockUser(user.id)}
+                  >
+                    Подтвердить блокировку
+                  </button>
+                  {blockErrors[user.id] && (
+                    <p style={styles.error}>{blockErrors[user.id]}</p>
+                  )}
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p style={styles.error}>Нет пользователей</p>
+      )}
+
+      <div style={styles.pagination}>
+        <button
+          style={
+            page === 1
+              ? { ...styles.pageButton, ...styles.pageButtonDisabled }
+              : styles.pageButton
+          }
+          onClick={() => setPage(Math.max(1, page - 1))}
+          disabled={page === 1}
+        >
+          ← Назад
         </button>
 
-        <h2 style={styles.title}>Пользователи: {barrierName}</h2>
-
-        {/* phone search / invite block */}
-        <div style={{ marginBottom: 20, textAlign: "center" }}>
-          <input
-              type="text"
-              placeholder="+7XXXXXXXXXX"
-              value={phoneQuery}
-              onChange={e => setPhoneQuery(e.target.value)}
-              style={{ ...styles.input, maxWidth: 200, display: "inline-block", marginRight: 8 }}
-          />
-          <button
-              style={styles.button}
-              onClick={handleSearchByPhone}
-              disabled={searching || !phoneQuery.trim()}
-          >
-            {searching ? "Идёт поиск…" : "Найти пользователя"}
-          </button>
-          {searchError && <p style={styles.error}>{searchError}</p>}
-          {foundUser && (
-              <div style={{ ...styles.userCard, margin: "16px auto", maxWidth: 300 }}>
-                <p><strong>{foundUser.full_name}</strong></p>
-                <p>{foundUser.phone}</p>
-                <p>Роль: {foundUser.role}</p>
-                <p style={{ color: foundUser.is_active ? "#388e3c" : "#999999" }}>
-                  {foundUser.is_active ? "Активен" : "Заблокирован"}
-                </p>
-
-                {!foundUser.is_active && (
-                    <>
-                      <button
-                          style={{ ...styles.button, backgroundColor: "#f0d9ff", color: "#5a4478" }}
-                          onClick={handleUnblockFoundUser}
-                          disabled={unblocking}
-                      >
-                        {unblocking ? "Разблокировка…" : "Разблокировать"}
-                      </button>
-                      {unblockError && <p style={styles.error}>{unblockError}</p>}
-                    </>
-                )}
-
-                {foundUser.is_active && (
-                    <>
-                      <button
-                          style={styles.button}
-                          onClick={handleInviteFoundUser}
-                          disabled={inviting}
-                      >
-                        {inviting ? "Отправка…" : "Пригласить в шлагбаум"}
-                      </button>
-                      {inviteError && <p style={styles.error}>{inviteError}</p>}
-                      {inviteSuccess && <p style={{ color: "#388e3c" }}>{inviteSuccess}</p>}
-                    </>
-                )}
-              </div>
-          )}
-        </div>
-
-        <div style={styles.controls}>
-          <button style={styles.orderButton} onClick={handleOrdering}>
-            Сортировка{" "}
-            {ordering === "full_name" ? "↑" : ordering === "-full_name" ? "↓" : ""}
-          </button>
-        </div>
-
-        {users.length > 0 ? (
-            <ul style={styles.list}>
-              {users.map(user => (
-                  <li key={user.id} style={styles.userCard}>
-                    <p><strong>{user.full_name}</strong></p>
-                    <p>{user.phone}</p>
-                    <p>Роль: {user.role}</p>
-                    <p style={{ color: user.is_active ? "#388e3c" : "#999999" }}>
-                      {user.is_active ? "Активен" : "Заблокирован"}
-                    </p>
-
-                    <button
-                        style={styles.button}
-                        onClick={() =>
-                            navigate("/user-profile", {
-                              state: {
-                                user_id: user.id,
-                                access_token: accessToken,
-                                refresh_token: refreshToken,
-                                barrier_id,
-                              },
-                            })
-                        }
-                    >
-                      Перейти к пользователю
-                    </button>
-
-                    <button
-                        style={{
-                          ...styles.button,
-                          backgroundColor: "#ffe3e3",
-                          color: "#d9534f",
-                        }}
-                        onClick={() => handleDeleteUser(user.id)}
-                    >
-                      Удалить из шлагбаума
-                    </button>
-                    {deleteErrors[user.id] && <p style={styles.error}>{deleteErrors[user.id]}</p>}
-
-                    {!showReasonInput[user.id] ? (
-                        <button
-                            style={{ ...styles.button, backgroundColor: "#f0d9ff", color: "#5a4478" }}
-                            onClick={() => {
-                              setShowReasonInput(prev => ({ ...prev, [user.id]: true }));
-                              setSelectedUserId(user.id);
-                            }}
-                        >
-                          Заблокировать пользователя
-                        </button>
-                    ) : (
-                        <div>
-                          <input
-                              placeholder="Причина блокировки"
-                              value={selectedUserId === user.id ? blockReason : ""}
-                              onChange={e => {
-                                setSelectedUserId(user.id);
-                                setBlockReason(e.target.value);
-                              }}
-                              style={styles.input}
-                          />
-                          <button
-                              style={{ ...styles.button, backgroundColor: "#d9534f", color: "white" }}
-                              onClick={() => handleBlockUser(user.id)}
-                          >
-                            Подтвердить блокировку
-                          </button>
-                          {blockErrors[user.id] && <p style={styles.error}>{blockErrors[user.id]}</p>}
-                        </div>
-                    )}
-                  </li>
-              ))}
-            </ul>
-        ) : (
-            <p style={styles.error}>Нет пользователей</p>
-        )}
-
-        <div style={styles.pagination}>
-          <button
-              style={
-                page === 1
-                    ? { ...styles.pageButton, ...styles.pageButtonDisabled }
-                    : styles.pageButton
-              }
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page === 1}
-          >
-            ← Назад
-          </button>
-
-          <span style={styles.pageCounter}>
+        <span style={styles.pageCounter}>
           {page} / {totalPages}
         </span>
 
-          <button
-              style={
-                page === totalPages
-                    ? { ...styles.pageButton, ...styles.pageButtonDisabled }
-                    : styles.pageButton
-              }
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
-              disabled={page === totalPages}
-          >
-            Вперёд →
-          </button>
-        </div>
-
-        {error && <p style={styles.error}>{error}</p>}
+        <button
+          style={
+            page === totalPages
+              ? { ...styles.pageButton, ...styles.pageButtonDisabled }
+              : styles.pageButton
+          }
+          onClick={() => setPage(Math.min(totalPages, page + 1))}
+          disabled={page === totalPages}
+        >
+          Вперёд →
+        </button>
       </div>
+
+      {error && <p style={styles.error}>{error}</p>}
+    </div>
   );
 };
 

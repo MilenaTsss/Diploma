@@ -104,7 +104,6 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
 };
 
-
 const AdminBarrierActionsPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();

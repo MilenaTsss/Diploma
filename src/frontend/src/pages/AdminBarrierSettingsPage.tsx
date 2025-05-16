@@ -9,7 +9,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     minHeight: "100vh",
     color: "#000000",
     boxSizing: "border-box",
-    width:"100vw",
+    width: "100vw",
   },
   backButton: {
     marginBottom: "20px",
@@ -118,7 +118,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: "clamp(13px, 3vw, 14px)",
   },
 };
-
 
 const AdminBarrierSettingsPage: React.FC = () => {
   const navigate = useNavigate();
