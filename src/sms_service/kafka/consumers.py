@@ -50,8 +50,8 @@ def consume_loop(handler, partition_id: int, topic_name: str, modem: HuaweiModem
                 success = handler(modem, msg)
                 if not success:
                     log_mgs = (
-                        "Handler returned failure for topic %s for partition %s at offset %s."
-                        + "Will recreate consumer."
+                        "Handler returned failure for message %s for topic %s for partition %s at offset %s. "
+                        "Will recreate consumer."
                     )
                     logger.error(log_mgs, msg.value(), topic_name, partition_id, msg.offset())
                     raise Exception("Handler failure")
@@ -70,4 +70,4 @@ def consume_loop(handler, partition_id: int, topic_name: str, modem: HuaweiModem
             except Exception as close_error:
                 logger.error("Error closing consumer: %s", close_error)
 
-            time.sleep(5)  # delay before reconnect
+            time.sleep(5)  # delay before reconnecting

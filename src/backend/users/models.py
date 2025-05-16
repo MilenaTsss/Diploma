@@ -127,6 +127,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text="Designates whether this user should be treated as active. "
         "Unselect this instead of deleting accounts.",
     )
+    is_blocked = models.BooleanField(
+        default=True,
+        help_text="Designates whether this user should be treated as blocked.",
+    )
     block_reason = models.CharField(max_length=STRING_MAX_LENGTH, blank=True, default="")
     date_joined = models.DateTimeField(default=now)
     last_login = models.DateTimeField(blank=True, null=True)

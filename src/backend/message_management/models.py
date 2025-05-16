@@ -1,7 +1,7 @@
 from django.db import models
 
 from action_history.models import BarrierActionLog
-from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH, STRING_MAX_LENGTH
+from core.constants import CHOICE_MAX_LENGTH, PHONE_MAX_LENGTH
 from core.validators import PhoneNumberValidator
 
 
@@ -40,7 +40,7 @@ class SMSMessage(models.Model):
     content = models.TextField()
     metadata = models.JSONField(null=True, blank=True)
     response_content = models.TextField(null=True, blank=True)
-    failure_reason = models.TextField(max_length=STRING_MAX_LENGTH, null=True, blank=True)
+    failure_reason = models.TextField(null=True, blank=True)
 
     sent_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

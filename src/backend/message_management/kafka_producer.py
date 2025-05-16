@@ -8,6 +8,7 @@ from rest_framework.exceptions import APIException
 from message_management.constants import KAFKA_SERVERS
 from message_management.enums import KafkaTopic
 from message_management.models import SMSMessage
+from phones.models import BarrierPhone
 
 NUM_RETRIES = 5
 _producer = None
@@ -50,6 +51,15 @@ def send_sms_to_kafka(topic: KafkaTopic, message: SMSMessage):
             message.failure_reason = "Cannot connect to Kafka"
             message.updated_at = now()
             message.save()
+
+            if message.message_type == SMSMessage.MessageType.PHONE_COMMAND and message.log and message.log.phone:
+                phone = message.log.phone
+                if message.phone_command_type == SMSMessage.PhoneCommandType.OPEN:
+                    phone.access_state = BarrierPhone.AccessState.ERROR_OPENING
+                elif message.phone_command_type == SMSMessage.PhoneCommandType.CLOSE:
+                    phone.access_state = BarrierPhone.AccessState.ERROR_CLOSING
+                phone.save()
+
             raise ConnectionError("Failed to deliver message to Kafka")
         logger.info("SMS sent to Kafka topic %s for phone %s", topic.value, message.phone)
 

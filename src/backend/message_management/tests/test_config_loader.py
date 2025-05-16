@@ -67,6 +67,22 @@ class TestGetPhoneCommand:
         with pytest.raises(NotFound, match="No phone commands defined for device model: 'UnknownModel'"):
             get_phone_command("UnknownModel", PhoneCommand.ADD)
 
+    def test_command_missing_response_pattern(self, tmp_path, monkeypatch):
+        config = {
+            Barrier.Model.RTU5025: {
+                PhoneCommand.ADD.value: {
+                    "template": "{pwd}A{index}#0007{phone}#"
+                    # no response_pattern
+                }
+            }
+        }
+        config_path = tmp_path / "phone_commands.json"
+        config_path.write_text(json.dumps(config))
+        monkeypatch.setattr("message_management.config_loader.PHONE_COMMANDS_PATH", str(config_path))
+
+        with pytest.raises(ValidationError, match="Missing 'response_pattern' for command 'add_phone'"):
+            get_phone_command(Barrier.Model.RTU5025, PhoneCommand.ADD)
+
 
 @pytest.mark.django_db
 class TestLoadBarrierSettings:

@@ -64,6 +64,7 @@ class BarrierPhone(models.Model):
     is_active = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class AccessState(models.TextChoices):
         UNKNOWN = "unknown", "Unknown"
@@ -250,6 +251,8 @@ class ScheduleTimeInterval(models.Model):
     day = models.CharField(max_length=CHOICE_MAX_LENGTH, choices=DayOfWeek.choices)
     start_time = models.TimeField(help_text="Start time in HH:MM")
     end_time = models.TimeField(help_text="End time in HH:MM")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"'{self.phone.phone}': {self.day} {self.start_time}-{self.end_time}"
