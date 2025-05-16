@@ -26,11 +26,11 @@ class BarrierActionLog(models.Model):
 
     class Reason(models.TextChoices):
         MANUAL = "manual", "Manual Action"
-        BARRIER_EXIT = "barrier_exit", "User Left Barrier or Admin deleted user from barrier"
         ACCESS_GRANTED = "access_granted", "Access Granted"
         PRIMARY_PHONE_CHANGE = "primary_phone_change", "Primary Phone Changed"
         SCHEDULE_UPDATE = "schedule_update", "Schedule Updated"
         END_OF_TIME = "end_time", "Deleting phone after its time ended"
+        BARRIER_EXIT = "barrier_exit", "User Left Barrier or Admin deleted user from barrier"
         BARRIER_DELETED = "barrier_deleted", "Barrier Deleted"
         USER_DELETED = "user_deleted", "User Deleted"
 

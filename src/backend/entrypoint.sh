@@ -38,6 +38,11 @@ if not User.objects.filter(role=User.Role.SUPERUSER).exists():
     )
 EOF
 
+log info 'Starting Kafka consumers...'
+python manage.py run_sms_consumers & >> /dev/stdout 2>&1 &
+
+log info 'Starting scheduler...'
+python manage.py run_scheduler & >> /dev/stdout 2>&1 &
 
 log info "Starting Gunicorn..."
 gunicorn --bind 0.0.0.0:8000 backend.wsgi:application \

@@ -17,7 +17,8 @@
           "key": "phone"
         }
       ],
-      "example": "1234A003#00079854500040#"
+      "example": "1234A003#00079854500040#",
+      "response_pattern": "^\\d{3}:\\d{11}.*$"
     },
     "delete_phone": {
       "name": "Удалить номер телефона",
@@ -32,7 +33,8 @@
           "key": "index"
         }
       ],
-      "example": "1234A003##"
+      "example": "1234A003##",
+      "response_pattern": "^\\d{3}:Empty."
     }
   },
   "Telemetrica": {
@@ -45,7 +47,8 @@
           "key": "phone"
         }
       ],
-      "example": "#60#+79854500040#"
+      "example": "#60#+79854500040#",
+      "response_pattern": "success"
     },
     "delete_phone": {
       "name": "Удалить номер телефона",
@@ -56,7 +59,8 @@
           "key": "phone"
         }
       ],
-      "example": "#15#+79854500040#"
+      "example": "#15#+79854500040#",
+      "response_pattern": "success"
     }
   }
 }

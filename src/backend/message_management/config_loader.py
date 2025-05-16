@@ -28,6 +28,8 @@ def get_phone_command(device_model: str, command: PhoneCommand) -> dict:
     cmd = model_commands.get(command.value)
     if not cmd:
         raise NotFound(f"Command '{command.value}' not found for model '{device_model}'")
+    if "response_pattern" not in cmd:
+        raise ValidationError(f"Missing 'response_pattern' for command '{command.value}' of model '{device_model}'")
 
     return cmd
 

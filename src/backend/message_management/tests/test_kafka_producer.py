@@ -9,6 +9,7 @@ from rest_framework.exceptions import APIException
 from message_management.enums import KafkaTopic
 from message_management.kafka_producer import send_sms_to_kafka
 from message_management.models import SMSMessage
+from phones.models import BarrierPhone
 
 
 @pytest.mark.django_db
@@ -50,8 +51,7 @@ class TestKafkaProducer:
 
     @patch("message_management.kafka_producer.get_producer")
     def test_send_sms_flush_fails(self, mock_get_producer, sms_message):
-        producer_mock = mock_get_producer.return_value
-        producer_mock.flush.return_value = 1  # Non-zero return triggers error
+        mock_get_producer.return_value.flush.return_value = 1
 
         with pytest.raises(APIException) as exc_info:
             send_sms_to_kafka(KafkaTopic.SMS_VERIFICATION, sms_message)
@@ -60,6 +60,42 @@ class TestKafkaProducer:
         assert sms_message.status == SMSMessage.Status.FAILED
         assert sms_message.failure_reason == "Cannot connect to Kafka"
         assert "Cannot send SMS" in str(exc_info.value)
+
+    @patch("message_management.kafka_producer.get_producer")
+    def test_status_update_on_open_command(self, mock_get_producer, barrier_phone):
+        phone, log = barrier_phone
+        mock_get_producer.return_value.flush.return_value = 1
+        sms = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.PHONE_COMMAND,
+            content="OPEN GATE",
+            phone=phone.barrier.device_phone,
+            phone_command_type=SMSMessage.PhoneCommandType.OPEN,
+            log=log,
+        )
+
+        with pytest.raises(Exception):
+            send_sms_to_kafka(KafkaTopic.SMS_CONFIGURATION, sms)
+
+        phone.refresh_from_db()
+        assert phone.access_state == BarrierPhone.AccessState.ERROR_OPENING
+
+    @patch("message_management.kafka_producer.get_producer")
+    def test_status_update_on_close_command(self, mock_get_producer, barrier_phone):
+        phone, log = barrier_phone
+        mock_get_producer.return_value.flush.return_value = 1
+        sms = SMSMessage.objects.create(
+            message_type=SMSMessage.MessageType.PHONE_COMMAND,
+            content="CLOSE GATE",
+            phone=phone.barrier.device_phone,
+            phone_command_type=SMSMessage.PhoneCommandType.CLOSE,
+            log=log,
+        )
+
+        with pytest.raises(Exception):
+            send_sms_to_kafka(KafkaTopic.SMS_CONFIGURATION, sms)
+
+        phone.refresh_from_db()
+        assert phone.access_state == BarrierPhone.AccessState.ERROR_CLOSING
 
     @patch("message_management.kafka_producer.get_producer")
     def test_producer_buffer_error(self, mock_get_producer, sms_message):
