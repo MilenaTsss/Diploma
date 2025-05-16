@@ -301,6 +301,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: "1px solid #ccc",
     display: "block",
     boxSizing: "border-box",
+    backgroundColor: "#ffffff", // 👈 всегда белый фон
+    color: "#000000",           // 👈 всегда чёрный текст
+  },
+  timeInput: {
+    padding: "6px",
+    borderRadius: "6px",
+    border: "1px solid #ccc",
+    backgroundColor: "#ffffff", // 👈 белый фон
+    color: "#000000",           // 👈 чёрный текст
   },
   saveButton: {
     width: "60%",
@@ -354,11 +363,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: "10px",
     alignItems: "center",
     marginBottom: "6px",
-  },
-  timeInput: {
-    padding: "6px",
-    borderRadius: "6px",
-    border: "1px solid #ccc",
   },
   trashButton: {
     background: "none",

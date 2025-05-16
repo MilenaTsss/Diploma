@@ -328,7 +328,7 @@ const AdminUserProfile: React.FC = () => {
 
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
-    backgroundColor: "#fef7fb",
+    backgroundColor: "#fef7fb", // фиолетовый фон
     minHeight: "100vh",
     width: "100vw",
     fontFamily: "sans-serif",
@@ -336,10 +336,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexDirection: "column",
     alignItems: "center",
     paddingBottom: "100px",
+    color: "#000000", // чёрный текст
   },
   title: {
     fontSize: "24px",
-    color: "#5a4478",
+    color: "#5a4478", // фиолетовый
     marginBottom: "8px",
   },
   subtitle: {
@@ -361,7 +362,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   profileCard: {
     width: "90%",
     maxWidth: "500px",
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     padding: "15px",
     borderRadius: "10px",
     boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
@@ -369,6 +370,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-start",
+    color: "#000000",
   },
   list: {
     listStyle: "none",
@@ -378,11 +380,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: "center",
     width: "100%",
     gap: "12px",
+    color: "#000000",
   },
   card: {
     width: "90%",
     maxWidth: "500px",
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     padding: "15px",
     borderRadius: "10px",
     boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
@@ -390,23 +393,26 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "flex",
     flexDirection: "column",
     alignItems: "flex-start",
+    color: "#000000",
   },
   pagination: {
     display: "flex",
     justifyContent: "center",
     gap: "20px",
     marginTop: "24px",
+    color: "#000000",
   },
   error: {
     textAlign: "center",
-    color: "red",
+    color: "#d32f2f",
     marginTop: "16px",
   },
   loading: {
     textAlign: "center",
-    color: "#5a4478",
+    color: "#000000",
     marginTop: "16px",
   },
 };
+
 
 export default AdminUserProfile;

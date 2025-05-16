@@ -355,6 +355,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: "5vw",
     fontFamily: "sans-serif",
     boxSizing: "border-box",
+    color: "#000000",
   },
   header: {
     display: "flex",
@@ -372,7 +373,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   leaveButton: {
     marginLeft: "auto",
     backgroundColor: "#d9534f",
-    color: "#fff",
+    color: "#ffffff",
     border: "none",
     borderRadius: "20px",
     padding: "8px 14px",
@@ -385,7 +386,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: "#5a4478",
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
     padding: "clamp(16px, 4vw, 24px)",
     borderRadius: "12px",
     boxShadow: "0 4px 10px rgba(90, 68, 120, 0.1)",
@@ -394,6 +395,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     maxWidth: "500px",
     marginLeft: "auto",
     marginRight: "auto",
+    color: "#000000",
   },
   subtitle: {
     color: "#5a4478",
@@ -404,7 +406,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   button: {
     width: "50%",
     backgroundColor: "#5a4478",
-    color: "#fff",
+    color: "#ffffff",
     padding: "14px",
     borderRadius: "20px",
     border: "none",
@@ -421,6 +423,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "flex",
     flexDirection: "column",
     gap: "6px",
+    color: "#000000",
   },
   phoneHeader: {
     display: "flex",
@@ -430,7 +433,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   phoneText: {
     fontSize: "clamp(14px, 3.5vw, 16px)",
-    color: "#333",
+    color: "#000000",
     margin: 0,
   },
   iconGroup: {
@@ -447,7 +450,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   timeInfo: {
     fontSize: "12px",
-    color: "#666",
+    color: "#000000",
     marginLeft: "4px",
   },
   inner: {},

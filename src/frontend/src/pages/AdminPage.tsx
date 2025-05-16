@@ -302,8 +302,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: "12px",
     borderRadius: "8px",
     border: "1px solid #ccc",
-    fontSize: "16px",
+    fontSize: "clamp(14px, 4vw, 16px)",
     marginBottom: "10px",
+    backgroundColor: "#ffffff", // белый фон
+    color: "#000000",           // чёрный текст
+    boxSizing: "border-box",    // чтобы padding не ломал ширину
   },
   label: {
     display: "block",
