@@ -83,6 +83,7 @@ const UserProfile: React.FC = () => {
         console.error("Ошибка проверки админа", error);
       }
     };
+
     fetchUserProfile();
   }, [accessToken, refreshToken, navigate]);
 
@@ -229,6 +230,7 @@ const UserProfile: React.FC = () => {
           </span>
         </div>
       )}
+
       <button
         style={{
           ...styles.deleteButton,
@@ -247,6 +249,7 @@ const UserProfile: React.FC = () => {
       >
         Удалить профиль
       </button>
+
       <div style={styles.navbar}>
         <button
           style={styles.navButton}

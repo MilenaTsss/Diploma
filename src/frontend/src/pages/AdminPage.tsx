@@ -8,6 +8,11 @@ const AdminPage: React.FC = () => {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [phonePrivacy, setPhonePrivacy] = useState<
+    "public" | "private" | "protected"
+  >("public");
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [editingName, setEditingName] = useState(false);
   const [balance, setBalance] = useState(100);
   const [isAdmin, setIsAdmin] = useState(true);
 
@@ -18,12 +23,73 @@ const AdminPage: React.FC = () => {
     location.state?.refresh_token || localStorage.getItem("refresh_token"),
   );
 
+  const fetchUserData = async () => {
+    try {
+      const res = await fetch("/api/users/me/", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          Accept: "application/json",
+        },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setName(data.full_name || "");
+        setPhone(data.phone || "");
+        setPhonePrivacy(data.phone_privacy || "public");
+      } else {
+        navigate("/login");
+      }
+    } catch (err) {
+      console.error("Ошибка загрузки профиля:", err);
+    }
+  };
+
+  const saveField = async (field: string, value: any) => {
+    try {
+      const res = await fetch("/api/users/me/", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ [field]: value }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.detail || `Ошибка при обновлении ${field}`);
+        return false;
+      }
+      return data;
+    } catch (err) {
+      console.error("Ошибка сети:", err);
+      alert("Ошибка сети");
+      return false;
+    }
+  };
+
+  const handleSaveName = async () => {
+    const data = await saveField("full_name", name);
+    if (data) setEditingName(false);
+  };
+
+  const handlePhoneSave = async () => {
+    const data = await saveField("phone", phone);
+    if (data) setEditingPhone(false);
+  };
+
+  const handlePrivacyChange = async (
+    newPrivacy: "public" | "private" | "protected",
+  ) => {
+    const data = await saveField("phone_privacy", newPrivacy);
+    if (data) setPhonePrivacy(data.phone_privacy);
+  };
+
   const handleBalanceCheck = () => {
-    const randomBalance = Math.floor(Math.random() * 500);
+    const randomBalance = 543;
     setBalance(randomBalance);
   };
 
-  const handleSwitch = () => {
+  const handleToggleRole = () => {
     setIsAdmin((prev) => {
       const newRole = !prev;
       if (!newRole) {
@@ -39,97 +105,133 @@ const AdminPage: React.FC = () => {
     });
   };
 
-  const fetchUserData = async () => {
-    try {
-      const res = await fetch("/api/users/me/", {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          Accept: "application/json",
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setName(data.full_name || "");
-        setPhone(data.phone || "");
-        setPassword(""); // Пароль пустой при получении
-      } else if (res.status === 401) {
-        const refreshRes = await fetch("/api/auth/token/refresh/", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ refresh: refreshToken }),
-        });
-        const refreshData = await refreshRes.json();
-        if (refreshRes.ok && refreshData.access) {
-          localStorage.setItem("access_token", refreshData.access);
-          window.location.reload();
-        } else {
-          navigate("/login");
-        }
-      }
-    } catch (error) {
-      console.error("Ошибка при загрузке профиля:", error);
-    }
-  };
-
   useEffect(() => {
     fetchUserData();
   }, []);
+
+  const navigateWithState = (path: string) => {
+    navigate(path, {
+      state: {
+        phone,
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      },
+    });
+  };
 
   return (
     <div style={styles.page}>
       <div style={styles.wrapper}>
         <h1 style={styles.title}>Профиль администратора</h1>
 
-        <EditableBlock
-          label="Имя"
-          value={name}
-          setValue={setName}
-          type="text"
-        />
-        <EditableBlock
-          label="Телефон"
-          value={phone}
-          setValue={setPhone}
-          type="text"
-        />
-        <EditableBlock
-          label="Пароль"
-          value={password}
-          setValue={setPassword}
-          type="password"
-        />
+        <div style={styles.card}>
+          {editingName ? (
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              style={styles.input}
+            />
+          ) : (
+            <p style={styles.text}>{name || "—"}</p>
+          )}
+          <button
+            style={styles.mainButton}
+            onClick={() =>
+              editingName ? handleSaveName() : setEditingName(true)
+            }
+          >
+            {editingName ? "Сохранить" : "Изменить имя"}
+          </button>
+        </div>
 
         <div style={styles.card}>
-          <p style={styles.balanceText}>Баланс на счету: {balance} ₽</p>
+          {editingPhone ? (
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              style={styles.input}
+            />
+          ) : (
+            <p style={styles.text}>{phone || "—"}</p>
+          )}
+          <button
+            style={styles.button}
+            onClick={() => navigateWithState("/change-phone-admin")}
+          >
+            Изменить телефон
+          </button>
+          <label style={styles.label}>Приватность номера</label>
+          <select
+            value={phonePrivacy}
+            onChange={(e) => handlePrivacyChange(e.target.value as any)}
+            style={styles.select}
+          >
+            <option value="public">Виден всем</option>
+            <option value="protected">
+              Виден пользователям ваших шлагбаумов
+            </option>
+            <option value="private">Не виден никому</option>
+          </select>
+        </div>
+
+        <div style={styles.card}>
+          <button
+            style={styles.mainButton}
+            onClick={() =>
+              navigate("/change-password", {
+                state: {
+                  phone,
+                  access_token: accessToken,
+                  refresh_token: refreshToken,
+                },
+              })
+            }
+          >
+            🔒 Поменять пароль
+          </button>
+        </div>
+
+        <div style={styles.card}>
+          <p style={styles.text}>Баланс: {balance} ₽</p>
           <button style={styles.mainButton} onClick={handleBalanceCheck}>
             Проверить баланс
           </button>
         </div>
 
-        <div style={styles.switchBlock}>
-          <span>Пользователь</span>
-          <label style={styles.switch}>
-            <input
-              type="checkbox"
-              checked={isAdmin}
-              onChange={handleSwitch}
-              style={styles.switchInput}
-            />
-            <span
-              style={{
-                ...styles.slider,
-                ...(isAdmin ? styles.switchChecked : {}),
-              }}
-            >
+        <div style={styles.card}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span>Пользователь</span>
+            <label style={styles.switch}>
+              <input
+                type="checkbox"
+                checked={isAdmin}
+                onChange={handleToggleRole}
+                style={styles.switchInput}
+              />
               <span
                 style={{
-                  ...styles.sliderBefore,
-                  ...(isAdmin ? styles.switchCheckedBefore : {}),
+                  ...styles.slider,
+                  ...(isAdmin ? styles.switchChecked : {}),
                 }}
-              />
-            </span>
-          </label>
-          <span>Администратор</span>
+              >
+                <span
+                  style={{
+                    ...styles.sliderBefore,
+                    ...(isAdmin ? styles.switchCheckedBefore : {}),
+                  }}
+                />
+              </span>
+            </label>
+            <span>Администратор</span>
+          </div>
         </div>
       </div>
 
@@ -138,11 +240,7 @@ const AdminPage: React.FC = () => {
           style={styles.navButton}
           onClick={() =>
             navigate("/admin-barriers", {
-              state: {
-                phone,
-                access_token: accessToken,
-                refresh_token: refreshToken,
-              },
+              state: { access_token: accessToken, refresh_token: refreshToken },
             })
           }
         >
@@ -152,15 +250,11 @@ const AdminPage: React.FC = () => {
           style={styles.navButton}
           onClick={() =>
             navigate("/admin-requests", {
-              state: {
-                phone,
-                access_token: accessToken,
-                refresh_token: refreshToken,
-              },
+              state: { access_token: accessToken, refresh_token: refreshToken },
             })
           }
         >
-          Запросы
+          Заявки
         </button>
         <button style={{ ...styles.navButton, ...styles.activeNavButton }}>
           Профиль
@@ -170,69 +264,22 @@ const AdminPage: React.FC = () => {
   );
 };
 
-const EditableBlock = ({
-  label,
-  value,
-  setValue,
-  type,
-}: {
-  label: string;
-  value: string;
-  setValue: (val: string) => void;
-  type: string;
-}) => {
-  const [editing, setEditing] = useState(false);
-
-  return (
-    <div style={styles.card}>
-      {editing ? (
-        <div style={{ position: "relative" }}>
-          <input
-            type={type}
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            style={styles.input}
-          />
-          {type !== "password" && value && (
-            <button onClick={() => setValue("")} style={styles.clearButton}>
-              ✕
-            </button>
-          )}
-        </div>
-      ) : (
-        <p style={styles.text}>
-          {type === "password" && !value ? "••••••" : value}
-        </p>
-      )}
-      <button
-        style={styles.mainButton}
-        onClick={() => setEditing((prev) => !prev)}
-      >
-        {editing ? "Сохранить" : `Изменить ${label.toLowerCase()}`}
-      </button>
-    </div>
-  );
-};
-
 const styles: { [key: string]: React.CSSProperties } = {
   page: {
     backgroundColor: "#fef7fb",
     minHeight: "100vh",
     width: "100vw",
+    fontFamily: "sans-serif",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     paddingBottom: "100px",
-    fontFamily: "sans-serif",
   },
   wrapper: {
     marginTop: "30px",
     width: "100%",
     maxWidth: "400px",
     padding: "0 20px",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
   },
   title: {
     fontSize: "26px",
@@ -246,40 +293,38 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: "20px",
     borderRadius: "16px",
     boxShadow: "0 4px 15px rgba(90, 68, 120, 0.2)",
-    textAlign: "center",
-    width: "100%",
     marginBottom: "20px",
-    position: "relative",
-  },
-  text: {
-    fontSize: "18px",
-    fontWeight: 500,
-    marginBottom: "10px",
-    color: "#333",
+    width: "100%",
   },
   input: {
     width: "100%",
     padding: "12px",
-    fontSize: "16px",
-    borderRadius: "10px",
+    borderRadius: "8px",
     border: "1px solid #ccc",
-    outline: "none",
-    backgroundColor: "#ffffff",
-    textAlign: "center",
-    color: "#333",
+    fontSize: "clamp(14px, 4vw, 16px)",
+    marginBottom: "10px",
+    backgroundColor: "#ffffff", // белый фон
+    color: "#000000", // чёрный текст
+    boxSizing: "border-box", // чтобы padding не ломал ширину
   },
-  clearButton: {
-    position: "absolute",
-    right: "15px",
-    top: "8px",
-    background: "none",
-    border: "none",
-    fontSize: "18px",
+  label: {
+    display: "block",
+    marginBottom: "6px",
+    fontSize: "14px",
     color: "#5a4478",
-    cursor: "pointer",
+  },
+  select: {
+    width: "100%",
+    padding: "10px",
+    borderRadius: "8px",
+    fontSize: "14px",
+    border: "1px solid #ccc",
+    backgroundColor: "#f8f3fb",
+    color: "#333",
+    outline: "none",
+    marginBottom: "10px",
   },
   mainButton: {
-    marginTop: "15px",
     width: "100%",
     backgroundColor: "#5a4478",
     color: "#ffffff",
@@ -290,19 +335,33 @@ const styles: { [key: string]: React.CSSProperties } = {
     cursor: "pointer",
     fontWeight: "bold",
   },
-  balanceText: {
+  text: {
     fontSize: "16px",
-    color: "#5a4478",
+    color: "#333",
     marginBottom: "10px",
   },
-  switchBlock: {
+  navbar: {
+    position: "fixed",
+    bottom: 0,
+    left: 0,
+    width: "100%",
+    backgroundColor: "#f8f3fb",
+    padding: "10px 0",
     display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: "25px",
-    gap: "10px",
+    justifyContent: "space-around",
+    boxShadow: "0 -2px 10px rgba(0,0,0,0.05)",
+  },
+  navButton: {
+    background: "none",
+    border: "none",
     color: "#5a4478",
     fontSize: "14px",
+    cursor: "pointer",
+    fontWeight: "bold",
+  },
+  activeNavButton: {
+    borderBottom: "2px solid #5a4478",
+    paddingBottom: "4px",
   },
   switch: {
     position: "relative",
@@ -318,13 +377,13 @@ const styles: { [key: string]: React.CSSProperties } = {
   slider: {
     position: "absolute",
     cursor: "pointer",
-    top: "0",
-    left: "0",
-    right: "0",
-    bottom: "0",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "#ccc",
+    transition: ".4s",
     borderRadius: "24px",
-    transition: "0.4s",
   },
   sliderBefore: {
     position: "absolute",
@@ -334,7 +393,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     left: "3px",
     bottom: "3px",
     backgroundColor: "white",
-    transition: "0.4s",
+    transition: ".4s",
     borderRadius: "50%",
   },
   switchChecked: {
@@ -343,27 +402,15 @@ const styles: { [key: string]: React.CSSProperties } = {
   switchCheckedBefore: {
     transform: "translateX(26px)",
   },
-  navbar: {
-    display: "flex",
-    justifyContent: "space-around",
+  button: {
     width: "100%",
-    position: "fixed",
-    bottom: "0",
-    backgroundColor: "#f8f3fb",
-    padding: "12px 0",
-    boxShadow: "0 -2px 10px rgba(0,0,0,0.05)",
-  },
-  navButton: {
-    background: "none",
+    padding: "10px 15px",
+    backgroundColor: "#5a4478",
+    color: "#fff",
     border: "none",
+    borderRadius: "20px",
     fontSize: "14px",
-    color: "#5a4478",
     cursor: "pointer",
-    fontWeight: "bold",
-  },
-  activeNavButton: {
-    borderBottom: "2px solid #5a4478",
-    paddingBottom: "4px",
   },
 };
 

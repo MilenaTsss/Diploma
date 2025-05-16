@@ -21,6 +21,18 @@ import AddPhonePage from "./pages/AddPhonePage";
 import EditPhonePage from "./pages/EditPhonePage";
 import DeleteAccount from "./pages/DeleteAccount";
 import AdminRequests from "./pages/AdminRequests";
+import ChangePhoneAdminPage from "./pages/ChangePhoneAdminPage";
+import ChangePasswordPage from "./pages/ChangePasswordPage";
+import AdminBarriersPage from "./pages/AdminBarriersPage";
+import AdminBarrierDetails from "./pages/AdminBarrierDetails";
+import BarrierUsersPage from "./pages/BarrierUsersPage";
+import AdminUserProfile from "./pages/AdminUserProfile";
+import AdminAddPhonePage from "./pages/AdminAddPhonePage";
+import AdminEditPhonePage from "./pages/AdminEditPhonePage";
+import CreateBarrierPage from "./pages/CreateBarrierPage";
+import AdminBarrierSettingsPage from "./pages/AdminBarrierSettingsPage";
+import UserBarrierActionsPage from "./pages/UserBarrierActionsPage";
+import AdminBarrierActionsPage from "./pages/AdminBarrierActionsPage";
 
 const App: React.FC = () => {
   return (
@@ -44,6 +56,24 @@ const App: React.FC = () => {
         <Route path="/edit-phone" element={<EditPhonePage />} />
         <Route path="/delete-account" element={<DeleteAccount />} />
         <Route path="/admin-requests" element={<AdminRequests />} />
+        <Route path="/change-phone-admin" element={<ChangePhoneAdminPage />} />
+        <Route path="/change-password" element={<ChangePasswordPage />} />
+        <Route path="/admin-barriers" element={<AdminBarriersPage />} />
+        <Route path="/admin-barrier-page" element={<AdminBarrierDetails />} />
+        <Route path="/barrier-users" element={<BarrierUsersPage />} />
+        <Route path="/user-profile" element={<AdminUserProfile />} />
+        <Route path="/add-phone-admin" element={<AdminAddPhonePage />} />
+        <Route path="/edit-phone-admin" element={<AdminEditPhonePage />} />
+        <Route path="/create-barrier" element={<CreateBarrierPage />} />
+        <Route
+          path="/barrier-settings"
+          element={<AdminBarrierSettingsPage />}
+        />
+        <Route path="/barrier-history" element={<UserBarrierActionsPage />} />
+        <Route
+          path="/barrier-history-admin"
+          element={<AdminBarrierActionsPage />}
+        />
       </Routes>
     </Router>
   );

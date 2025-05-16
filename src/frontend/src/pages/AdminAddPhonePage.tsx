@@ -2,31 +2,16 @@ import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { FaArrowLeft, FaTrash, FaPlusCircle } from "react-icons/fa";
 
-const AddPhonePage: React.FC = () => {
+const AdminAddPhonePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const barrierId = location.state?.barrier_id;
-  const accessToken = location.state?.access_token;
-
-  const logToLoki = (
-    message: string,
-    level: "info" | "warn" | "error" = "info",
-  ) => {
-    fetch("http://loki:3100/loki/api/v1/push", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        streams: [
-          {
-            stream: { level, app: "react-ui", page: "add-phone" },
-            values: [[`${Date.now()}000000`, message]],
-          },
-        ],
-      }),
-    }).catch(console.error);
-  };
-
+  const accessToken =
+    location.state?.access_token || localStorage.getItem("access_token");
+  const refreshToken =
+    location.state?.refresh_token || localStorage.getItem("refresh_token");
+  const userId = location.state?.user_id;
   const [phone, setPhone] = useState("+7");
   const [name, setName] = useState("");
   const [type, setType] = useState<"permanent" | "temporary" | "schedule">(
@@ -68,7 +53,6 @@ const AddPhonePage: React.FC = () => {
 
     if (!isPhoneValid()) {
       setError("Номер телефона должен быть в формате +7XXXXXXXXXX.");
-      logToLoki(`Введён неверный номер: ${phone}`, "warn");
       return;
     }
 
@@ -77,8 +61,7 @@ const AddPhonePage: React.FC = () => {
       return;
     }
 
-    const payload: any = { phone, name, type };
-
+    const payload: any = { user: userId, phone, name, type };
     if (type === "temporary") {
       if (!startTime || !endTime) {
         setError("Укажите время начала и конца.");
@@ -86,10 +69,6 @@ const AddPhonePage: React.FC = () => {
       }
       if (new Date(startTime) >= new Date(endTime)) {
         setError("Время начала должно быть раньше времени конца.");
-        logToLoki(
-          `Некорректный интервал в расписании: ${startTime} >= ${endTime}`,
-          "error",
-        );
         return;
       }
 
@@ -102,7 +81,7 @@ const AddPhonePage: React.FC = () => {
     }
 
     try {
-      const res = await fetch(`/api/barriers/${barrierId}/phones/`, {
+      const res = await fetch(`/api/admin/barriers/${barrierId}/phones/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -112,20 +91,17 @@ const AddPhonePage: React.FC = () => {
       });
 
       if (res.ok) {
-        logToLoki(
-          `Номер ${phone} успешно добавлен (${type}) на шлагбаум ${barrierId}`,
-          "info",
-        );
-        navigate("/mybarrier", {
-          state: { barrier_id: barrierId, access_token: accessToken },
+        navigate("/user-profile", {
+          state: {
+            user_id: userId,
+            barrier_id: barrierId,
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          },
         });
       } else {
         const data = await res.json();
         console.log(data);
-        logToLoki(
-          `Ошибка при сохранении номера: ${JSON.stringify(data)}`,
-          "error",
-        );
         setError(
           data.phone ||
             data.type ||
@@ -137,7 +113,6 @@ const AddPhonePage: React.FC = () => {
         );
       }
     } catch (e) {
-      logToLoki(`Сетевая ошибка при добавлении номера: ${phone}`, "error");
       setError("Ошибка сети.");
     }
   };
@@ -316,7 +291,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: "5vw",
     boxSizing: "border-box",
     fontFamily: "sans-serif",
-    color: "#000000",
   },
   title: {
     fontSize: "22px",
@@ -334,13 +308,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     border: "1px solid #ccc",
     boxSizing: "border-box",
     display: "block",
-    backgroundColor: "#ffffff",
-    color: "#000000",
   },
   saveButton: {
     width: "50%",
-    backgroundColor: "#5a4478",
-    color: "#ffffff",
+    color: "#fff",
     padding: "14px",
     borderRadius: "20px",
     border: "none",
@@ -348,10 +319,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: "16px",
     margin: "0 auto 12px",
     display: "block",
-    cursor: "pointer",
   },
   error: {
-    color: "#d32f2f",
+    color: "red",
     fontSize: "14px",
     marginTop: "10px",
     textAlign: "center",
@@ -369,4 +339,4 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
 };
 
-export default AddPhonePage;
+export default AdminAddPhonePage;
